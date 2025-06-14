@@ -1,0 +1,103 @@
+# Development Dockerfile for Nebula
+# This version includes development tools and optimizations for local development
+
+FROM golang:1.23-alpine AS base
+
+# Install development dependencies
+RUN apk add --no-cache \
+    git \
+    make \
+    curl \
+    bash \
+    vim \
+    postgresql-client \
+    mysql-client \
+    ca-certificates \
+    tzdata
+
+# Install development tools (use versions compatible with Go 1.23)
+RUN go install github.com/air-verse/air@latest && \
+    go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && \
+    go install golang.org/x/tools/cmd/goimports@latest && \
+    go install github.com/segmentio/golines@latest
+
+# Set working directory
+WORKDIR /workspace
+
+# Copy go mod files for dependency caching
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Development stage - includes source code mounting
+FROM base AS development
+
+# Expose ports for debugging and metrics
+EXPOSE 8080 9090 2345
+
+# Create nebula user for development
+RUN addgroup -g 1000 nebula && \
+    adduser -D -u 1000 -G nebula nebula && \
+    mkdir -p /home/nebula/.cache && \
+    chown -R nebula:nebula /workspace /home/nebula
+
+USER nebula
+
+# Set up development environment
+ENV CGO_ENABLED=0
+ENV GOOS=linux
+ENV GOARCH=amd64
+
+# Default command for development (hot reload)
+CMD ["air", "-c", ".air.toml"]
+
+# Production build stage
+FROM base AS builder
+
+# Copy source code
+COPY . .
+
+# Build the application with optimizations
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags="-w -s -X main.version=$(git describe --tags --always)" \
+    -o bin/nebula \
+    ./cmd/nebula
+
+# Production runtime stage
+FROM alpine:3.19 AS production
+
+# Install runtime dependencies
+RUN apk add --no-cache ca-certificates tzdata
+
+# Create non-root user
+RUN addgroup -g 1000 nebula && \
+    adduser -D -u 1000 -G nebula nebula
+
+# Set working directory
+WORKDIR /app
+
+# Copy binary from builder
+COPY --from=builder /workspace/bin/nebula /app/nebula
+
+# Copy example configs
+COPY --from=builder /workspace/config/ /app/config/
+
+# Change ownership
+RUN chown -R nebula:nebula /app
+
+# Switch to non-root user
+USER nebula
+
+# Expose metrics port
+EXPOSE 9090
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD ["/app/nebula", "version"] || exit 1
+
+# Set entrypoint
+ENTRYPOINT ["/app/nebula"]
+
+# Default command
+CMD ["help"]

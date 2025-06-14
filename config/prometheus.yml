@@ -1,0 +1,58 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Nebula development instance
+  - job_name: 'nebula-dev'
+    static_configs:
+      - targets: ['nebula-dev:9090']
+    scrape_interval: 5s
+    metrics_path: /metrics
+    scheme: http
+
+  # Nebula production instance
+  - job_name: 'nebula-prod'
+    static_configs:
+      - targets: ['nebula-prod:9090']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scheme: http
+
+  # PostgreSQL metrics (if we add postgres_exporter)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+    scrape_interval: 30s
+    # This would require postgres_exporter to be set up
+
+  # MySQL metrics (if we add mysqld_exporter)
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['mysql:3306']
+    scrape_interval: 30s
+    # This would require mysqld_exporter to be set up
+
+  # Redis metrics (if we add redis_exporter)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 30s
+    # This would require redis_exporter to be set up
+
+  # MinIO metrics
+  - job_name: 'minio'
+    static_configs:
+      - targets: ['minio:9000']
+    scrape_interval: 30s
+    metrics_path: /minio/prometheus/metrics
+    scheme: http
