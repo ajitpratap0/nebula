@@ -1,0 +1,124 @@
+# Performance Budget Configuration for Nebula
+# These budgets are enforced in CI and during development
+
+phase_1:
+  name: "Foundation & Basic Pipeline"
+  target_date: "Month 1"
+  budgets:
+    throughput:
+      min: 10000  # records/second
+      description: "Minimum pipeline throughput"
+    latency:
+      p99_max: 10  # milliseconds
+      p95_max: 5   # milliseconds
+      p50_max: 1   # milliseconds
+    memory:
+      per_million_records: 500  # MB
+      allocation_rate: 1000     # MB/s max
+    gc:
+      pause_p99: 10  # milliseconds
+      pause_p95: 5   # milliseconds
+      cpu_fraction: 0.05  # 5% max
+    allocations:
+      per_record: 10  # max allocations
+
+phase_3:
+  name: "Advanced Concurrency"
+  target_date: "Month 2"
+  budgets:
+    throughput:
+      min: 100000  # records/second
+    latency:
+      p99_max: 5   # milliseconds
+      p95_max: 2   # milliseconds
+      p50_max: 0.5 # milliseconds
+    memory:
+      per_million_records: 200  # MB
+      allocation_rate: 500      # MB/s max
+    gc:
+      pause_p99: 5  # milliseconds
+      pause_p95: 2  # milliseconds
+      cpu_fraction: 0.02  # 2% max
+    allocations:
+      per_record: 5  # max allocations
+    cpu:
+      utilization_min: 0.7  # 70% minimum
+      efficiency: 0.8       # 80% of theoretical max
+
+phase_7:
+  name: "Zero-Copy Implementation"
+  target_date: "Month 3"
+  budgets:
+    throughput:
+      min: 1000000  # records/second (1M)
+    latency:
+      p99_max: 1    # milliseconds
+      p95_max: 0.5  # milliseconds
+      p50_max: 0.1  # milliseconds
+    memory:
+      per_million_records: 50  # MB
+      allocation_rate: 50      # MB/s max
+    gc:
+      pause_p99: 1  # milliseconds
+      pause_p95: 0.5  # milliseconds
+      cpu_fraction: 0.001  # 0.1% max
+    allocations:
+      per_record: 0  # zero allocations in steady state
+    cpu:
+      utilization_min: 0.85  # 85% minimum
+      efficiency: 0.95       # 95% of theoretical max
+
+benchmarks:
+  # Specific benchmark targets
+  memory_allocation:
+    size_1024:
+      max_ns_op: 100
+      max_bytes_op: 1024
+      max_allocs_op: 1
+    size_65536:
+      max_ns_op: 5000
+      max_bytes_op: 65536
+      max_allocs_op: 1
+
+  channel_throughput:
+    buffered:
+      max_ns_op: 50
+      min_ops_sec: 20000000
+
+  pipeline_stages:
+    simple:
+      max_ns_per_record: 1000
+      min_records_sec: 10000
+    complex:
+      max_ns_per_record: 5000
+      min_records_sec: 50000
+
+  json_parsing:
+    small_object:
+      max_ns_op: 2000
+      max_allocs_op: 20
+    large_object:
+      max_ns_op: 10000
+      max_allocs_op: 100
+
+alerts:
+  regression_thresholds:
+    critical: 0.5   # 50% degradation
+    warning: 0.1    # 10% degradation
+    info: 0.05      # 5% degradation
+  
+  improvement_thresholds:
+    significant: 0.2  # 20% improvement
+    notable: 0.1      # 10% improvement
+
+  actions:
+    critical:
+      - block_merge
+      - notify_team
+      - create_incident
+    warning:
+      - create_issue
+      - notify_owner
+    info:
+      - log_trend
+      - weekly_review

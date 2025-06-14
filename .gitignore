@@ -1,0 +1,71 @@
+# Binaries
+nebula
+*.test
+*_bench
+debug_*
+bin/
+tmp/
+
+# Test outputs and data
+*_output.*
+out.json
+output_*.json
+output_*.jsonl
+*_to_*.csv
+*_to_*.json
+*_to_*.jsonl
+test_*.csv
+test_*.json
+docker_test_output.*
+quick_test.*
+memory_test.*
+continuous_test.*
+
+# Benchmark results
+benchmark-results/
+*.prof
+cpu.prof
+mem.prof
+
+# Temporary test files
+test_*_config.yaml
+final_test.*
+debug_*.csv
+
+# Compressed test outputs
+*.gz
+*.lz4
+*.snappy
+*.zst
+*.deflate
+
+# Go build cache
+.cache/
+
+# Development artifacts
+.air.log
+build-errors.log
+
+# IDE files (remove .vscode/ from ignore since we want to keep it)
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Coverage files
+coverage.out
+coverage.html
+
+# Docker artifacts
+.dockerignore
+docker-compose.override.yml
+
+# Development-specific documents
+PRD.md

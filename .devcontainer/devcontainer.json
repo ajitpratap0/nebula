@@ -1,0 +1,217 @@
+{
+    "name": "Nebula Development Environment",
+    "dockerComposeFile": [
+        "../docker-compose.dev.yml"
+    ],
+    "service": "nebula",
+    "workspaceFolder": "/workspace",
+    
+    // Use 'forwardPorts' to make a list of ports inside the container available locally
+    "forwardPorts": [
+        8080,  // Application port
+        9090,  // Metrics port
+        2345,  // Delve debugger port
+        5432,  // PostgreSQL
+        3306,  // MySQL
+        6379,  // Redis
+        9000,  // MinIO API
+        9001   // MinIO Console
+    ],
+    
+    // Configure port attributes
+    "portsAttributes": {
+        "8080": {
+            "label": "Nebula App",
+            "protocol": "http"
+        },
+        "9090": {
+            "label": "Metrics",
+            "protocol": "http"
+        },
+        "2345": {
+            "label": "Delve Debugger",
+            "protocol": "tcp"
+        },
+        "5432": {
+            "label": "PostgreSQL",
+            "protocol": "tcp"
+        },
+        "3306": {
+            "label": "MySQL",
+            "protocol": "tcp"
+        },
+        "6379": {
+            "label": "Redis",
+            "protocol": "tcp"
+        },
+        "9000": {
+            "label": "MinIO API",
+            "protocol": "http"
+        },
+        "9001": {
+            "label": "MinIO Console",
+            "protocol": "http"
+        }
+    },
+
+    // Use 'postCreateCommand' to run commands after the container is created
+    "postCreateCommand": "go mod download && go mod tidy",
+
+    // Configure tool-specific properties
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                // Go development
+                "golang.go",
+                "golang.go-nightly",
+                
+                // Docker support
+                "ms-azuretools.vscode-docker",
+                
+                // YAML support
+                "redhat.vscode-yaml",
+                
+                // Git support
+                "eamodio.gitlens",
+                
+                // Testing
+                "hbenl.vscode-test-explorer",
+                "ethan-reesor.vscode-go-test-adapter",
+                
+                // Code quality
+                "ms-vscode.vscode-eslint",
+                "editorconfig.editorconfig",
+                
+                // Database tools
+                "ms-mssql.mssql",
+                "formulahendry.vscode-mysql",
+                "cweijan.vscode-postgresql-client2",
+                
+                // Productivity
+                "ms-vscode.vscode-json",
+                "ms-vscode-remote.remote-containers",
+                "github.copilot",
+                "github.copilot-chat",
+                
+                // Markdown support
+                "yzhang.markdown-all-in-one",
+                "davidanson.vscode-markdownlint",
+                
+                // REST client for API testing
+                "humao.rest-client",
+                
+                // Performance monitoring
+                "ms-vscode.vscode-profile-flame",
+                
+                // Live server for docs
+                "ritwickdey.liveserver"
+            ],
+            
+            "settings": {
+                // Go settings
+                "go.gopath": "/go",
+                "go.goroot": "/usr/local/go",
+                "go.toolsManagement.checkForUpdates": "local",
+                "go.useLanguageServer": true,
+                "go.lintOnSave": "package",
+                "go.vetOnSave": "package",
+                "go.buildOnSave": "package",
+                "go.testOnSave": false,
+                "go.coverOnSave": false,
+                "go.installDependenciesWhenBuildingInBackground": true,
+                "go.gocodeAutoBuild": false,
+                "go.formatTool": "goimports",
+                "go.lintTool": "golangci-lint",
+                "go.vetCheckForTests": false,
+                "go.testFlags": ["-v", "-race"],
+                "go.buildFlags": ["-race"],
+                "go.testTimeout": "30s",
+                
+                // Editor settings
+                "editor.formatOnSave": true,
+                "editor.insertSpaces": false,
+                "editor.detectIndentation": false,
+                "editor.tabSize": 4,
+                "editor.rulers": [80, 120],
+                "editor.codeActionsOnSave": {
+                    "source.organizeImports": "explicit"
+                },
+                
+                // File associations
+                "files.associations": {
+                    "*.yml": "yaml",
+                    "*.yaml": "yaml",
+                    "Dockerfile*": "dockerfile",
+                    "*.mod": "go.mod",
+                    "*.sum": "go.sum"
+                },
+                
+                // Terminal settings
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "terminal.integrated.profiles.linux": {
+                    "bash": {
+                        "path": "/bin/bash",
+                        "args": []
+                    }
+                },
+                
+                // Git settings
+                "git.enableSmartCommit": true,
+                "git.confirmSync": false,
+                "git.autofetch": true,
+                
+                // Docker settings
+                "docker.showStartPage": false,
+                
+                // File explorer settings
+                "files.exclude": {
+                    "**/tmp": true,
+                    "**/bin": true,
+                    "**/.git": true,
+                    "**/node_modules": true,
+                    "**/vendor": true
+                },
+                
+                // Search settings
+                "search.exclude": {
+                    "**/tmp": true,
+                    "**/bin": true,
+                    "**/vendor": true,
+                    "**/node_modules": true,
+                    "**/*.log": true
+                }
+            }
+        }
+    },
+
+    // Features to add to the dev container
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "installZsh": false,
+            "installOhMyZsh": false,
+            "upgradePackages": true,
+            "username": "nebula",
+            "userUid": "1000",
+            "userGid": "1000"
+        },
+        "ghcr.io/devcontainers/features/git:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {}
+    },
+
+    // Use 'remoteUser' to specify the user inside the container
+    "remoteUser": "nebula",
+
+    // Environment variables
+    "containerEnv": {
+        "GO_ENV": "development",
+        "CGO_ENABLED": "0",
+        "GOOS": "linux",
+        "GOARCH": "amd64"
+    },
+
+    // Lifecycle scripts
+    "initializeCommand": "echo 'Initializing Nebula development environment...'",
+    "onCreateCommand": "echo 'Creating development environment...'",
+    "updateContentCommand": "go mod download && go mod tidy",
+    "postStartCommand": "echo 'Development environment ready! Use Ctrl+Shift+P and search for \"Tasks\" to see available commands.'"
+}

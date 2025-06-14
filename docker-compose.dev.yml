@@ -1,0 +1,136 @@
+services:
+  # Nebula application for development
+  nebula:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: development
+    container_name: nebula-dev
+    volumes:
+      - .:/workspace
+      - /workspace/tmp  # Exclude tmp directory from sync
+      - go-cache:/go/pkg/mod
+      - nebula-cache:/home/nebula/.cache
+    working_dir: /workspace
+    ports:
+      - "8080:8080"   # Application port
+      - "9090:9090"   # Metrics port
+      - "2345:2345"   # Delve debugger port
+    environment:
+      - GO_ENV=development
+      - POSTGRES_URL=postgres://nebula:password@postgres:5432/nebula_dev?sslmode=disable
+      - MYSQL_URL=nebula:password@tcp(mysql:3306)/nebula_dev
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - nebula-network
+    command: ["air", "-c", ".air.toml"]
+
+  # PostgreSQL for CDC testing
+  postgres:
+    image: postgres:16-alpine
+    container_name: nebula-postgres-dev
+    environment:
+      POSTGRES_DB: nebula_dev
+      POSTGRES_USER: nebula
+      POSTGRES_PASSWORD: password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    command: >
+      postgres -c wal_level=logical
+               -c max_wal_senders=10
+               -c max_replication_slots=10
+               -c shared_preload_libraries=pgoutput
+    networks:
+      - nebula-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nebula -d nebula_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MySQL for CDC testing
+  mysql:
+    image: mysql:8.0
+    container_name: nebula-mysql-dev
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: nebula_dev
+      MYSQL_USER: nebula
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-dev-data:/var/lib/mysql
+    command: >
+      --log-bin=mysql-bin
+      --binlog-format=ROW
+      --server-id=1
+      --gtid-mode=ON
+      --enforce-gtid-consistency=ON
+      --binlog-row-image=FULL
+    networks:
+      - nebula-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "nebula", "-ppassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and state management
+  redis:
+    image: redis:7-alpine
+    container_name: nebula-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-dev-data:/data
+    networks:
+      - nebula-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO for S3-compatible object storage testing
+  minio:
+    image: minio/minio:latest
+    container_name: nebula-minio-dev
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: nebula
+      MINIO_ROOT_PASSWORD: nebulapass123
+    volumes:
+      - minio-dev-data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - nebula-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+volumes:
+  postgres-dev-data:
+  mysql-dev-data:
+  redis-dev-data:
+  minio-dev-data:
+  go-cache:
+  nebula-cache:
+
+networks:
+  nebula-network:
+    driver: bridge

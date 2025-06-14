@@ -1,0 +1,191 @@
+services:
+  # Nebula application for development
+  nebula-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: development
+    container_name: nebula-dev
+    volumes:
+      - .:/workspace
+      - /workspace/tmp  # Exclude tmp directory from sync
+      - go-cache:/go/pkg/mod
+      - nebula-cache:/home/nebula/.cache
+    working_dir: /workspace
+    ports:
+      - "8080:8080"   # Application port
+      - "9090:9090"   # Metrics port
+      - "2345:2345"   # Delve debugger port
+    environment:
+      - GO_ENV=development
+      - POSTGRES_URL=postgres://nebula:password@postgres:5432/nebula_dev?sslmode=disable
+      - MYSQL_URL=nebula:password@tcp(mysql:3306)/nebula_dev
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - mysql
+      - redis
+    networks:
+      - nebula-network
+    command: ["air", "-c", ".air.toml"]
+
+  # Nebula production build
+  nebula-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: nebula-prod
+    ports:
+      - "9091:9090"   # Metrics port (different from dev)
+    environment:
+      - GO_ENV=production
+    profiles:
+      - production
+    networks:
+      - nebula-network
+
+  # PostgreSQL for CDC testing
+  postgres:
+    image: postgres:16-alpine
+    container_name: nebula-postgres
+    environment:
+      POSTGRES_DB: nebula_dev
+      POSTGRES_USER: nebula
+      POSTGRES_PASSWORD: password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: >
+      postgres -c wal_level=logical
+               -c max_wal_senders=10
+               -c max_replication_slots=10
+               -c shared_preload_libraries=pgoutput
+    networks:
+      - nebula-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nebula -d nebula_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MySQL for CDC testing
+  mysql:
+    image: mysql:8.0
+    container_name: nebula-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: nebula_dev
+      MYSQL_USER: nebula
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./scripts/mysql-init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: >
+      --log-bin=mysql-bin
+      --binlog-format=ROW
+      --server-id=1
+      --gtid-mode=ON
+      --enforce-gtid-consistency=ON
+      --binlog-row-image=FULL
+    networks:
+      - nebula-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "nebula", "-ppassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and state management
+  redis:
+    image: redis:7-alpine
+    container_name: nebula-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - nebula-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO for S3-compatible object storage testing
+  minio:
+    image: minio/minio:latest
+    container_name: nebula-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: nebula
+      MINIO_ROOT_PASSWORD: nebulapass123
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - nebula-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: nebula-prometheus
+    ports:
+      - "9092:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - nebula-network
+    profiles:
+      - monitoring
+
+  # Grafana for metrics visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: nebula-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    networks:
+      - nebula-network
+    profiles:
+      - monitoring
+
+volumes:
+  postgres-data:
+  mysql-data:
+  redis-data:
+  minio-data:
+  prometheus-data:
+  grafana-data:
+  go-cache:
+  nebula-cache:
+
+networks:
+  nebula-network:
+    driver: bridge
