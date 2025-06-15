@@ -1,3 +1,61 @@
+// Package csv provides a high-performance CSV source connector for Nebula.
+// It supports both sequential and parallel reading modes with automatic schema discovery,
+// progress tracking, and comprehensive error handling.
+//
+// # Features
+//
+//   - High-performance sequential and parallel CSV parsing
+//   - Automatic schema discovery with type inference
+//   - Progress tracking with row counting
+//   - Configurable batch processing
+//   - Header row detection and handling
+//   - Custom delimiter support
+//   - Memory-efficient streaming for large files
+//   - Circuit breaker protection for I/O operations
+//   - Comprehensive health monitoring
+//
+// # Configuration
+//
+// The CSV source uses the standard BaseConfig with these specific credentials:
+//
+//	config.Security.Credentials["path"] = "/path/to/file.csv"
+//	config.Security.Credentials["delimiter"] = ","  // optional, default: ","
+//	config.Security.Credentials["has_header"] = "true"  // optional, default: "true"
+//	config.Security.Credentials["enable_parallel"] = "true"  // optional, default: "false"
+//
+// # Example Usage
+//
+//	cfg := config.NewBaseConfig("csv_source", "row")
+//	cfg.Security.Credentials["path"] = "data.csv"
+//	cfg.Performance.BatchSize = 10000
+//	
+//	source, err := csv.NewCSVSource(cfg)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	
+//	ctx := context.Background()
+//	if err := source.Initialize(ctx, cfg); err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer source.Close(ctx)
+//	
+//	// Read records in batches
+//	for {
+//	    records, err := source.Read(ctx)
+//	    if err != nil {
+//	        log.Fatal(err)
+//	    }
+//	    if len(records) == 0 {
+//	        break
+//	    }
+//	    
+//	    // Process records...
+//	    for _, record := range records {
+//	        // Use record.Data map
+//	        record.Release()
+//	    }
+//	}
 package csv
 
 import (
@@ -18,40 +76,65 @@ import (
 	"go.uber.org/zap"
 )
 
-// CSVSource is a production-ready CSV source connector using BaseConnector
+// CSVSource is a production-ready CSV source connector that reads data from CSV files.
+// It extends BaseConnector to provide circuit breakers, health monitoring, and metrics.
+//
+// The connector supports:
+//   - Configurable delimiters and quote characters
+//   - Optional header row handling
+//   - Parallel processing for large files
+//   - Automatic schema discovery
+//   - Progress tracking and resumability
+//   - Memory-efficient streaming
 type CSVSource struct {
 	*base.BaseConnector
 
 	// CSV-specific fields
-	file           *os.File
-	reader         *csv.Reader
-	headers        []string
-	currentRow     int
-	totalRows      int
-	hasHeader      bool
-	enableParallel bool // Enable parallel CSV parsing
-	filePath       string // Store the file path
+	file           *os.File           // Open file handle
+	reader         *csv.Reader        // CSV reader instance
+	headers        []string           // Column headers from first row or generated
+	currentRow     int                // Current row being processed
+	totalRows      int                // Total rows in file (-1 if unknown)
+	hasHeader      bool               // Whether first row contains headers
+	enableParallel bool               // Enable parallel CSV parsing
+	filePath       string             // Store the file path for reopening
 
 	// Schema and state
-	schema       *core.Schema
-	lastPosition int64
-	eof          bool
+	schema       *core.Schema         // Discovered schema information
+	lastPosition int64                // Last read position for resumability
+	eof          bool                 // End of file reached
 	
 	// Parallel parser (when enabled)
-	parallelParser *ParallelCSVParser
+	parallelParser *ParallelCSVParser // Parallel processing engine
 }
 
-// NewCSVSource creates a new CSV source connector
+// NewCSVSource creates a new CSV source connector instance.
+// It returns a connector that implements the core.Source interface.
+//
+// The connector is created with default settings:
+//   - Header row detection enabled
+//   - Sequential processing mode
+//   - Standard CSV format (comma-delimited)
+//
+// Actual configuration is applied during Initialize().
 func NewCSVSource(config *config.BaseConfig) (core.Source, error) {
 	base := base.NewBaseConnector("csv", core.ConnectorTypeSource, "2.0.0")
 
 	return &CSVSource{
 		BaseConnector: base,
-		hasHeader:     true, // default
+		hasHeader:     true, // default to expecting headers
 	}, nil
 }
 
-// Initialize initializes the CSV source connector
+// Initialize prepares the CSV source for reading.
+// It performs the following operations:
+//  1. Validates the configuration
+//  2. Opens the CSV file with circuit breaker protection
+//  3. Discovers the schema by analyzing the first few rows
+//  4. Counts total rows for progress tracking (if possible)
+//  5. Sets up parallel processing if enabled
+//
+// The method is idempotent and can be called multiple times safely.
 func (s *CSVSource) Initialize(ctx context.Context, config *config.BaseConfig) error {
 	// Initialize base connector first
 	if err := s.BaseConnector.Initialize(ctx, config); err != nil {

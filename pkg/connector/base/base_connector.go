@@ -1,3 +1,49 @@
+// Package base provides the foundational BaseConnector that all Nebula connectors
+// inherit from. It implements common functionality including circuit breakers,
+// rate limiting, health monitoring, metrics collection, and error handling.
+//
+// # Overview
+//
+// BaseConnector provides:
+//   - Automatic circuit breaker protection
+//   - Configurable rate limiting
+//   - Health monitoring with periodic checks
+//   - Comprehensive metrics collection
+//   - Retry logic with exponential backoff
+//   - Connection pooling support
+//   - Performance optimization
+//   - Progress reporting
+//   - State management
+//
+// # Usage
+//
+// All connectors should embed BaseConnector to inherit its functionality:
+//
+//	type MyConnector struct {
+//	    *base.BaseConnector
+//	    // connector-specific fields
+//	}
+//
+//	func NewMyConnector() *MyConnector {
+//	    return &MyConnector{
+//	        BaseConnector: base.NewBaseConnector("my-connector", core.TypeSource, "1.0.0"),
+//	    }
+//	}
+//
+// # Lifecycle
+//
+// 1. Create with NewBaseConnector
+// 2. Initialize with Initialize() - sets up all production features
+// 3. Use throughout connector operations
+// 4. Close with Close() - cleans up all resources
+//
+// # Production Features
+//
+// Circuit Breaker: Prevents cascading failures by stopping requests when error rate is high
+// Rate Limiting: Enforces request rate limits to prevent overwhelming external systems
+// Health Checks: Periodic health monitoring with automatic status updates
+// Metrics: Comprehensive performance and operational metrics
+// Error Handling: Intelligent retry logic with categorized error handling
 package base
 
 import (
@@ -15,49 +61,60 @@ import (
 	"go.uber.org/zap"
 )
 
-// BaseConnector provides common functionality for all connectors
+// BaseConnector provides common functionality for all connectors including
+// production-grade features like circuit breakers, rate limiting, health
+// monitoring, and comprehensive metrics collection.
 type BaseConnector struct {
 	// Core fields
-	name          string
-	connectorType core.ConnectorType
-	version       string
-	config        *config.BaseConfig
-	logger        *zap.Logger
+	name          string             // Unique connector identifier
+	connectorType core.ConnectorType // Source or Destination
+	version       string             // Connector version
+	config        *config.BaseConfig // Unified configuration
+	logger        *zap.Logger        // Structured logger
 
 	// State management
-	state      core.State
-	position   core.Position
-	stateMutex sync.RWMutex
+	state      core.State      // Connector state for incremental sync
+	position   core.Position   // Current processing position
+	stateMutex sync.RWMutex    // Protects state access
 
 	// Resource management
-	ctx        context.Context
-	cancel     context.CancelFunc
-	closed     bool
-	closeMutex sync.Mutex
+	ctx        context.Context    // Connector context
+	cancel     context.CancelFunc // Context cancellation
+	closed     bool               // Shutdown flag
+	closeMutex sync.Mutex         // Protects close operation
 
 	// Production features
-	circuitBreaker   *clients.CircuitBreaker
-	rateLimiter      clients.RateLimiter
-	healthChecker    *HealthChecker
-	metricsCollector *metrics.Collector
-	errorHandler     *ErrorHandler
+	circuitBreaker   *clients.CircuitBreaker // Failure protection
+	rateLimiter      clients.RateLimiter     // Request rate control
+	healthChecker    *HealthChecker          // Health monitoring
+	metricsCollector *metrics.Collector      // Metrics collection
+	errorHandler     *ErrorHandler           // Error handling logic
 
 	// Connection management
-	connectionPool core.ConnectionPool
-	retryPolicy    *RetryPolicy
+	connectionPool core.ConnectionPool // Connection pooling
+	retryPolicy    *RetryPolicy        // Retry configuration
 
 	// Performance optimization
-	batchBuilder core.BatchBuilder
-	optimizer    *PerformanceOptimizer
+	batchBuilder core.BatchBuilder      // Batch construction
+	optimizer    *PerformanceOptimizer  // Dynamic optimization
 
 	// Progress tracking
-	progressReporter *ProgressReporter
+	progressReporter *ProgressReporter // Progress updates
 
 	// Data quality
-	qualityChecker core.DataQualityChecker
+	qualityChecker core.DataQualityChecker // Data validation
 }
 
-// NewBaseConnector creates a new base connector with production features
+// NewBaseConnector creates a new base connector with the specified name, type, and version.
+// This should be called by connector implementations during construction.
+//
+// Example:
+//
+//	func NewPostgresSource() *PostgresSource {
+//	    return &PostgresSource{
+//	        BaseConnector: base.NewBaseConnector("postgres", core.TypeSource, "2.0.0"),
+//	    }
+//	}
 func NewBaseConnector(name string, connectorType core.ConnectorType, version string) *BaseConnector {
 	return &BaseConnector{
 		name:          name,
@@ -68,40 +125,69 @@ func NewBaseConnector(name string, connectorType core.ConnectorType, version str
 	}
 }
 
-// Initialize sets up the base connector
+// Initialize sets up all production features of the base connector including
+// circuit breakers, rate limiting, health monitoring, and metrics collection.
+// This must be called before using the connector.
+//
+// The initialization process:
+// 1. Sets up context for lifecycle management
+// 2. Configures circuit breaker with failure thresholds
+// 3. Initializes rate limiter if configured
+// 4. Starts health monitoring
+// 5. Sets up metrics collection
+// 6. Configures error handling and retry policies
+// 7. Initializes performance optimization
+//
+// Example:
+//
+//	connector := NewMyConnector()
+//	if err := connector.Initialize(ctx, config); err != nil {
+//	    return nil, errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize connector")
+//	}
+//	defer connector.Close(ctx)
 func (bc *BaseConnector) Initialize(ctx context.Context, config *config.BaseConfig) error {
 	bc.config = config
 	bc.ctx, bc.cancel = context.WithCancel(ctx)
 
-	// Initialize circuit breaker
+	// Initialize circuit breaker for failure protection
 	bc.circuitBreaker = clients.NewCircuitBreaker(clients.CircuitBreakerConfig{
-		FailureThreshold: 5,
-		SuccessThreshold: 3,
-		Timeout:          30 * time.Second,
+		FailureThreshold: 5,              // Open after 5 consecutive failures
+		SuccessThreshold: 3,              // Close after 3 consecutive successes
+		Timeout:          30 * time.Second, // Half-open timeout
 	})
 
-	// Initialize rate limiter
+	// Initialize rate limiter if configured
 	if config.Reliability.RateLimitPerSec > 0 {
-		bc.rateLimiter = clients.NewRateLimiter(config.Reliability.RateLimitPerSec, config.Reliability.RateLimitPerSec*2) // burst = 2x limit
+		bc.rateLimiter = clients.NewRateLimiter(
+			config.Reliability.RateLimitPerSec,
+			config.Reliability.RateLimitPerSec*2, // Allow bursts up to 2x the limit
+		)
 	}
 
-	// Initialize health checker
+	// Initialize health checker with periodic monitoring
 	bc.healthChecker = NewHealthChecker(bc.name, 30*time.Second)
 	bc.healthChecker.Start(bc.ctx)
 
-	// Initialize metrics collector
+	// Initialize metrics collector for observability
 	bc.metricsCollector = metrics.NewCollector(bc.name)
 
-	// Initialize error handler
-	bc.errorHandler = NewErrorHandler(bc.logger, config.Reliability.RetryAttempts, config.Reliability.RetryDelay)
+	// Initialize error handler with retry configuration
+	bc.errorHandler = NewErrorHandler(
+		bc.logger,
+		config.Reliability.RetryAttempts,
+		config.Reliability.RetryDelay,
+	)
 
-	// Initialize retry policy
-	bc.retryPolicy = NewRetryPolicy(config.Reliability.RetryAttempts, config.Reliability.RetryDelay)
+	// Initialize retry policy for transient failures
+	bc.retryPolicy = NewRetryPolicy(
+		config.Reliability.RetryAttempts,
+		config.Reliability.RetryDelay,
+	)
 
-	// Initialize performance optimizer
+	// Initialize performance optimizer for dynamic tuning
 	bc.optimizer = NewPerformanceOptimizer(bc.metricsCollector)
 
-	// Initialize progress reporter
+	// Initialize progress reporter for user feedback
 	bc.progressReporter = NewProgressReporter(bc.logger, bc.metricsCollector)
 
 	bc.logger.Info("connector initialized",
@@ -259,17 +345,51 @@ func (bc *BaseConnector) Close(ctx context.Context) error {
 	return nil
 }
 
-// ExecuteWithRetry executes a function with retry logic
+// ExecuteWithRetry executes a function with automatic retry logic including
+// exponential backoff. Retries are attempted for retryable errors based on
+// the configured retry policy.
+//
+// Example:
+//
+//	err := connector.ExecuteWithRetry(ctx, func() error {
+//	    return apiClient.FetchData()
+//	})
+//	if err != nil {
+//	    logger.Error("operation failed after retries", zap.Error(err))
+//	}
 func (bc *BaseConnector) ExecuteWithRetry(ctx context.Context, fn func() error) error {
 	return bc.retryPolicy.Execute(ctx, fn)
 }
 
-// ExecuteWithCircuitBreaker executes a function with circuit breaker protection
+// ExecuteWithCircuitBreaker executes a function with circuit breaker protection.
+// If the circuit is open due to excessive failures, the function won't be executed
+// and an error will be returned immediately.
+//
+// Example:
+//
+//	err := connector.ExecuteWithCircuitBreaker(func() error {
+//	    return externalService.Call()
+//	})
+//	if err != nil {
+//	    if errors.IsType(err, errors.ErrorTypeRateLimit) {
+//	        // Circuit is open, back off
+//	    }
+//	}
 func (bc *BaseConnector) ExecuteWithCircuitBreaker(fn func() error) error {
 	return bc.circuitBreaker.Execute(fn)
 }
 
-// RateLimit checks and enforces rate limiting
+// RateLimit enforces the configured rate limit, blocking if necessary.
+// Returns immediately if no rate limiter is configured.
+//
+// Example:
+//
+//	for _, record := range records {
+//	    if err := connector.RateLimit(ctx); err != nil {
+//	        return err // Context cancelled
+//	    }
+//	    process(record)
+//	}
 func (bc *BaseConnector) RateLimit(ctx context.Context) error {
 	if bc.rateLimiter == nil {
 		return nil

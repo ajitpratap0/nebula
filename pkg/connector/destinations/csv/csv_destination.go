@@ -1,3 +1,59 @@
+// Package csv provides a high-performance CSV destination connector for Nebula.
+// It supports writing data to CSV files with automatic schema handling, compression,
+// and comprehensive error handling.
+//
+// # Features
+//
+//   - Automatic header generation from record fields
+//   - Dynamic schema evolution support
+//   - Optional compression with multiple algorithms (gzip, snappy, lz4, zstd)
+//   - Configurable buffering and flushing
+//   - Append or overwrite modes
+//   - Thread-safe concurrent writing
+//   - Memory-efficient streaming for large datasets
+//   - Circuit breaker protection for I/O operations
+//
+// # Configuration
+//
+// The CSV destination uses the standard BaseConfig with these specific credentials:
+//
+//	config.Security.Credentials["path"] = "/path/to/output.csv"
+//	config.Security.Credentials["delimiter"] = ","  // optional, default: ","
+//	config.Security.Credentials["overwrite"] = "true"  // optional, default: "true"
+//	config.Security.Credentials["compression"] = "gzip"  // optional, enables compression
+//	config.Security.Credentials["compression_level"] = "6"  // optional, 1-9
+//
+// # Example Usage
+//
+//	cfg := config.NewBaseConfig("csv_dest", "row")
+//	cfg.Security.Credentials["path"] = "output.csv"
+//	cfg.Performance.BatchSize = 10000
+//	cfg.Advanced.CompressionType = "snappy"
+//	
+//	dest, err := csv.NewCSVDestination(cfg)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	
+//	ctx := context.Background()
+//	if err := dest.Initialize(ctx, cfg); err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer dest.Close(ctx)
+//	
+//	// Write records
+//	records := []*pool.Record{
+//	    pool.NewRecord("source", map[string]interface{}{
+//	        "name": "John Doe",
+//	        "age": 30,
+//	    }),
+//	}
+//	
+//	if err := dest.Write(ctx, records); err != nil {
+//	    log.Fatal(err)
+//	}
+//	
+//	// Records are automatically released after writing
 package csv
 
 import (
@@ -21,33 +77,42 @@ import (
 	"go.uber.org/zap"
 )
 
-// CSVDestination is a production-ready CSV destination connector using BaseConnector
+// CSVDestination is a production-ready CSV destination connector that writes data to CSV files.
+// It extends BaseConnector to provide circuit breakers, health monitoring, and metrics.
+//
+// The connector supports:
+//   - Automatic header detection and writing
+//   - Dynamic schema evolution with new columns
+//   - Multiple compression algorithms
+//   - Configurable buffering for performance
+//   - Append and overwrite modes
+//   - Thread-safe concurrent writing
 type CSVDestination struct {
 	*base.BaseConnector
 
 	// CSV-specific fields
-	file              *os.File
-	writer            *csv.Writer
-	headers           []string
-	headersMutex      sync.Mutex
-	hasWrittenHeaders bool
+	file              *os.File         // Open file handle
+	writer            *csv.Writer      // CSV writer instance
+	headers           []string         // Column headers (ordered)
+	headersMutex      sync.Mutex       // Protects header modifications
+	hasWrittenHeaders bool             // Whether headers have been written
 
 	// Schema and state
-	schema         *core.Schema
-	recordsWritten int64
+	schema         *core.Schema        // Current schema information
+	recordsWritten int64               // Total records written
 
 	// Configuration
-	overwrite     bool
-	bufferSize    int
-	flushInterval int // records between flushes
-	filePath      string // Store the file path
+	overwrite     bool                 // Overwrite existing file
+	bufferSize    int                  // Internal buffer size
+	flushInterval int                  // Records between flushes
+	filePath      string               // Store the file path
 
 	// Compression configuration
-	compressionEnabled   bool
-	compressionAlgorithm compression.Algorithm
-	compressionLevel     compression.Level
-	compressor           compression.Compressor
-	compressionWriter    io.WriteCloser
+	compressionEnabled   bool          // Whether compression is enabled
+	compressionAlgorithm compression.Algorithm  // Algorithm to use
+	compressionLevel     compression.Level      // Compression level
+	compressor           compression.Compressor  // Compressor instance
+	compressionWriter    io.WriteCloser         // Compression writer
 }
 
 // NewCSVDestination creates a new CSV destination connector

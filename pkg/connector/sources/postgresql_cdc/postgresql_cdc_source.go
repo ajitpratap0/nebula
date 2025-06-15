@@ -1,3 +1,73 @@
+// Package postgresql_cdc provides a PostgreSQL Change Data Capture (CDC) source connector for Nebula.
+// It captures real-time changes from PostgreSQL databases using logical replication,
+// enabling streaming data integration for data warehouses and lakes.
+//
+// # Features
+//
+//   - Real-time change data capture using PostgreSQL logical replication
+//   - Support for INSERT, UPDATE, DELETE, and DDL operations
+//   - Automatic schema discovery and evolution
+//   - Exactly-once delivery semantics with checkpointing
+//   - Table filtering and column selection
+//   - Transaction consistency preservation
+//   - Automatic reconnection and failure recovery
+//   - Comprehensive monitoring and metrics
+//
+// # Prerequisites
+//
+// PostgreSQL configuration requirements:
+//   - PostgreSQL 10+ with logical replication enabled
+//   - wal_level = logical
+//   - max_replication_slots >= 1
+//   - max_wal_senders >= 1
+//   - User with REPLICATION privilege
+//
+// # Configuration
+//
+// The PostgreSQL CDC source uses these configuration fields:
+//
+//	config.Security.Credentials["connection_string"] = "postgres://user:pass@host:5432/db"
+//	config.Security.Credentials["slot_name"] = "nebula_slot"  // replication slot name
+//	config.Security.Credentials["publication_name"] = "nebula_pub"  // publication name
+//	config.Security.Credentials["tables"] = "public.users,public.orders"  // comma-separated
+//	config.Security.Credentials["start_lsn"] = "0/1234567"  // optional start position
+//
+// # Example Usage
+//
+//	cfg := config.NewBaseConfig("pg_cdc", "row")
+//	cfg.Security.Credentials["connection_string"] = "postgres://localhost/mydb"
+//	cfg.Security.Credentials["slot_name"] = "nebula_slot"
+//	cfg.Security.Credentials["publication_name"] = "nebula_pub"
+//	cfg.Security.Credentials["tables"] = "public.users,public.products"
+//	cfg.Advanced.StreamingMode = true
+//	
+//	source, err := postgresql_cdc.NewPostgreSQLCDCSource(cfg)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	
+//	ctx := context.Background()
+//	if err := source.Initialize(ctx, cfg); err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer source.Close(ctx)
+//	
+//	// Read CDC events
+//	for {
+//	    records, err := source.Read(ctx)
+//	    if err != nil {
+//	        log.Fatal(err)
+//	    }
+//	    
+//	    for _, record := range records {
+//	        if record.IsCDC() {
+//	            fmt.Printf("Operation: %s, Table: %s\n",
+//	                record.GetCDCOperation(),
+//	                record.GetCDCTable())
+//	        }
+//	        record.Release()
+//	    }
+//	}
 package postgresql_cdc
 
 import (
@@ -16,28 +86,37 @@ import (
 	"strings"
 )
 
-// PostgreSQLCDCSource adapts the CDC PostgreSQL connector to the connector framework
+// PostgreSQLCDCSource is a production-ready PostgreSQL CDC source connector that captures
+// real-time changes from PostgreSQL databases using logical replication.
+//
+// The connector provides:
+//   - Real-time streaming of database changes
+//   - Automatic reconnection and failure recovery
+//   - Schema discovery and evolution support
+//   - Transaction consistency preservation
+//   - Checkpoint management for exactly-once delivery
+//   - Comprehensive health monitoring and metrics
 type PostgreSQLCDCSource struct {
 	*base.BaseConnector
 
 	// CDC connector
-	cdcConnector *cdc.PostgreSQLConnector
+	cdcConnector *cdc.PostgreSQLConnector  // Underlying CDC implementation
 
 	// Configuration
-	cdcConfig cdc.CDCConfig
+	cdcConfig cdc.CDCConfig                 // CDC-specific configuration
 
 	// Streaming state
-	recordStream chan *models.Record
-	errorStream  chan error
+	recordStream chan *models.Record        // Channel for streaming records
+	errorStream  chan error                  // Channel for async errors
 
 	// Position tracking
-	currentPosition core.Position
+	currentPosition core.Position            // Current replication position
 
 	// State management
-	state core.State
+	state core.State                        // Connector state for persistence
 
 	// Statistics
-	eventsProcessed int64
+	eventsProcessed int64                   // Total CDC events processed
 }
 
 // NewPostgreSQLCDCSource creates a new PostgreSQL CDC source connector

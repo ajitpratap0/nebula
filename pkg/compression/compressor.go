@@ -1,4 +1,54 @@
 // Package compression provides high-performance compression support for Nebula
+// with multiple algorithms, configurable levels, and optimized memory usage.
+// It supports both in-memory and streaming compression/decompression.
+//
+// # Overview
+//
+// The compression package provides:
+//   - Multiple compression algorithms (Gzip, Snappy, LZ4, Zstd, S2, Deflate)
+//   - Configurable compression levels (Fastest, Default, Better, Best)
+//   - Memory-efficient pooling of compressor instances
+//   - Both in-memory and streaming operations
+//   - Zero-allocation patterns using memory pools
+//
+// # Algorithm Selection
+//
+// Choose algorithms based on your requirements:
+//   - Snappy/S2: Best for speed, moderate compression
+//   - LZ4: Extremely fast, decent compression
+//   - Zstd: Best compression ratio, good speed
+//   - Gzip: Wide compatibility, good compression
+//   - Deflate: Standard algorithm, wide support
+//
+// # Basic Usage
+//
+//	// Create a compressor
+//	config := &compression.Config{
+//	    Algorithm: compression.Snappy,
+//	    Level:     compression.Default,
+//	}
+//	comp, err := compression.NewCompressor(config)
+//
+//	// Compress data
+//	compressed, err := comp.Compress(data)
+//
+//	// Decompress data
+//	original, err := comp.Decompress(compressed)
+//
+// # Pooled Usage (Recommended)
+//
+//	// Create a compressor pool
+//	pool := compression.NewCompressorPool(config)
+//
+//	// Use pooled compressor
+//	compressed, err := pool.Compress(data)
+//	decompressed, err := pool.Decompress(compressed)
+//
+// # Performance Characteristics
+//
+// Speed (fastest to slowest): LZ4 > Snappy/S2 > Zstd > Gzip/Deflate
+// Compression ratio (best to worst): Zstd > Gzip/Deflate > Snappy/S2 > LZ4
+// Memory usage: All algorithms use pooled buffers to minimize allocations
 package compression
 
 import (
@@ -17,7 +67,8 @@ import (
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 )
 
-// Algorithm represents a compression algorithm
+// Algorithm represents a compression algorithm.
+// Each algorithm has different trade-offs between speed and compression ratio.
 type Algorithm string
 
 const (
@@ -37,55 +88,96 @@ const (
 	Deflate Algorithm = "deflate"
 )
 
-// Level represents compression level
+// Level represents compression level, controlling the trade-off between
+// compression speed and compression ratio.
 type Level int
 
 const (
-	// Fastest prioritizes speed over compression ratio
+	// Fastest prioritizes speed over compression ratio.
+	// Use for real-time scenarios where latency is critical.
 	Fastest Level = 1
-	// Default balances speed and compression
+	// Default balances speed and compression.
+	// Suitable for most use cases.
 	Default Level = 5
-	// Better improves compression at cost of speed
+	// Better improves compression at cost of speed.
+	// Use when storage is more important than CPU.
 	Better Level = 7
-	// Best maximizes compression ratio
+	// Best maximizes compression ratio.
+	// Use for archival or when compression ratio is paramount.
 	Best Level = 9
 )
 
-// Compressor provides compression and decompression functionality
+// Compressor provides compression and decompression functionality.
+// All implementations are safe for concurrent use.
 type Compressor interface {
-	// Compress compresses data
+	// Compress compresses data and returns the compressed bytes.
+	// The input data is not modified.
 	Compress(data []byte) ([]byte, error)
-	// Decompress decompresses data
+	
+	// Decompress decompresses data and returns the original bytes.
+	// The input data is not modified.
 	Decompress(data []byte) ([]byte, error)
-	// CompressStream compresses from reader to writer
+	
+	// CompressStream compresses from reader to writer.
+	// Useful for large files or streaming scenarios.
 	CompressStream(dst io.Writer, src io.Reader) error
-	// DecompressStream decompresses from reader to writer
+	
+	// DecompressStream decompresses from reader to writer.
+	// Useful for large files or streaming scenarios.
 	DecompressStream(dst io.Writer, src io.Reader) error
-	// Algorithm returns the compression algorithm
+	
+	// Algorithm returns the compression algorithm used.
 	Algorithm() Algorithm
-	// Level returns the compression level
+	
+	// Level returns the compression level configured.
 	Level() Level
 }
 
-// Config represents compressor configuration
+// Config represents compressor configuration.
+//
+// Example:
+//
+//	config := &compression.Config{
+//	    Algorithm:   compression.Zstd,     // High compression
+//	    Level:       compression.Better,   // Favor compression ratio
+//	    BufferSize:  128 * 1024,          // 128KB buffer
+//	    Concurrency: runtime.NumCPU(),    // Use all cores
+//	}
 type Config struct {
-	Algorithm   Algorithm
-	Level       Level
-	BufferSize  int
-	Concurrency int
+	Algorithm   Algorithm // Compression algorithm to use
+	Level       Level     // Compression level
+	BufferSize  int       // Buffer size for streaming operations
+	Concurrency int       // Concurrency for parallel compression
 }
 
-// DefaultConfig returns default compression configuration
+// DefaultConfig returns default compression configuration optimized for
+// balance between speed and compression ratio. Uses Snappy algorithm
+// with 64KB buffers.
 func DefaultConfig() *Config {
 	return &Config{
-		Algorithm:   Snappy,
-		Level:       Default,
-		BufferSize:  64 * 1024, // 64KB
-		Concurrency: 4,
+		Algorithm:   Snappy,     // Fast with decent compression
+		Level:       Default,    // Balanced settings
+		BufferSize:  64 * 1024,  // 64KB buffers
+		Concurrency: 4,          // Moderate parallelism
 	}
 }
 
-// NewCompressor creates a new compressor based on configuration
+// NewCompressor creates a new compressor based on the provided configuration.
+// If config is nil, default configuration is used.
+//
+// Example:
+//
+//	// Fast compression for real-time data
+//	fastComp, _ := compression.NewCompressor(&compression.Config{
+//	    Algorithm: compression.LZ4,
+//	    Level:     compression.Fastest,
+//	})
+//
+//	// High compression for storage
+//	storageComp, _ := compression.NewCompressor(&compression.Config{
+//	    Algorithm: compression.Zstd,
+//	    Level:     compression.Best,
+//	})
 func NewCompressor(config *Config) (Compressor, error) {
 	if config == nil {
 		config = DefaultConfig()
@@ -111,14 +203,36 @@ func NewCompressor(config *Config) (Compressor, error) {
 	}
 }
 
-// CompressorPool provides pooled compressors for better performance
+// CompressorPool provides pooled compressors for better performance by
+// reusing compressor instances. This is especially beneficial for algorithms
+// that have expensive initialization.
+//
+// CompressorPool is safe for concurrent use.
 type CompressorPool struct {
 	pool    sync.Pool
 	config  *Config
 	newFunc func() (Compressor, error)
 }
 
-// NewCompressorPool creates a new compressor pool
+// NewCompressorPool creates a new compressor pool with the specified configuration.
+// The pool automatically manages compressor lifecycle, creating new instances
+// as needed and reusing them when possible.
+//
+// Example:
+//
+//	pool := compression.NewCompressorPool(&compression.Config{
+//	    Algorithm: compression.Zstd,
+//	    Level:     compression.Default,
+//	})
+//
+//	// Use the pool in a handler
+//	func handleRequest(data []byte) {
+//	    compressed, err := pool.Compress(data)
+//	    if err != nil {
+//	        return err
+//	    }
+//	    // Process compressed data
+//	}
 func NewCompressorPool(config *Config) *CompressorPool {
 	if config == nil {
 		config = DefaultConfig()

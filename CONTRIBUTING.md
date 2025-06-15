@@ -379,29 +379,84 @@ go tool pprof mem.prof
 
 ## 📚 Documentation
 
-### Documentation Types
+### Documentation Requirements
 
-- **API Documentation**: Godoc comments for all exported functions
-- **User Guides**: High-level usage documentation
-- **Connector Guides**: Specific connector documentation
-- **Architecture Docs**: Design decisions and patterns
-- **Examples**: Working code examples
+All code contributions must include appropriate documentation:
 
-### Documentation Standards
+1. **Code Documentation**
+   - All exported types, functions, methods, and constants must have GoDoc comments
+   - Comments should start with the name of the element being documented
+   - Include parameter descriptions, return values, and error conditions
+   - Add examples for complex APIs using `Example` functions
 
-- **Clear Examples**: Include working code samples
-- **Up-to-Date**: Keep docs synchronized with code
-- **Comprehensive**: Cover all major features
-- **Accessible**: Use clear, simple language
+2. **Documentation Standards**
+   - Follow the [Go Documentation Standards](docs/development/documentation.md)
+   - Use complete sentences with proper grammar and punctuation
+   - Include code examples in documentation comments
+   - Document performance characteristics for critical code
 
-### Updating Documentation
+3. **Required Documentation Updates**
+   - Update README.md for user-facing features
+   - Update CLAUDE.md for development patterns
+   - Update package documentation in doc.go files
+   - Add or update examples in *_example_test.go files
+   - Update relevant guides in the docs/ directory
 
-When making changes, update relevant documentation:
+### Writing Good Documentation
 
-- **README.md**: For user-facing changes
-- **CLAUDE.md**: For development patterns
-- **docs/**: For detailed guides
-- **Godoc**: For API changes
+#### Good Example
+```go
+// ParseConfig reads and validates a configuration from the specified path.
+// It supports YAML and JSON formats, with automatic format detection based
+// on file extension. Environment variables can be used with ${VAR} syntax.
+//
+// Parameters:
+//   - path: Path to the configuration file
+//   - v: Pointer to struct to unmarshal into
+//
+// Returns error if:
+//   - File cannot be read
+//   - Format is unsupported
+//   - Validation fails
+//
+// Example:
+//
+//	var config MyConfig
+//	if err := ParseConfig("config.yaml", &config); err != nil {
+//	    log.Fatal(err)
+//	}
+func ParseConfig(path string, v interface{}) error {
+    // Implementation
+}
+```
+
+#### Bad Example
+```go
+// ParseConfig parses config
+func ParseConfig(path string, v interface{}) error {
+    // Implementation
+}
+```
+
+### Documentation Tools
+
+- **View locally**: `./scripts/serve-docs.sh` (http://localhost:6060)
+- **Check quality**: `golint ./...`
+- **Generate markdown**: `godocdown ./pkg/... > API.md`
+- **Online**: Automatically published to pkg.go.dev
+
+### Documentation Checklist
+
+Before submitting a PR, ensure:
+
+- [ ] All exported elements have documentation
+- [ ] Examples compile and run correctly
+- [ ] Documentation accurately describes the current behavior
+- [ ] Performance implications are documented
+- [ ] Breaking changes are clearly marked
+- [ ] Cross-references to related types/functions are included
+
+For detailed documentation guidelines, see [Documentation Standards](docs/development/documentation.md).
 
 ## 🌟 Connector Development
 

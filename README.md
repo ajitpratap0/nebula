@@ -4,6 +4,7 @@ A high-performance, cloud-native Extract & Load (EL) data integration platform w
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-ajitpratap0%2Fnebula-blue?style=flat&logo=github)](https://github.com/ajitpratap0/nebula)
 [![Go Version](https://img.shields.io/badge/Go-1.23+-blue.svg)](https://golang.org)
+[![GoDoc](https://pkg.go.dev/badge/github.com/ajitpratap0/nebula.svg)](https://pkg.go.dev/github.com/ajitpratap0/nebula)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Performance](https://img.shields.io/badge/Performance-1.7M%20rec%2Fsec-green.svg)](#performance)
 [![Memory](https://img.shields.io/badge/Memory-84%20bytes%2Frecord-green.svg)](#memory-efficiency)
