@@ -15,7 +15,9 @@ import (
 	"go.uber.org/zap"
 )
 
-// ConnectorBuilder provides a fluent interface for building V2 connectors
+// ConnectorBuilder provides a fluent interface for building V2 connectors.
+// It simplifies the creation of custom connectors by providing sensible defaults
+// and a builder pattern for configuration.
 type ConnectorBuilder struct {
 	name          string
 	connectorType core.ConnectorType
@@ -50,7 +52,9 @@ type ConnectorBuilder struct {
 	logger *zap.Logger
 }
 
-// NewConnectorBuilder creates a new connector builder
+// NewConnectorBuilder creates a new connector builder with default configuration.
+// The builder starts with sensible defaults for batch size (1000), buffer size (10000),
+// concurrency (10), and other settings that can be customized using the builder methods.
 func NewConnectorBuilder() *ConnectorBuilder {
 	return &ConnectorBuilder{
 		version:               "1.0.0",
@@ -68,55 +72,64 @@ func NewConnectorBuilder() *ConnectorBuilder {
 	}
 }
 
-// WithName sets the connector name
+// WithName sets the connector name. This is required and should be unique
+// across all connectors in the registry.
 func (cb *ConnectorBuilder) WithName(name string) *ConnectorBuilder {
 	cb.name = name
 	return cb
 }
 
-// WithType sets the connector type
+// WithType sets the connector type (source or destination).
+// This determines which interfaces the connector must implement.
 func (cb *ConnectorBuilder) WithType(connectorType core.ConnectorType) *ConnectorBuilder {
 	cb.connectorType = connectorType
 	return cb
 }
 
-// WithVersion sets the connector version
+// WithVersion sets the connector version using semantic versioning (e.g., "1.0.0").
+// Defaults to "1.0.0" if not specified.
 func (cb *ConnectorBuilder) WithVersion(version string) *ConnectorBuilder {
 	cb.version = version
 	return cb
 }
 
-// WithDescription sets the connector description
+// WithDescription sets a human-readable description of the connector's purpose
+// and functionality. This is used for documentation and discovery.
 func (cb *ConnectorBuilder) WithDescription(description string) *ConnectorBuilder {
 	cb.description = description
 	return cb
 }
 
-// WithAuthor sets the connector author
+// WithAuthor sets the connector author information (name, email, or organization).
+// This helps users know who to contact for support.
 func (cb *ConnectorBuilder) WithAuthor(author string) *ConnectorBuilder {
 	cb.author = author
 	return cb
 }
 
-// WithCapability adds a capability to the connector
+// WithCapability adds a single capability to the connector's capability list.
+// Common capabilities include "incremental", "batch", "streaming", "cdc", etc.
 func (cb *ConnectorBuilder) WithCapability(capability string) *ConnectorBuilder {
 	cb.capabilities = append(cb.capabilities, capability)
 	return cb
 }
 
-// WithCapabilities sets all capabilities at once
+// WithCapabilities sets all capabilities at once, replacing any previously set capabilities.
+// Use this when you know all capabilities upfront.
 func (cb *ConnectorBuilder) WithCapabilities(capabilities ...string) *ConnectorBuilder {
 	cb.capabilities = capabilities
 	return cb
 }
 
-// WithConfigSchema sets the configuration schema
+// WithConfigSchema sets the complete configuration schema for the connector.
+// The schema should follow JSON Schema format for validation and documentation.
 func (cb *ConnectorBuilder) WithConfigSchema(schema map[string]interface{}) *ConnectorBuilder {
 	cb.configSchema = schema
 	return cb
 }
 
-// WithConfigProperty adds a single configuration property
+// WithConfigProperty adds a single configuration property to the schema.
+// Each property should include type, description, and validation rules.
 func (cb *ConnectorBuilder) WithConfigProperty(name string, schema map[string]interface{}) *ConnectorBuilder {
 	if cb.configSchema == nil {
 		cb.configSchema = pool.GetMap()
@@ -125,7 +138,8 @@ func (cb *ConnectorBuilder) WithConfigProperty(name string, schema map[string]in
 	return cb
 }
 
-// WithDefaults sets default configuration values
+// WithDefaults sets default configuration values for performance and reliability.
+// These defaults override the builder's initial defaults.
 func (cb *ConnectorBuilder) WithDefaults(
 	batchSize, bufferSize, maxConcurrency int,
 	requestTimeout, retryDelay time.Duration,
@@ -141,7 +155,9 @@ func (cb *ConnectorBuilder) WithDefaults(
 	return cb
 }
 
-// WithOptimization is deprecated - unified pool system is always enabled
+// WithOptimization is deprecated - unified pool system is always enabled.
+// This method is kept for backward compatibility but has no effect.
+// Deprecated: The unified pool system is always enabled in the current architecture.
 func (cb *ConnectorBuilder) WithOptimization(enabled bool, config interface{}) *ConnectorBuilder {
 	// No-op: unified pool system is always enabled
 	return cb
@@ -161,37 +177,43 @@ func (cb *ConnectorBuilder) WithCompressionThreshold(threshold int) *ConnectorBu
 	return cb
 }
 
-// WithErrorHandler sets a custom error handler
+// WithErrorHandler sets a custom error handler for processing connector errors.
+// The handler can transform, log, or wrap errors before they're returned.
 func (cb *ConnectorBuilder) WithErrorHandler(handler func(error) error) *ConnectorBuilder {
 	cb.errorHandler = handler
 	return cb
 }
 
-// WithInitHook sets a custom initialization hook
+// WithInitHook sets a custom initialization hook called during connector startup.
+// Use this for custom setup like establishing connections or loading resources.
 func (cb *ConnectorBuilder) WithInitHook(hook func(context.Context, *config.BaseConfig) error) *ConnectorBuilder {
 	cb.initHook = hook
 	return cb
 }
 
-// WithCloseHook sets a custom close hook
+// WithCloseHook sets a custom close hook called during connector shutdown.
+// Use this for cleanup like closing connections or releasing resources.
 func (cb *ConnectorBuilder) WithCloseHook(hook func(context.Context) error) *ConnectorBuilder {
 	cb.closeHook = hook
 	return cb
 }
 
-// WithHealthHook sets a custom health check hook
+// WithHealthHook sets a custom health check hook for monitoring connector status.
+// The hook should return an error if the connector is unhealthy.
 func (cb *ConnectorBuilder) WithHealthHook(hook func(context.Context) error) *ConnectorBuilder {
 	cb.healthHook = hook
 	return cb
 }
 
-// WithConfigValidator sets a configuration validator
+// WithConfigValidator sets a configuration validator to ensure config correctness.
+// The validator is called after loading configuration and before initialization.
 func (cb *ConnectorBuilder) WithConfigValidator(validator func(*config.BaseConfig) error) *ConnectorBuilder {
 	cb.configValidator = validator
 	return cb
 }
 
-// Validate validates the builder configuration
+// Validate validates the builder configuration to ensure all required fields are set.
+// Returns an error if name, type, or version are missing or invalid.
 func (cb *ConnectorBuilder) Validate() error {
 	if cb.name == "" {
 		return errors.New(errors.ErrorTypeConfig, "connector name is required")
@@ -208,7 +230,8 @@ func (cb *ConnectorBuilder) Validate() error {
 	return nil
 }
 
-// CreateBaseConfig creates a base configuration with defaults
+// CreateBaseConfig creates a base configuration with the builder's default values.
+// The returned config can be further customized before using with the connector.
 func (cb *ConnectorBuilder) CreateBaseConfig(name string) *config.BaseConfig {
 	cfg := config.NewBaseConfig(name, string(cb.connectorType))
 	cfg.Version = cb.version
@@ -242,7 +265,8 @@ func (cb *ConnectorBuilder) CreateBaseConfig(name string) *config.BaseConfig {
 	return cfg
 }
 
-// CreateBaseConnector creates a BaseConnector with the builder configuration
+// CreateBaseConnector creates a BaseConnector instance with the builder's configuration.
+// The BaseConnector provides common functionality like circuit breakers and rate limiting.
 func (cb *ConnectorBuilder) CreateBaseConnector() *base.BaseConnector {
 	baseConnector := base.NewBaseConnector(cb.name, cb.connectorType, cb.version)
 
@@ -252,7 +276,8 @@ func (cb *ConnectorBuilder) CreateBaseConnector() *base.BaseConnector {
 	return baseConnector
 }
 
-// GetMetadata returns connector metadata
+// GetMetadata returns the connector's metadata for registration and discovery.
+// This includes name, type, version, capabilities, and configuration schema.
 func (cb *ConnectorBuilder) GetMetadata() *ConnectorMetadata {
 	return &ConnectorMetadata{
 		Name:         cb.name,
@@ -265,7 +290,8 @@ func (cb *ConnectorBuilder) GetMetadata() *ConnectorMetadata {
 	}
 }
 
-// ConnectorMetadata holds metadata about a connector
+// ConnectorMetadata holds metadata about a connector for registration and discovery.
+// This information is used by the connector registry and management tools.
 type ConnectorMetadata struct {
 	Name         string                 `json:"name"`
 	Type         core.ConnectorType     `json:"type"`
@@ -276,7 +302,8 @@ type ConnectorMetadata struct {
 	ConfigSchema map[string]interface{} `json:"config_schema"`
 }
 
-// SourceBuilder provides specialized building for source connectors
+// SourceBuilder provides specialized building for source connectors.
+// It extends ConnectorBuilder with source-specific capabilities and hooks.
 type SourceBuilder struct {
 	*ConnectorBuilder
 
@@ -299,7 +326,8 @@ type SourceBuilder struct {
 	setStateHook    func(core.State) error
 }
 
-// NewSourceBuilder creates a new source builder
+// NewSourceBuilder creates a new source builder with default source capabilities.
+// The builder starts with batch support enabled by default.
 func NewSourceBuilder() *SourceBuilder {
 	cb := NewConnectorBuilder()
 	cb.connectorType = core.ConnectorTypeSource
@@ -468,7 +496,8 @@ func (sb *SourceBuilder) WithStateManagement(
 	return sb
 }
 
-// DestinationBuilder provides specialized building for destination connectors
+// DestinationBuilder provides specialized building for destination connectors.
+// It extends ConnectorBuilder with destination-specific capabilities and hooks.
 type DestinationBuilder struct {
 	*ConnectorBuilder
 
@@ -490,7 +519,8 @@ type DestinationBuilder struct {
 	dropSchemaHook       func(context.Context, *core.Schema) error
 }
 
-// NewDestinationBuilder creates a new destination builder
+// NewDestinationBuilder creates a new destination builder with default capabilities.
+// The builder starts with batch and streaming support enabled by default.
 func NewDestinationBuilder() *DestinationBuilder {
 	cb := NewConnectorBuilder()
 	cb.connectorType = core.ConnectorTypeDestination

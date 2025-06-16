@@ -8,7 +8,8 @@ import (
 	"time"
 )
 
-// HTTPMetrics tracks HTTP client performance metrics
+// HTTPMetrics tracks HTTP client performance metrics including request counts,
+// latencies, connection reuse, and error rates.
 type HTTPMetrics struct {
 	// Request counts
 	totalRequests      int64
@@ -41,7 +42,8 @@ type HTTPMetrics struct {
 	mu sync.RWMutex
 }
 
-// LatencyBucket tracks latency for specific endpoints
+// LatencyBucket tracks latency statistics for specific endpoints,
+// maintaining samples for percentile calculations.
 type LatencyBucket struct {
 	host         string
 	method       string
@@ -52,7 +54,8 @@ type LatencyBucket struct {
 	samples      []time.Duration
 }
 
-// NewHTTPMetrics creates a new HTTP metrics tracker
+// NewHTTPMetrics creates a new HTTP metrics tracker with pre-allocated buffers
+// for efficient metric collection.
 func NewHTTPMetrics() *HTTPMetrics {
 	return &HTTPMetrics{
 		latencyBuckets: make(map[string]*LatencyBucket),
@@ -64,7 +67,8 @@ func NewHTTPMetrics() *HTTPMetrics {
 	}
 }
 
-// RecordRequest records a request and its outcome
+// RecordRequest records metrics for an HTTP request including its method, host,
+// latency, and whether it succeeded or failed.
 func (hm *HTTPMetrics) RecordRequest(method, host string, latency time.Duration, err error) {
 	atomic.AddInt64(&hm.totalRequests, 1)
 
@@ -82,7 +86,8 @@ func (hm *HTTPMetrics) RecordRequest(method, host string, latency time.Duration,
 	hm.recordLatency(method, host, latency)
 }
 
-// RecordConnectionReuse records connection reuse metrics
+// RecordConnectionReuse tracks whether a connection was reused or newly created,
+// helping monitor connection pooling effectiveness.
 func (hm *HTTPMetrics) RecordConnectionReuse(reused bool) {
 	if reused {
 		atomic.AddInt64(&hm.connectionsReused, 1)
@@ -91,7 +96,8 @@ func (hm *HTTPMetrics) RecordConnectionReuse(reused bool) {
 	}
 }
 
-// RecordHTTP2Usage records HTTP/2 connection usage
+// RecordHTTP2Usage records HTTP/2 connection and stream statistics
+// for monitoring multiplexing efficiency.
 func (hm *HTTPMetrics) RecordHTTP2Usage(streams int) {
 	atomic.AddInt64(&hm.http2Connections, 1)
 	atomic.AddInt64(&hm.http2Streams, int64(streams))

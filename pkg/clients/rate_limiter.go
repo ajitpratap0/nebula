@@ -9,12 +9,14 @@ import (
 	"time"
 )
 
-// NewRateLimiter creates a new rate limiter with the specified rate and burst
+// NewRateLimiter creates a new rate limiter with the specified rate (requests per second)
+// and burst size (maximum requests that can be made at once).
 func NewRateLimiter(rate int, burst int) RateLimiter {
 	return NewTokenBucketRateLimiter(float64(rate), burst)
 }
 
-// RateLimiter defines the interface for rate limiting
+// RateLimiter defines the interface for rate limiting implementations.
+// It supports immediate checks, blocking waits, and future reservations.
 type RateLimiter interface {
 	// Allow checks if a request is allowed
 	Allow() bool
@@ -35,7 +37,8 @@ type RateLimiter interface {
 	GetStats() RateLimiterStats
 }
 
-// Reservation represents a rate limiter reservation
+// Reservation represents a rate limiter reservation for future use.
+// It allows checking validity, delay time, and cancellation.
 type Reservation interface {
 	// OK returns whether the reservation is valid
 	OK() bool
@@ -47,7 +50,8 @@ type Reservation interface {
 	Cancel()
 }
 
-// RateLimiterStats represents rate limiter statistics
+// RateLimiterStats provides detailed statistics about rate limiter performance
+// and current state for monitoring and debugging.
 type RateLimiterStats struct {
 	Rate            float64       `json:"rate"`
 	Burst           int           `json:"burst"`
@@ -58,7 +62,8 @@ type RateLimiterStats struct {
 	AverageWaitTime time.Duration `json:"average_wait_time"`
 }
 
-// TokenBucketRateLimiter implements token bucket algorithm
+// TokenBucketRateLimiter implements the token bucket algorithm for rate limiting.
+// Tokens are added at a constant rate and consumed by requests.
 type TokenBucketRateLimiter struct {
 	rate     float64
 	burst    int
@@ -73,7 +78,8 @@ type TokenBucketRateLimiter struct {
 	mu sync.Mutex
 }
 
-// NewTokenBucketRateLimiter creates a new token bucket rate limiter
+// NewTokenBucketRateLimiter creates a new token bucket rate limiter with the specified
+// rate (tokens per second) and burst capacity (maximum tokens).
 func NewTokenBucketRateLimiter(rate float64, burst int) *TokenBucketRateLimiter {
 	return &TokenBucketRateLimiter{
 		rate:     rate,
@@ -83,7 +89,8 @@ func NewTokenBucketRateLimiter(rate float64, burst int) *TokenBucketRateLimiter 
 	}
 }
 
-// Allow checks if a request is allowed
+// Allow checks if a request is allowed immediately.
+// Returns true if a token is available and consumes it, false otherwise.
 func (tb *TokenBucketRateLimiter) Allow() bool {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()

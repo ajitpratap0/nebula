@@ -17,15 +17,18 @@ import (
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 )
 
-// ConfigValidator provides common validation functions for connector configurations
+// ConfigValidator provides common validation functions for connector configurations.
+// It offers methods to validate required fields, data types, and constraints.
 type ConfigValidator struct{}
 
-// NewConfigValidator creates a new configuration validator
+// NewConfigValidator creates a new configuration validator instance.
+// Use this to validate connector-specific configuration properties.
 func NewConfigValidator() *ConfigValidator {
 	return &ConfigValidator{}
 }
 
-// ValidateRequired validates that required properties are present
+// ValidateRequired validates that required properties are present in the configuration.
+// Properties should be stored in the Security.Credentials map.
 func (cv *ConfigValidator) ValidateRequired(config *config.BaseConfig, requiredProps ...string) error {
 	if config.Security.Credentials == nil {
 		return errors.New(errors.ErrorTypeConfig, "security credentials are required for connector-specific properties")
@@ -40,7 +43,9 @@ func (cv *ConfigValidator) ValidateRequired(config *config.BaseConfig, requiredP
 	return nil
 }
 
-// ValidateString validates string properties
+// ValidateString validates string properties with length and pattern constraints.
+// Set maxLength to 0 to skip maximum length validation.
+// Pattern should be a valid regular expression or empty string to skip pattern validation.
 func (cv *ConfigValidator) ValidateString(config *config.BaseConfig, propName string, minLength, maxLength int, pattern string) error {
 	val, exists := config.Security.Credentials[propName]
 	if !exists || val == "" {
@@ -70,7 +75,8 @@ func (cv *ConfigValidator) ValidateString(config *config.BaseConfig, propName st
 	return nil
 }
 
-// ValidateInt validates integer properties
+// ValidateInt validates integer properties with minimum and maximum constraints.
+// Set max to 0 to skip maximum value validation.
 func (cv *ConfigValidator) ValidateInt(config *config.BaseConfig, propName string, min, max int) error {
 	val, exists := config.Security.Credentials[propName]
 	if !exists || val == "" {
@@ -94,7 +100,8 @@ func (cv *ConfigValidator) ValidateInt(config *config.BaseConfig, propName strin
 	return nil
 }
 
-// ValidateEnum validates enumerated properties
+// ValidateEnum validates that a property value is one of the allowed values.
+// Returns nil if the property doesn't exist (optional properties).
 func (cv *ConfigValidator) ValidateEnum(config *config.BaseConfig, propName string, validValues ...string) error {
 	val, exists := config.Security.Credentials[propName]
 	if !exists || val == "" {
@@ -112,7 +119,8 @@ func (cv *ConfigValidator) ValidateEnum(config *config.BaseConfig, propName stri
 	return errors.New(errors.ErrorTypeConfig, stringpool.Sprintf("property '%s' must be one of: %s", propName, stringpool.JoinPooled(validValues, ", ")))
 }
 
-// SchemaBuilder helps build schemas programmatically
+// SchemaBuilder helps build schemas programmatically using a fluent interface.
+// Use this to construct schemas for source connectors during discovery.
 type SchemaBuilder struct {
 	name        string
 	description string
@@ -120,7 +128,8 @@ type SchemaBuilder struct {
 	fields      []core.Field
 }
 
-// NewSchemaBuilder creates a new schema builder
+// NewSchemaBuilder creates a new schema builder with the specified name.
+// The schema starts with version "1.0.0" and no fields.
 func NewSchemaBuilder(name string) *SchemaBuilder {
 	return &SchemaBuilder{
 		name:    name,
@@ -188,12 +197,14 @@ func (sb *SchemaBuilder) Build() *core.Schema {
 	}
 }
 
-// RecordBuilder helps build records programmatically
+// RecordBuilder helps build records programmatically for testing and development.
+// It ensures proper initialization and memory pool usage.
 type RecordBuilder struct {
 	record *models.Record
 }
 
-// NewRecordBuilder creates a new record builder
+// NewRecordBuilder creates a new record builder with the specified source.
+// The record is allocated from the global memory pool.
 func NewRecordBuilder(source string) *RecordBuilder {
 	return &RecordBuilder{
 		record: models.NewRecordFromPool(source),
@@ -241,14 +252,16 @@ func (rb *RecordBuilder) Build() *models.Record {
 	return rb.record
 }
 
-// StreamBuilder helps build record streams for testing
+// StreamBuilder helps build record streams for testing and mock implementations.
+// It can simulate both successful records and errors in the stream.
 type StreamBuilder struct {
 	records    []*models.Record
 	errors     []error
 	bufferSize int
 }
 
-// NewStreamBuilder creates a new stream builder
+// NewStreamBuilder creates a new stream builder with default buffer size of 100.
+// Use WithBufferSize to adjust the channel buffer size.
 func NewStreamBuilder() *StreamBuilder {
 	return &StreamBuilder{
 		records:    make([]*models.Record, 0),
@@ -338,15 +351,19 @@ func (sb *StreamBuilder) BuildBatchStream(batchSize int) *core.BatchStream {
 	}
 }
 
-// ConnectorRegistry provides utility functions for connector registration
+// ConnectorRegistry provides utility functions for connector registration.
+// It simplifies the process of registering builders as connector factories.
 type ConnectorRegistry struct{}
 
-// NewConnectorRegistry creates a new connector registry
+// NewConnectorRegistry creates a new connector registry helper.
+// This wraps the global registry with convenience methods for SDK users.
 func NewConnectorRegistry() *ConnectorRegistry {
 	return &ConnectorRegistry{}
 }
 
-// RegisterSourceBuilder registers a source builder as a connector factory
+// RegisterSourceBuilder registers a source builder as a connector factory.
+// This creates a factory function that instantiates the connector when needed.
+// The builder's metadata is also registered for discovery.
 func (cr *ConnectorRegistry) RegisterSourceBuilder(name string, builder *SourceBuilder) error {
 	factory := func(config *config.BaseConfig) (core.Source, error) {
 		connector, err := NewSDKSourceConnector(builder)
@@ -376,7 +393,9 @@ func (cr *ConnectorRegistry) RegisterSourceBuilder(name string, builder *SourceB
 	return registry.RegisterConnectorInfo(connectorInfo)
 }
 
-// RegisterDestinationBuilder registers a destination builder as a connector factory
+// RegisterDestinationBuilder registers a destination builder as a connector factory.
+// This creates a factory function that instantiates the connector when needed.
+// The builder's metadata is also registered for discovery.
 func (cr *ConnectorRegistry) RegisterDestinationBuilder(name string, builder *DestinationBuilder) error {
 	factory := func(config *config.BaseConfig) (core.Destination, error) {
 		connector, err := NewSDKDestinationConnector(builder)
@@ -406,15 +425,18 @@ func (cr *ConnectorRegistry) RegisterDestinationBuilder(name string, builder *De
 	return registry.RegisterConnectorInfo(connectorInfo)
 }
 
-// TypeConverter provides utilities for converting between data types
+// TypeConverter provides utilities for converting between data types.
+// It handles common conversions needed when working with different data sources.
 type TypeConverter struct{}
 
-// NewTypeConverter creates a new type converter
+// NewTypeConverter creates a new type converter instance.
+// Use this to convert values to match schema field types.
 func NewTypeConverter() *TypeConverter {
 	return &TypeConverter{}
 }
 
-// ConvertValue converts a value to the specified field type
+// ConvertValue converts a value to the specified field type.
+// Returns nil for nil input. Returns error if conversion is not possible.
 func (tc *TypeConverter) ConvertValue(value interface{}, targetType core.FieldType) (interface{}, error) {
 	if value == nil {
 		return nil, nil
@@ -537,15 +559,19 @@ func (tc *TypeConverter) toTimestamp(value interface{}) (time.Time, error) {
 	}
 }
 
-// ReflectionHelper provides utilities for reflection-based operations
+// ReflectionHelper provides utilities for reflection-based operations.
+// It helps with schema inference and struct-based data mapping.
 type ReflectionHelper struct{}
 
-// NewReflectionHelper creates a new reflection helper
+// NewReflectionHelper creates a new reflection helper instance.
+// Use this for automatic schema discovery from Go structs.
 func NewReflectionHelper() *ReflectionHelper {
 	return &ReflectionHelper{}
 }
 
-// InferSchemaFromStruct infers a schema from a Go struct
+// InferSchemaFromStruct infers a schema from a Go struct type.
+// It uses struct tags (json) for field names and automatically determines field types.
+// Pass a struct instance or pointer to struct as structType.
 func (rh *ReflectionHelper) InferSchemaFromStruct(structType interface{}, schemaName string) *core.Schema {
 	t := reflect.TypeOf(structType)
 	if t.Kind() == reflect.Ptr {

@@ -20,7 +20,8 @@ type CircuitBreakerConfig struct {
 	Timeout          time.Duration // Timeout before retrying
 }
 
-// NewCircuitBreaker creates a new circuit breaker
+// NewCircuitBreaker creates a new circuit breaker with the given configuration.
+// This is a compatibility wrapper that creates an HTTPCircuitBreaker with a nop logger.
 func NewCircuitBreaker(config CircuitBreakerConfig) *CircuitBreaker {
 	httpConfig := &HTTPConfig{
 		FailureThreshold: config.FailureThreshold,
@@ -30,7 +31,8 @@ func NewCircuitBreaker(config CircuitBreakerConfig) *CircuitBreaker {
 	return NewHTTPCircuitBreaker(httpConfig, zap.NewNop())
 }
 
-// HTTPCircuitBreaker implements circuit breaker pattern for HTTP requests
+// HTTPCircuitBreaker implements the circuit breaker pattern for HTTP requests
+// to prevent cascading failures and provide fault tolerance.
 type HTTPCircuitBreaker struct {
 	config *HTTPConfig
 	logger *zap.Logger
@@ -54,16 +56,19 @@ type HTTPCircuitBreaker struct {
 	mu sync.RWMutex
 }
 
-// CircuitState represents the circuit breaker state
+// CircuitState represents the state of a circuit breaker
 type CircuitState int32
 
 const (
+	// StateClosed allows all requests to pass through
 	StateClosed CircuitState = iota
+	// StateOpen blocks all requests
 	StateOpen
+	// StateHalfOpen allows a limited number of requests to test if the service has recovered
 	StateHalfOpen
 )
 
-// SlidingWindow tracks requests in a time window
+// SlidingWindow tracks requests and failures over a time window for calculating failure rates
 type SlidingWindow struct {
 	buckets        []int64
 	failureBuckets []int64
@@ -74,7 +79,8 @@ type SlidingWindow struct {
 	mu             sync.RWMutex
 }
 
-// NewHTTPCircuitBreaker creates a new circuit breaker
+// NewHTTPCircuitBreaker creates a new HTTP circuit breaker with the given configuration and logger.
+// The circuit breaker starts in the closed state and uses a sliding window to track request failures.
 func NewHTTPCircuitBreaker(config *HTTPConfig, logger *zap.Logger) *HTTPCircuitBreaker {
 	cb := &HTTPCircuitBreaker{
 		config:          config,
@@ -90,7 +96,9 @@ func NewHTTPCircuitBreaker(config *HTTPConfig, logger *zap.Logger) *HTTPCircuitB
 	return cb
 }
 
-// Execute runs a function with circuit breaker protection
+// Execute runs a function with circuit breaker protection.
+// If the circuit is open, it returns an error immediately without executing the function.
+// Otherwise, it executes the function and records the result.
 func (cb *HTTPCircuitBreaker) Execute(fn func() error) error {
 	if !cb.Allow() {
 		return fmt.Errorf("circuit breaker is open")
@@ -106,7 +114,8 @@ func (cb *HTTPCircuitBreaker) Execute(fn func() error) error {
 	return nil
 }
 
-// Allow determines if a request should be allowed
+// Allow determines if a request should be allowed based on the current circuit state.
+// Returns true if the request can proceed, false if it should be blocked.
 func (cb *HTTPCircuitBreaker) Allow() bool {
 	state := CircuitState(atomic.LoadInt32(&cb.state))
 
@@ -134,7 +143,8 @@ func (cb *HTTPCircuitBreaker) Allow() bool {
 	}
 }
 
-// RecordSuccess records a successful request
+// RecordSuccess records a successful request and updates the circuit state accordingly.
+// In half-open state, enough consecutive successes will close the circuit.
 func (cb *HTTPCircuitBreaker) RecordSuccess() {
 	state := CircuitState(atomic.LoadInt32(&cb.state))
 
@@ -157,7 +167,9 @@ func (cb *HTTPCircuitBreaker) RecordSuccess() {
 	}
 }
 
-// RecordFailure records a failed request
+// RecordFailure records a failed request and updates the circuit state accordingly.
+// In closed state, too many failures will open the circuit.
+// In half-open state, any failure will reopen the circuit.
 func (cb *HTTPCircuitBreaker) RecordFailure() {
 	state := CircuitState(atomic.LoadInt32(&cb.state))
 
@@ -243,7 +255,8 @@ func (cb *HTTPCircuitBreaker) transitionToClosed() {
 	}
 }
 
-// GetState returns the current circuit breaker state
+// GetState returns the current state of the circuit breaker along with statistics
+// about requests, failures, and state transitions.
 func (cb *HTTPCircuitBreaker) GetState() CircuitBreakerState {
 	cb.mu.RLock()
 	defer cb.mu.RUnlock()
@@ -274,7 +287,8 @@ func (cb *HTTPCircuitBreaker) GetState() CircuitBreakerState {
 	}
 }
 
-// NewSlidingWindow creates a new sliding window
+// NewSlidingWindow creates a new sliding window for tracking request statistics.
+// bucketSize determines the granularity of time buckets, and windowSize is the total time window.
 func NewSlidingWindow(bucketSize, windowSize time.Duration) *SlidingWindow {
 	numBuckets := int(windowSize / bucketSize)
 	return &SlidingWindow{
@@ -286,7 +300,8 @@ func NewSlidingWindow(bucketSize, windowSize time.Duration) *SlidingWindow {
 	}
 }
 
-// RecordRequest records a request in the sliding window
+// RecordRequest records a request result in the sliding window.
+// success indicates whether the request was successful.
 func (sw *SlidingWindow) RecordRequest(success bool) {
 	sw.mu.Lock()
 	defer sw.mu.Unlock()
@@ -321,7 +336,8 @@ func (sw *SlidingWindow) updateBuckets() {
 	}
 }
 
-// GetFailureRate returns the current failure rate
+// GetFailureRate calculates and returns the current failure rate across the entire window.
+// Returns 0 if no requests have been recorded.
 func (sw *SlidingWindow) GetFailureRate() float64 {
 	sw.mu.RLock()
 	defer sw.mu.RUnlock()
@@ -339,7 +355,8 @@ func (sw *SlidingWindow) GetFailureRate() float64 {
 	return float64(totalFailures) / float64(totalRequests)
 }
 
-// GetStats returns window statistics
+// GetStats returns comprehensive statistics about requests in the sliding window,
+// including total requests, failed requests, and failure rate.
 func (sw *SlidingWindow) GetStats() WindowStats {
 	sw.mu.RLock()
 	defer sw.mu.RUnlock()
@@ -362,7 +379,7 @@ func (sw *SlidingWindow) GetStats() WindowStats {
 	}
 }
 
-// CircuitBreakerState represents the circuit breaker state
+// CircuitBreakerState represents the current state and statistics of a circuit breaker
 type CircuitBreakerState struct {
 	State                string    `json:"state"`
 	LastStateChange      time.Time `json:"last_state_change"`
@@ -374,7 +391,7 @@ type CircuitBreakerState struct {
 	NextRetryTime        time.Time `json:"next_retry_time,omitempty"`
 }
 
-// WindowStats represents sliding window statistics
+// WindowStats represents statistics collected over a sliding time window
 type WindowStats struct {
 	TotalRequests  int64   `json:"total_requests"`
 	FailedRequests int64   `json:"failed_requests"`

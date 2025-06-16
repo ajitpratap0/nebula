@@ -31,7 +31,8 @@ type Reader struct {
 	mu sync.RWMutex
 }
 
-// NewReader creates a new memory-mapped file reader
+// NewReader creates a new memory-mapped file reader for the given file.
+// The entire file is mapped into memory for zero-copy access.
 func NewReader(filename string) (*Reader, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -79,7 +80,8 @@ func NewReader(filename string) (*Reader, error) {
 	}, nil
 }
 
-// ReadAll returns the entire memory-mapped file data
+// ReadAll returns the entire memory-mapped file data as a byte slice.
+// This is a zero-copy operation that returns the underlying mmap buffer.
 func (r *Reader) ReadAll() []byte {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -95,7 +97,8 @@ func (r *Reader) ReadAll() []byte {
 	return r.data
 }
 
-// ReadRange reads a specific range from the memory-mapped file
+// ReadRange reads a specific range from the memory-mapped file.
+// Returns an error if the range is invalid.
 func (r *Reader) ReadRange(offset, length int64) ([]byte, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -237,6 +240,7 @@ func (r *Reader) Stats() (bytesRead, pagesRead int64) {
 }
 
 // LineReader provides line-oriented reading over memory-mapped data
+// with batched processing for efficiency.
 type LineReader struct {
 	reader    *Reader
 	data      []byte
@@ -244,7 +248,8 @@ type LineReader struct {
 	batchSize int
 }
 
-// NewLineReader creates a new line reader over memory-mapped file
+// NewLineReader creates a new line reader over a memory-mapped file
+// with the specified batch size for processing lines in chunks.
 func NewLineReader(filename string, batchSize int) (*LineReader, error) {
 	reader, err := NewReader(filename)
 	if err != nil {
@@ -259,7 +264,8 @@ func NewLineReader(filename string, batchSize int) (*LineReader, error) {
 	}, nil
 }
 
-// ReadBatch reads a batch of lines
+// ReadBatch reads up to batchSize lines from the file.
+// Returns nil when EOF is reached.
 func (lr *LineReader) ReadBatch() ([][]byte, error) {
 	if lr.data == nil || lr.offset >= int64(len(lr.data)) {
 		return nil, nil // EOF
@@ -306,18 +312,20 @@ func (lr *LineReader) Close() error {
 }
 
 // ParallelCSVReader reads CSV files using memory mapping and parallel processing
+// for high-performance CSV parsing with multiple worker goroutines.
 type ParallelCSVReader struct {
 	reader     *LineReader
 	delimiter  byte
 	numWorkers int
 }
 
-// GetReader returns the underlying LineReader
+// GetReader returns the underlying LineReader for direct access if needed.
 func (pcr *ParallelCSVReader) GetReader() *LineReader {
 	return pcr.reader
 }
 
-// NewParallelCSVReader creates a new parallel CSV reader
+// NewParallelCSVReader creates a new parallel CSV reader with the specified delimiter
+// and number of worker goroutines. If numWorkers <= 0, it defaults to runtime.NumCPU().
 func NewParallelCSVReader(filename string, delimiter byte, numWorkers int) (*ParallelCSVReader, error) {
 	lineReader, err := NewLineReader(filename, 1000) // 1000 lines per batch
 	if err != nil {
@@ -335,7 +343,8 @@ func NewParallelCSVReader(filename string, delimiter byte, numWorkers int) (*Par
 	}, nil
 }
 
-// ReadAll reads all CSV records in parallel
+// ReadAll reads all CSV records in parallel using multiple worker goroutines
+// for parsing. Returns all records as a slice of string slices.
 func (pcr *ParallelCSVReader) ReadAll() ([][]string, error) {
 	type result struct {
 		index   int

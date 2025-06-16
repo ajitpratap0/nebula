@@ -1,5 +1,5 @@
 # Nebula Makefile
-.PHONY: all build test lint fmt clean run help install-tools coverage bench
+.PHONY: all build test lint fmt clean run help install-tools coverage bench docs-check
 
 # Variables
 BINARY_NAME=nebula
@@ -50,6 +50,16 @@ lint:
 	@echo "Linting code..."
 	@golangci-lint run ./...
 
+# Check documentation coverage
+docs-check:
+	@echo "Checking documentation coverage..."
+	@./scripts/check-docs.sh
+
+# Verbose documentation check
+docs-check-verbose:
+	@echo "Checking documentation coverage (verbose)..."
+	@./scripts/check-docs.sh -v
+
 # Clean build artifacts
 clean:
 	@echo "Cleaning..."
@@ -89,6 +99,8 @@ help:
 	@echo "  bench        - Run benchmarks"
 	@echo "  fmt          - Format code"
 	@echo "  lint         - Lint code"
+	@echo "  docs-check   - Check documentation coverage"
+	@echo "  docs-check-verbose - Check documentation coverage (detailed)"
 	@echo "  clean        - Clean build artifacts"
 	@echo "  run          - Build and run the application"
 	@echo "  install-tools - Install development tools"

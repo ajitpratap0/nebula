@@ -9,21 +9,23 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/models"
 )
 
-// Format represents a columnar storage format
+// Format represents a columnar storage format.
+// Each format has different characteristics for compression, performance, and compatibility.
 type Format string
 
 const (
-	// Parquet is Apache Parquet format
+	// Parquet is Apache Parquet format - columnar storage optimized for analytics workloads
 	Parquet Format = "parquet"
-	// ORC is Apache ORC format
+	// ORC is Apache ORC (Optimized Row Columnar) format - highly compressed columnar format
 	ORC Format = "orc"
-	// Arrow is Apache Arrow format
+	// Arrow is Apache Arrow format - in-memory columnar format for fast analytics
 	Arrow Format = "arrow"
-	// Avro is Apache Avro format
+	// Avro is Apache Avro format - row-oriented data serialization with schema evolution
 	Avro Format = "avro"
 )
 
-// Writer provides columnar format writing capabilities
+// Writer provides columnar format writing capabilities.
+// Implementations handle format-specific encoding and compression.
 type Writer interface {
 	// WriteRecords writes records in columnar format
 	WriteRecords(records []*models.Record) error
@@ -41,7 +43,8 @@ type Writer interface {
 	RecordsWritten() int64
 }
 
-// Reader provides columnar format reading capabilities
+// Reader provides columnar format reading capabilities.
+// Implementations handle format-specific decoding and decompression.
 type Reader interface {
 	// ReadRecords reads all records
 	ReadRecords() ([]*models.Record, error)
@@ -57,7 +60,8 @@ type Reader interface {
 	Schema() (*core.Schema, error)
 }
 
-// WriterConfig configures columnar writers
+// WriterConfig configures columnar writers with format-specific options.
+// Not all options apply to all formats.
 type WriterConfig struct {
 	Format            Format
 	Schema            *core.Schema
@@ -84,7 +88,8 @@ func DefaultWriterConfig() *WriterConfig {
 	}
 }
 
-// ReaderConfig configures columnar readers
+// ReaderConfig configures columnar readers with format-specific options.
+// Projection and filtering can significantly improve read performance.
 type ReaderConfig struct {
 	Format      Format
 	BatchSize   int

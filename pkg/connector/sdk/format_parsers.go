@@ -93,7 +93,8 @@ func DefaultCSVParserConfig() *CSVParserConfig {
 	}
 }
 
-// CSVParser provides CSV parsing capabilities
+// CSVParser provides CSV parsing capabilities with support for
+// large files, streaming, and automatic schema inference.
 type CSVParser struct {
 	*FormatParser
 	config   *CSVParserConfig
@@ -102,7 +103,8 @@ type CSVParser struct {
 	rowCount int64
 }
 
-// NewCSVParser creates a new CSV parser
+// NewCSVParser creates a new CSV parser with the given configuration.
+// Uses default configuration if nil is provided.
 func NewCSVParser(config *CSVParserConfig) *CSVParser {
 	if config == nil {
 		config = DefaultCSVParserConfig()

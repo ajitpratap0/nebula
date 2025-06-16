@@ -15,7 +15,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// OAuth2Client provides OAuth2 authentication functionality
+// OAuth2Client provides OAuth2 authentication functionality with automatic token
+// management, refresh handling, and comprehensive error recovery.
 type OAuth2Client struct {
 	config       *OAuth2Config
 	logger       *zap.Logger
@@ -30,7 +31,8 @@ type OAuth2Client struct {
 	mu sync.RWMutex
 }
 
-// OAuth2Config configures OAuth2 authentication
+// OAuth2Config configures OAuth2 authentication parameters including endpoints,
+// credentials, and token management settings.
 type OAuth2Config struct {
 	// Client credentials
 	ClientID     string `json:"client_id"`
@@ -60,7 +62,8 @@ type OAuth2Config struct {
 	CustomParams  map[string]string `json:"custom_params,omitempty"`
 }
 
-// Token represents an OAuth2 access token
+// Token represents an OAuth2 access token with metadata about expiration,
+// refresh capabilities, and associated scopes.
 type Token struct {
 	AccessToken  string    `json:"access_token"`
 	TokenType    string    `json:"token_type"`
@@ -73,7 +76,8 @@ type Token struct {
 	Extra   map[string]interface{} `json:"extra,omitempty"`
 }
 
-// TokenManager manages OAuth2 tokens with automatic refresh
+// TokenManager manages OAuth2 tokens with automatic refresh, thread-safe access,
+// and coordinated refresh to prevent token request storms.
 type TokenManager struct {
 	config     *OAuth2Config
 	logger     *zap.Logger
@@ -93,7 +97,8 @@ type TokenManager struct {
 	mu sync.RWMutex
 }
 
-// NewOAuth2Client creates a new OAuth2 client
+// NewOAuth2Client creates a new OAuth2 client with the given configuration.
+// It initializes token management with automatic refresh capabilities.
 func NewOAuth2Client(config *OAuth2Config, httpClient *HTTPClient, logger *zap.Logger) *OAuth2Client {
 	if config.RefreshThreshold == 0 {
 		config.RefreshThreshold = 5 * time.Minute

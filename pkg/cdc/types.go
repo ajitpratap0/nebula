@@ -47,25 +47,36 @@ type CDCConfig struct {
 	Options       map[string]interface{} `json:"options,omitempty" yaml:"options,omitempty"`
 }
 
-// ConnectorType represents the type of CDC connector
+// ConnectorType represents the type of CDC connector.
+// Each type corresponds to a specific database or streaming system.
 type ConnectorType string
 
 const (
+	// ConnectorPostgreSQL represents PostgreSQL CDC connector using logical replication
 	ConnectorPostgreSQL ConnectorType = "postgresql"
+	// ConnectorMySQL represents MySQL CDC connector using binlog replication
 	ConnectorMySQL      ConnectorType = "mysql"
+	// ConnectorMongoDB represents MongoDB CDC connector using change streams
 	ConnectorMongoDB    ConnectorType = "mongodb"
+	// ConnectorKafka represents Kafka CDC connector for streaming events
 	ConnectorKafka      ConnectorType = "kafka"
 )
 
-// OperationType represents the type of database operation
+// OperationType represents the type of database operation captured by CDC.
+// These correspond to standard DML and DDL operations.
 type OperationType string
 
 const (
+	// OperationInsert represents an INSERT operation
 	OperationInsert OperationType = "INSERT"
+	// OperationUpdate represents an UPDATE operation
 	OperationUpdate OperationType = "UPDATE"
+	// OperationDelete represents a DELETE operation
 	OperationDelete OperationType = "DELETE"
-	OperationDDL    OperationType = "DDL"    // Schema changes
-	OperationCommit OperationType = "COMMIT" // Transaction commit
+	// OperationDDL represents a Data Definition Language operation (schema changes)
+	OperationDDL    OperationType = "DDL"
+	// OperationCommit represents a transaction commit operation
+	OperationCommit OperationType = "COMMIT"
 )
 
 // ChangeEvent represents a single change event from the database

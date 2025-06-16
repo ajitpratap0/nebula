@@ -19,10 +19,12 @@ type Registry struct {
 	logger       *zap.Logger
 }
 
-// SourceFactory creates source connector instances
+// SourceFactory is a function that creates source connector instances.
+// It takes a BaseConfig and returns a configured Source connector or an error.
 type SourceFactory func(config *config.BaseConfig) (core.Source, error)
 
-// DestinationFactory creates destination connector instances
+// DestinationFactory is a function that creates destination connector instances.
+// It takes a BaseConfig and returns a configured Destination connector or an error.
 type DestinationFactory func(config *config.BaseConfig) (core.Destination, error)
 
 // Global registry instance
@@ -192,12 +194,15 @@ func HasDestination(name string) bool {
 	return globalRegistry.HasDestination(name)
 }
 
-// GetRegistry returns the global registry instance
+// GetRegistry returns the global registry instance.
+// This is the primary way to access the connector registry.
 func GetRegistry() *Registry {
 	return globalRegistry
 }
 
-// Factory is a generic connector factory interface
+// Factory is a generic connector factory interface that can create both
+// source and destination connectors. It provides a unified interface for
+// connector instantiation.
 type Factory interface {
 	CreateSource(connectorType string, config *config.BaseConfig) (core.Source, error)
 	CreateDestination(connectorType string, config *config.BaseConfig) (core.Destination, error)
@@ -205,7 +210,9 @@ type Factory interface {
 	ListDestinations() []string
 }
 
-// DefaultFactory implements the Factory interface using the global registry
+// DefaultFactory implements the Factory interface using the global registry.
+// It provides a simple way to create connectors without directly accessing
+// the registry.
 type DefaultFactory struct {
 	registry *Registry
 }

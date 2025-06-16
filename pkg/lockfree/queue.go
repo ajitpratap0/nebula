@@ -22,8 +22,8 @@ type Queue struct {
 	mask     uint64
 }
 
-// NewQueue creates a new lock-free queue with given capacity
-// Capacity must be a power of 2 for efficient masking
+// NewQueue creates a new lock-free queue with given capacity.
+// Capacity will be rounded up to the next power of 2 for efficient masking.
 func NewQueue(capacity int) *Queue {
 	// Round up to next power of 2
 	cap := uint64(1)
@@ -38,7 +38,9 @@ func NewQueue(capacity int) *Queue {
 	}
 }
 
-// Enqueue adds an item to the queue (multi-producer safe)
+// Enqueue adds an item to the queue in a thread-safe manner.
+// Returns true if successful, false if the queue is full.
+// This method is safe for multiple concurrent producers.
 func (q *Queue) Enqueue(item interface{}) bool {
 	for {
 		tail := q.tail.Load()
@@ -61,7 +63,9 @@ func (q *Queue) Enqueue(item interface{}) bool {
 	}
 }
 
-// Dequeue removes an item from the queue (single-consumer)
+// Dequeue removes and returns an item from the queue.
+// Returns the item and true if successful, nil and false if empty.
+// This method is designed for single-consumer use only.
 func (q *Queue) Dequeue() (interface{}, bool) {
 	head := q.head.Load()
 
@@ -83,7 +87,8 @@ func (q *Queue) Dequeue() (interface{}, bool) {
 	return *item, true
 }
 
-// Size returns the current number of items in the queue
+// Size returns the current number of items in the queue.
+// This is an approximation in concurrent scenarios.
 func (q *Queue) Size() int {
 	head := q.head.Load()
 	tail := q.tail.Load()
@@ -95,12 +100,14 @@ func (q *Queue) Size() int {
 	return int(q.capacity - head + tail)
 }
 
-// IsEmpty returns true if the queue is empty
+// IsEmpty returns true if the queue is empty.
+// This check is atomic but may be stale in concurrent scenarios.
 func (q *Queue) IsEmpty() bool {
 	return q.head.Load() == q.tail.Load()
 }
 
-// IsFull returns true if the queue is full
+// IsFull returns true if the queue is full.
+// This check is atomic but may be stale in concurrent scenarios.
 func (q *Queue) IsFull() bool {
 	head := q.head.Load()
 	tail := q.tail.Load()
@@ -108,6 +115,7 @@ func (q *Queue) IsFull() bool {
 }
 
 // MPMCQueue implements a lock-free multi-producer multi-consumer queue
+// using sequence numbers for ordering and cache-line padding to avoid false sharing.
 type MPMCQueue struct {
 	buffer   []slot
 	capacity uint64
@@ -127,7 +135,8 @@ type slot struct {
 	data     unsafe.Pointer
 }
 
-// NewMPMCQueue creates a new multi-producer multi-consumer queue
+// NewMPMCQueue creates a new multi-producer multi-consumer queue with the given capacity.
+// Capacity will be rounded up to the next power of 2 for efficient masking.
 func NewMPMCQueue(capacity int) *MPMCQueue {
 	// Round up to next power of 2
 	cap := uint64(1)
@@ -204,37 +213,39 @@ func (q *MPMCQueue) Dequeue() (interface{}, bool) {
 	}
 }
 
-// AtomicCounter provides a lock-free counter for statistics
+// AtomicCounter provides a lock-free counter for statistics and metrics collection
+// with atomic operations for thread-safe updates.
 type AtomicCounter struct {
 	value atomic.Uint64
 }
 
-// NewAtomicCounter creates a new atomic counter
+// NewAtomicCounter creates a new atomic counter initialized to zero.
 func NewAtomicCounter() *AtomicCounter {
 	return &AtomicCounter{}
 }
 
-// Increment atomically increments the counter
+// Increment atomically increments the counter by one.
 func (c *AtomicCounter) Increment() {
 	c.value.Add(1)
 }
 
-// Add atomically adds a value to the counter
+// Add atomically adds the given delta value to the counter.
 func (c *AtomicCounter) Add(delta uint64) {
 	c.value.Add(delta)
 }
 
-// Get returns the current value
+// Get returns the current value of the counter atomically.
 func (c *AtomicCounter) Get() uint64 {
 	return c.value.Load()
 }
 
-// Reset atomically resets the counter to zero
+// Reset atomically resets the counter to zero.
 func (c *AtomicCounter) Reset() {
 	c.value.Store(0)
 }
 
 // RingBuffer implements a lock-free single-producer single-consumer ring buffer
+// for efficient byte stream processing with cache-line padding.
 type RingBuffer struct {
 	buffer   []byte
 	capacity uint64
@@ -248,7 +259,8 @@ type RingBuffer struct {
 	_padding2 [7]uint64
 }
 
-// NewRingBuffer creates a new lock-free ring buffer
+// NewRingBuffer creates a new lock-free ring buffer with the given capacity.
+// Capacity will be rounded up to the next power of 2 for efficient masking.
 func NewRingBuffer(capacity int) *RingBuffer {
 	// Round up to next power of 2
 	cap := uint64(1)
@@ -263,7 +275,8 @@ func NewRingBuffer(capacity int) *RingBuffer {
 	}
 }
 
-// Write writes data to the ring buffer
+// Write writes data to the ring buffer.
+// Returns the number of bytes written, which may be less than len(data) if the buffer is full.
 func (rb *RingBuffer) Write(data []byte) int {
 	writePos := rb.writePos.Load()
 	readPos := rb.readPos.Load()

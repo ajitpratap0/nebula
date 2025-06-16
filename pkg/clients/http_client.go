@@ -1,4 +1,30 @@
 // Package clients provides high-performance HTTP client implementations
+// with advanced features for production use.
+//
+// The package includes:
+//   - Connection pooling and reuse
+//   - HTTP/2 support with multiplexing
+//   - Circuit breaker pattern for fault tolerance
+//   - Token bucket rate limiting
+//   - Comprehensive metrics and monitoring
+//   - Request/response object pooling
+//   - Automatic retries with exponential backoff
+//   - OAuth2 authentication support
+//
+// Example usage:
+//
+//	config := clients.DefaultHTTPConfig()
+//	config.RateLimit = 100 // 100 requests per second
+//	config.CircuitBreakerEnabled = true
+//	
+//	client := clients.NewHTTPClient(config, logger)
+//	defer client.Close()
+//	
+//	resp, err := client.Get(ctx, "https://api.example.com/data", headers)
+//	if err != nil {
+//	    return err
+//	}
+//	defer resp.Body.Close()
 package clients
 
 import (
@@ -17,7 +43,9 @@ import (
 	"golang.org/x/net/http2"
 )
 
-// HTTPClient provides a high-performance HTTP client with connection pooling
+// HTTPClient provides a high-performance HTTP client with connection pooling,
+// circuit breaking, rate limiting, and comprehensive metrics.
+// It's optimized for high-throughput scenarios with minimal allocations.
 type HTTPClient struct {
 	config     *HTTPConfig
 	logger     *zap.Logger
@@ -46,17 +74,22 @@ type HTTPClient struct {
 	mu sync.RWMutex
 }
 
-// HTTPConfig configures the HTTP client
+// HTTPConfig configures the HTTP client with performance, reliability, and security options.
+// Use DefaultHTTPConfig() for optimized defaults.
 type HTTPConfig struct {
 	// Connection settings
+	// MaxIdleConns controls the maximum number of idle (keep-alive) connections across all hosts
 	MaxIdleConns        int           `json:"max_idle_conns"`
+	// MaxIdleConnsPerHost controls the maximum idle connections to keep per-host
 	MaxIdleConnsPerHost int           `json:"max_idle_conns_per_host"`
+	// MaxConnsPerHost limits the total number of connections per host
 	MaxConnsPerHost     int           `json:"max_conns_per_host"`
 	IdleConnTimeout     time.Duration `json:"idle_conn_timeout"`
 	DisableKeepAlives   bool          `json:"disable_keep_alives"`
 	DisableCompression  bool          `json:"disable_compression"`
 
 	// HTTP/2 settings
+	// EnableHTTP2 enables HTTP/2 support for better multiplexing and performance
 	EnableHTTP2          bool `json:"enable_http2"`
 	MaxConcurrentStreams int  `json:"max_concurrent_streams"`
 
@@ -77,17 +110,23 @@ type HTTPConfig struct {
 	RequestPoolSize       int  `json:"request_pool_size"`
 
 	// Rate limiting
+	// RateLimit sets the maximum requests per second (0 = unlimited)
 	RateLimit float64 `json:"rate_limit"`
+	// RateBurst sets the maximum burst size for rate limiting
 	RateBurst int     `json:"rate_burst"`
 
 	// Circuit breaker
+	// CircuitBreakerEnabled enables automatic circuit breaking on failures
 	CircuitBreakerEnabled bool          `json:"circuit_breaker_enabled"`
+	// FailureThreshold sets the number of failures before opening circuit
 	FailureThreshold      int           `json:"failure_threshold"`
+	// SuccessThreshold sets the number of successes before closing circuit
 	SuccessThreshold      int           `json:"success_threshold"`
 	Timeout               time.Duration `json:"timeout"`
 }
 
-// DefaultHTTPConfig returns optimized default configuration
+// DefaultHTTPConfig returns an optimized default configuration suitable for
+// high-performance production use cases.
 func DefaultHTTPConfig() *HTTPConfig {
 	return &HTTPConfig{
 		MaxIdleConns:          1000,
@@ -117,7 +156,8 @@ func DefaultHTTPConfig() *HTTPConfig {
 	}
 }
 
-// NewHTTPClient creates a new high-performance HTTP client
+// NewHTTPClient creates a new high-performance HTTP client with the given configuration.
+// It initializes connection pooling, rate limiting, circuit breaking, and metrics collection.
 func NewHTTPClient(config *HTTPConfig, logger *zap.Logger) *HTTPClient {
 	if config == nil {
 		config = DefaultHTTPConfig()

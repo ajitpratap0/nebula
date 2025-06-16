@@ -11,7 +11,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// ConnectionPool manages HTTP connection pooling with advanced features
+// ConnectionPool manages HTTP connection pooling with advanced features including
+// connection reuse, health checking, and automatic cleanup of idle connections.
 type ConnectionPool struct {
 	config *HTTPConfig
 	logger *zap.Logger
@@ -31,7 +32,8 @@ type ConnectionPool struct {
 	mu sync.RWMutex
 }
 
-// PooledConnection represents a pooled HTTP connection
+// PooledConnection represents a pooled HTTP connection with metadata for tracking
+// usage, health, and protocol information.
 type PooledConnection struct {
 	conn      net.Conn
 	httpConn  *http.Client
@@ -43,7 +45,8 @@ type PooledConnection struct {
 	isHealthy bool
 }
 
-// ConnectionPoolStats represents connection pool statistics
+// ConnectionPoolStats provides detailed statistics about the connection pool's
+// performance and resource utilization.
 type ConnectionPoolStats struct {
 	ActiveConnections int64         `json:"active_connections"`
 	IdleConnections   int64         `json:"idle_connections"`
@@ -55,7 +58,8 @@ type ConnectionPoolStats struct {
 	OldestConnection  time.Duration `json:"oldest_connection_age"`
 }
 
-// NewConnectionPool creates a new connection pool
+// NewConnectionPool creates a new connection pool with the given configuration.
+// It starts a background cleanup goroutine to remove idle connections.
 func NewConnectionPool(config *HTTPConfig, logger *zap.Logger) *ConnectionPool {
 	pool := &ConnectionPool{
 		config:          config,
@@ -72,7 +76,8 @@ func NewConnectionPool(config *HTTPConfig, logger *zap.Logger) *ConnectionPool {
 	return pool
 }
 
-// Get retrieves a connection from the pool or creates a new one
+// Get retrieves a connection from the pool for the given host.
+// It returns an existing idle connection if available, otherwise creates a new one.
 func (cp *ConnectionPool) Get(host string) (*PooledConnection, error) {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()

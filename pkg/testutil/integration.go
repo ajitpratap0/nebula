@@ -66,14 +66,16 @@ func (s *IntegrationTestSuite) CreateTempFile(name string, content []byte) strin
 	return path
 }
 
-// IntegrationTest marks a test as an integration test
+// IntegrationTest marks a test as an integration test and skips it
+// when running with the -short flag (go test -short).
 func IntegrationTest(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 }
 
-// TestEnvironment represents a test environment
+// TestEnvironment represents a test environment with automatic cleanup,
+// temporary directory management, and context handling.
 type TestEnvironment struct {
 	t       *testing.T
 	ctx     context.Context
@@ -82,7 +84,8 @@ type TestEnvironment struct {
 	cleanup []func()
 }
 
-// NewTestEnvironment creates a new test environment
+// NewTestEnvironment creates a new test environment with a 30-second timeout context
+// and a temporary directory. Cleanup is automatically performed when the test completes.
 func NewTestEnvironment(t *testing.T) *TestEnvironment {
 	t.Helper()
 
@@ -132,7 +135,8 @@ func (e *TestEnvironment) Cleanup() {
 	}
 }
 
-// CreateTestData creates test data files
+// CreateTestData creates test CSV data files with sample records.
+// Returns a slice of created file paths.
 func CreateTestData(t *testing.T, dir string, numFiles int, recordsPerFile int) []string {
 	t.Helper()
 
@@ -166,7 +170,8 @@ func CreateTestData(t *testing.T, dir string, numFiles int, recordsPerFile int) 
 	return files
 }
 
-// PerformanceTest provides utilities for performance testing
+// PerformanceTest provides utilities for performance testing with
+// configurable thresholds for throughput, latency, and memory usage.
 type PerformanceTest struct {
 	t         *testing.T
 	name      string
@@ -177,7 +182,8 @@ type PerformanceTest struct {
 	}
 }
 
-// NewPerformanceTest creates a new performance test
+// NewPerformanceTest creates a new performance test helper with the given name.
+// Use the With* methods to set performance thresholds.
 func NewPerformanceTest(t *testing.T, name string) *PerformanceTest {
 	return &PerformanceTest{
 		t:    t,
@@ -185,25 +191,30 @@ func NewPerformanceTest(t *testing.T, name string) *PerformanceTest {
 	}
 }
 
-// WithThroughputTarget sets minimum throughput requirement
+// WithThroughputTarget sets the minimum throughput requirement in records per second.
+// The test will fail if actual throughput is below this threshold.
 func (p *PerformanceTest) WithThroughputTarget(recordsPerSec float64) *PerformanceTest {
 	p.threshold.minThroughput = recordsPerSec
 	return p
 }
 
-// WithLatencyTarget sets maximum latency requirement
+// WithLatencyTarget sets the maximum allowed latency per record.
+// The test will fail if average latency exceeds this threshold.
 func (p *PerformanceTest) WithLatencyTarget(maxLatency time.Duration) *PerformanceTest {
 	p.threshold.maxLatency = maxLatency
 	return p
 }
 
-// WithMemoryTarget sets maximum memory usage
+// WithMemoryTarget sets the maximum allowed memory usage in bytes.
+// The test will fail if memory allocation exceeds this threshold.
 func (p *PerformanceTest) WithMemoryTarget(maxBytes int64) *PerformanceTest {
 	p.threshold.maxMemory = maxBytes
 	return p
 }
 
-// Run executes the performance test
+// Run executes the performance test function and validates results against
+// configured thresholds. The function should return the number of records processed
+// and the total duration.
 func (p *PerformanceTest) Run(fn func() (recordsProcessed int64, duration time.Duration)) {
 	p.t.Helper()
 
@@ -245,7 +256,8 @@ func (p *PerformanceTest) Run(fn func() (recordsProcessed int64, duration time.D
 	}
 }
 
-// MemoryProfile captures memory statistics
+// MemoryProfile captures memory statistics from the Go runtime
+// for performance analysis and leak detection.
 type MemoryProfile struct {
 	AllocBytes uint64
 	TotalAlloc uint64
@@ -258,7 +270,8 @@ type MemoryProfile struct {
 	StackInuse uint64
 }
 
-// CaptureMemoryProfile captures current memory profile
+// CaptureMemoryProfile captures the current memory profile from the Go runtime.
+// This is useful for measuring memory usage before and after operations.
 func CaptureMemoryProfile() *MemoryProfile {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
