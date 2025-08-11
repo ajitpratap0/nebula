@@ -27,50 +27,50 @@ type GoogleAdsSource struct {
 	*base.BaseConnector
 
 	// Google Ads API configuration
-	config           *GoogleAdsConfig
-	httpClient       *http.Client
-	oauth2Config     *oauth2.Config
-	accessToken      string
-	refreshToken     string
-	
+	config       *GoogleAdsConfig
+	httpClient   *http.Client
+	oauth2Config *oauth2.Config
+	accessToken  string
+	refreshToken string
+
 	// Dynamic authentication
-	authService      *auth.PlatformAuthService
-	credentials      *auth.GoogleAdsCredentials
+	authService *auth.PlatformAuthService
+	credentials *auth.GoogleAdsCredentials
 
 	// API state management
-	customerIDs     []string
-	query           string
-	pageSize        int
-	maxConcurrency  int
+	customerIDs      []string
+	query            string
+	pageSize         int
+	maxConcurrency   int
 	streamingEnabled bool
 
 	// Schema and state
-	schema          *core.Schema
-	lastPageToken   string
-	totalRecords    int64
+	schema           *core.Schema
+	lastPageToken    string
+	totalRecords     int64
 	processedRecords int64
-	isComplete      bool
+	isComplete       bool
 
 	// Connection pooling
-	requestPool     sync.Pool
-	responsePool    sync.Pool
+	requestPool  sync.Pool
+	responsePool sync.Pool
 }
 
 // GoogleAdsConfig holds Google Ads API configuration
 type GoogleAdsConfig struct {
 	// Dynamic authentication fields
-	AccountID        string   `json:"account_id"`        // TMS account ID for token fetching
-	Platform         string   `json:"platform"`          // Platform name (e.g., "GOOGLE")
-	TMSBaseURL       string   `json:"tms_base_url"`      // TMS service base URL
-	TMSAPIKey        string   `json:"tms_api_key"`       // TMS API key
-	
+	AccountID  string `json:"account_id"`   // TMS account ID for token fetching
+	Platform   string `json:"platform"`     // Platform name (e.g., "GOOGLE")
+	TMSBaseURL string `json:"tms_base_url"` // TMS service base URL
+	TMSAPIKey  string `json:"tms_api_key"`  // TMS API key
+
 	// Legacy fields (optional, for backward compatibility)
-	DeveloperToken   string   `json:"developer_token,omitempty"`
-	ClientID         string   `json:"client_id,omitempty"`
-	ClientSecret     string   `json:"client_secret,omitempty"`
-	RefreshToken     string   `json:"refresh_token,omitempty"`
-	LoginCustomerID  string   `json:"login_customer_id,omitempty"`
-	
+	DeveloperToken  string `json:"developer_token,omitempty"`
+	ClientID        string `json:"client_id,omitempty"`
+	ClientSecret    string `json:"client_secret,omitempty"`
+	RefreshToken    string `json:"refresh_token,omitempty"`
+	LoginCustomerID string `json:"login_customer_id,omitempty"`
+
 	// Query and performance settings
 	CustomerIDs      []string `json:"customer_ids"`
 	Query            string   `json:"query"`
@@ -98,8 +98,8 @@ type GoogleAdsResult struct {
 
 // ResponseSummary contains response metadata
 type ResponseSummary struct {
-	TotalResults     int64 `json:"totalResults"`
-	TotalRowsRetrieved int `json:"totalRowsRetrieved"`
+	TotalResults       int64 `json:"totalResults"`
+	TotalRowsRetrieved int   `json:"totalRowsRetrieved"`
 }
 
 // NewGoogleAdsSource creates a new Google Ads source connector
@@ -108,10 +108,10 @@ func NewGoogleAdsSource(name string, config *config.BaseConfig) (core.Source, er
 	base := base.NewBaseConnector("google_ads", core.ConnectorTypeSource, "1.0.0")
 
 	source := &GoogleAdsSource{
-		BaseConnector:     base,
-		pageSize:          10000, // Default page size
-		maxConcurrency:    5,     // Default concurrency
-		streamingEnabled:  true,  // Default streaming enabled
+		BaseConnector:    base,
+		pageSize:         10000, // Default page size
+		maxConcurrency:   5,     // Default concurrency
+		streamingEnabled: true,  // Default streaming enabled
 	}
 
 	// Initialize connection pools for request/response objects
@@ -157,7 +157,7 @@ func (s *GoogleAdsSource) Initialize(ctx context.Context, config *config.BaseCon
 	s.UpdateHealth(true, map[string]interface{}{
 		"oauth2_configured": true,
 		"customers_count":   len(s.customerIDs),
-		"query":            s.query,
+		"query":             s.query,
 		"streaming_enabled": s.streamingEnabled,
 	})
 
@@ -198,16 +198,15 @@ func (s *GoogleAdsSource) validateAndExtractConfig(config *config.BaseConfig) er
 		} else {
 			return errors.New(errors.ErrorTypeConfig, "account_id is required for dynamic authentication")
 		}
-		
+
 		if platform, ok := properties["platform"]; ok && platform != "" {
 			googleAdsConfig.Platform = platform
 		} else {
 			googleAdsConfig.Platform = "GOOGLE" // Default to Google
 		}
-		
+
 		// Initialize authentication service
 		s.authService = auth.NewPlatformAuthService(googleAdsConfig.TMSBaseURL, googleAdsConfig.TMSAPIKey)
-		
 	} else {
 		// Legacy authentication mode - require all OAuth2 fields
 		if developerToken, ok := properties["developer_token"]; ok && developerToken != "" {
@@ -299,11 +298,11 @@ func (s *GoogleAdsSource) initializeAuthentication(ctx context.Context) error {
 // initializeDynamicAuth fetches credentials from TMS service
 func (s *GoogleAdsSource) initializeDynamicAuth(ctx context.Context) error {
 	// Fetch credentials from TMS service
-	creds, err := s.authService.GetGoogleAdsCredentials(s.config.AccountID)
+	creds, err := s.authService.GetGoogleAdsCredentials(ctx, s.config.AccountID)
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeAuthentication, "failed to fetch credentials from TMS")
 	}
-	
+
 	// Check if token is expired
 	if creds.IsTokenExpired() {
 		s.GetLogger().Warn("Access token is expired or will expire soon",
@@ -311,19 +310,19 @@ func (s *GoogleAdsSource) initializeDynamicAuth(ctx context.Context) error {
 		// Note: In a production system, you might want to refresh the token here
 		// For now, we'll use the token as-is and let the API call handle the refresh
 	}
-	
+
 	// Store credentials
 	s.credentials = creds
 	s.accessToken = creds.AccessToken
 	s.refreshToken = creds.RefreshToken
-	
+
 	// Update config with fetched credentials for compatibility
 	s.config.DeveloperToken = creds.DeveloperToken
 	s.config.ClientID = creds.ClientID
 	s.config.ClientSecret = creds.ClientSecret
 	s.config.RefreshToken = creds.RefreshToken
 	s.config.LoginCustomerID = creds.LoginCustomerID
-	
+
 	// Initialize OAuth2 config for potential token refresh
 	s.oauth2Config = &oauth2.Config{
 		ClientID:     creds.ClientID,
@@ -333,7 +332,7 @@ func (s *GoogleAdsSource) initializeDynamicAuth(ctx context.Context) error {
 		},
 		Scopes: []string{"https://www.googleapis.com/auth/adwords"},
 	}
-	
+
 	// Create HTTP client
 	s.httpClient = &http.Client{
 		Timeout: 30 * time.Second,
@@ -343,13 +342,13 @@ func (s *GoogleAdsSource) initializeDynamicAuth(ctx context.Context) error {
 			IdleConnTimeout:     90 * time.Second,
 		},
 	}
-	
+
 	s.GetLogger().Info("Dynamic authentication initialized successfully",
 		zap.String("account_id", s.config.AccountID),
 		zap.String("platform", s.config.Platform),
 		zap.String("login_customer_id", creds.LoginCustomerID),
 		zap.Time("expires_at", creds.ExpiresAt))
-	
+
 	return nil
 }
 
@@ -409,7 +408,7 @@ func (s *GoogleAdsSource) Discover(ctx context.Context) (*core.Schema, error) {
 	if err := s.discoverSchema(ctx); err != nil {
 		return nil, err
 	}
-	
+
 	return s.schema, nil
 }
 
@@ -452,7 +451,7 @@ func (s *GoogleAdsSource) discoverSchema(ctx context.Context) error {
 func (s *GoogleAdsSource) extractFieldsFromGAQL(query string) []string {
 	// Simple GAQL parser to extract SELECT fields
 	query = strings.TrimSpace(query)
-	
+
 	// Find SELECT clause
 	selectIndex := strings.Index(strings.ToUpper(query), "SELECT")
 	if selectIndex == -1 {
@@ -488,9 +487,9 @@ func (s *GoogleAdsSource) inferFieldType(fieldName string) core.FieldType {
 
 	// Metrics are typically numeric
 	if strings.Contains(fieldName, "metrics") {
-		if strings.Contains(fieldName, "cost") || strings.Contains(fieldName, "cpc") || 
-		   strings.Contains(fieldName, "cpm") || strings.Contains(fieldName, "ctr") ||
-		   strings.Contains(fieldName, "conversion") {
+		if strings.Contains(fieldName, "cost") || strings.Contains(fieldName, "cpc") ||
+			strings.Contains(fieldName, "cpm") || strings.Contains(fieldName, "ctr") ||
+			strings.Contains(fieldName, "conversion") {
 			return core.FieldTypeFloat
 		}
 		return core.FieldTypeInt
@@ -588,7 +587,7 @@ func (s *GoogleAdsSource) readRecords(ctx context.Context, recordsChan chan<- *m
 func (s *GoogleAdsSource) readBatches(ctx context.Context, batchSize int, batchesChan chan<- []*models.Record, errorsChan chan<- error) error {
 	// Create a temporary channel to collect individual records
 	recordsChan := make(chan *models.Record, s.pageSize)
-	
+
 	// Start record collection
 	go func() {
 		defer close(recordsChan)
@@ -603,7 +602,7 @@ func (s *GoogleAdsSource) readBatches(ctx context.Context, batchSize int, batche
 	defer pool.PutBatchSlice(batch)
 	for record := range recordsChan {
 		batch = append(batch, record)
-		
+
 		if len(batch) >= batchSize {
 			// Send batch
 			select {
@@ -630,7 +629,7 @@ func (s *GoogleAdsSource) readBatches(ctx context.Context, batchSize int, batche
 // readCustomerRecords reads all records for a specific customer
 func (s *GoogleAdsSource) readCustomerRecords(ctx context.Context, customerID string, recordsChan chan<- *models.Record, errorsChan chan<- error) error {
 	pageToken := ""
-	
+
 	for {
 		// Apply rate limiting before each API call
 		if err := s.RateLimit(ctx); err != nil {
@@ -644,7 +643,7 @@ func (s *GoogleAdsSource) readCustomerRecords(ctx context.Context, customerID st
 			response, err = s.makeAPIRequest(ctx, customerID, pageToken)
 			return err
 		}); err != nil {
-			return errors.Wrap(err, errors.ErrorTypeConnection, 
+			return errors.Wrap(err, errors.ErrorTypeConnection,
 				stringpool.Sprintf("API request failed for customer %s", customerID))
 		}
 
@@ -685,12 +684,12 @@ func (s *GoogleAdsSource) makeAPIRequest(ctx context.Context, customerID, pageTo
 	ub := stringpool.NewURLBuilder("https://googleads.googleapis.com")
 	defer ub.Close()
 	baseURL := ub.AddPath("v21", "customers", customerID, "googleAds:search").String()
-	
+
 	// Build request body
 	requestBody := map[string]interface{}{
 		"query": s.query,
 	}
-	
+
 	if pageToken != "" {
 		requestBody["pageToken"] = pageToken
 	}
@@ -698,7 +697,7 @@ func (s *GoogleAdsSource) makeAPIRequest(ctx context.Context, customerID, pageTo
 	// Use pooled buffer for HTTP request body construction
 	requestBuffer := stringpool.GetBuilder(stringpool.Small)
 	defer stringpool.PutBuilder(requestBuffer, stringpool.Small)
-	
+
 	// Serialize request body directly to pooled buffer
 	if err := jsonpool.MarshalToWriter(requestBuffer, requestBody); err != nil {
 		return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to marshal request body")
@@ -714,7 +713,7 @@ func (s *GoogleAdsSource) makeAPIRequest(ctx context.Context, customerID, pageTo
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", stringpool.Sprintf("Bearer %s", s.accessToken))
 	req.Header.Set("developer-token", s.config.DeveloperToken)
-	
+
 	if s.config.LoginCustomerID != "" {
 		req.Header.Set("login-customer-id", s.config.LoginCustomerID)
 	}
@@ -729,11 +728,11 @@ func (s *GoogleAdsSource) makeAPIRequest(ctx context.Context, customerID, pageTo
 	// Parse response
 	responseData := s.responsePool.Get().(*GoogleAdsResponse)
 	defer s.responsePool.Put(responseData)
-	
+
 	// Use pooled buffer for HTTP response reading
 	responseBuffer := stringpool.GetBuilder(stringpool.Medium)
 	defer stringpool.PutBuilder(responseBuffer, stringpool.Medium)
-	
+
 	// Read response body into pooled buffer
 	if _, err := io.Copy(responseBuffer, resp.Body); err != nil {
 		return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to read response body")
@@ -741,10 +740,10 @@ func (s *GoogleAdsSource) makeAPIRequest(ctx context.Context, customerID, pageTo
 
 	// Check for HTTP errors
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(errors.ErrorTypeConnection, 
+		return nil, errors.New(errors.ErrorTypeConnection,
 			stringpool.Sprintf("API returned status %d: %s", resp.StatusCode, responseBuffer.String()))
 	}
-	
+
 	// Unmarshal response from pooled buffer
 	if err := jsonpool.Unmarshal(stringpool.StringToBytes(responseBuffer.String()), responseData); err != nil {
 		return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to decode API response")
@@ -765,12 +764,12 @@ func (s *GoogleAdsSource) makeAPIRequest(ctx context.Context, customerID, pageTo
 func (s *GoogleAdsSource) convertToRecord(result GoogleAdsResult, customerID string) (*models.Record, error) {
 	// Get record from memory pool
 	record := pool.NewRecordFromPool("google_ads")
-	
+
 	// Populate record data using SetData to preserve pooled map
-	
+
 	// Add customer ID
 	record.SetData("customer_id", customerID)
-	
+
 	// Extract fields based on the result structure
 	if result.Campaign != nil {
 		if campaignMap, ok := result.Campaign.(map[string]interface{}); ok {
@@ -779,7 +778,7 @@ func (s *GoogleAdsSource) convertToRecord(result GoogleAdsResult, customerID str
 			}
 		}
 	}
-	
+
 	if result.AdGroup != nil {
 		if adGroupMap, ok := result.AdGroup.(map[string]interface{}); ok {
 			for key, value := range adGroupMap {
@@ -787,7 +786,7 @@ func (s *GoogleAdsSource) convertToRecord(result GoogleAdsResult, customerID str
 			}
 		}
 	}
-	
+
 	if result.Keyword != nil {
 		if keywordMap, ok := result.Keyword.(map[string]interface{}); ok {
 			for key, value := range keywordMap {
@@ -795,7 +794,7 @@ func (s *GoogleAdsSource) convertToRecord(result GoogleAdsResult, customerID str
 			}
 		}
 	}
-	
+
 	if result.Metrics != nil {
 		if metricsMap, ok := result.Metrics.(map[string]interface{}); ok {
 			for key, value := range metricsMap {
@@ -803,7 +802,7 @@ func (s *GoogleAdsSource) convertToRecord(result GoogleAdsResult, customerID str
 			}
 		}
 	}
-	
+
 	if result.Segments != nil {
 		if segmentsMap, ok := result.Segments.(map[string]interface{}); ok {
 			for key, value := range segmentsMap {
@@ -828,7 +827,7 @@ func (s *GoogleAdsSource) convertToRecord(result GoogleAdsResult, customerID str
 // Close closes the Google Ads source connector
 func (s *GoogleAdsSource) Close(ctx context.Context) error {
 	s.GetLogger().Info("Closing Google Ads source connector")
-	
+
 	// Close base connector
 	return s.BaseConnector.Close(ctx)
 }
@@ -875,11 +874,11 @@ func (s *GoogleAdsSource) SetPosition(position core.Position) error {
 // GetState returns the current state
 func (s *GoogleAdsSource) GetState() core.State {
 	return core.State{
-		"customer_ids": s.customerIDs,
-		"query": s.query,
-		"last_page_token": s.lastPageToken,
+		"customer_ids":      s.customerIDs,
+		"query":             s.query,
+		"last_page_token":   s.lastPageToken,
 		"processed_records": s.processedRecords,
-		"is_complete": s.isComplete,
+		"is_complete":       s.isComplete,
 	}
 }
 
