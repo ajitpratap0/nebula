@@ -18,9 +18,9 @@
   },
   "security": {
     "credentials": {
-      "account_id": "",
+      "account_id": "151282437",
       "platform": "GOOGLE",
-      "customer_ids": "",
+      "customer_ids": "6490868760",
       "query": "SELECT customer.id, customer.descriptive_name, customer.currency_code, customer.time_zone FROM customer LIMIT 10"
     }
   }
