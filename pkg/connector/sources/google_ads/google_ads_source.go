@@ -4,10 +4,12 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/ajitpratap0/nebula/pkg/auth"
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
@@ -30,6 +32,10 @@ type GoogleAdsSource struct {
 	oauth2Config     *oauth2.Config
 	accessToken      string
 	refreshToken     string
+	
+	// Dynamic authentication
+	authService      *auth.PlatformAuthService
+	credentials      *auth.GoogleAdsCredentials
 
 	// API state management
 	customerIDs     []string
@@ -52,16 +58,25 @@ type GoogleAdsSource struct {
 
 // GoogleAdsConfig holds Google Ads API configuration
 type GoogleAdsConfig struct {
-	DeveloperToken   string   `json:"developer_token"`
-	ClientID         string   `json:"client_id"`
-	ClientSecret     string   `json:"client_secret"`
-	RefreshToken     string   `json:"refresh_token"`
+	// Dynamic authentication fields
+	AccountID        string   `json:"account_id"`        // TMS account ID for token fetching
+	Platform         string   `json:"platform"`          // Platform name (e.g., "GOOGLE")
+	TMSBaseURL       string   `json:"tms_base_url"`      // TMS service base URL
+	TMSAPIKey        string   `json:"tms_api_key"`       // TMS API key
+	
+	// Legacy fields (optional, for backward compatibility)
+	DeveloperToken   string   `json:"developer_token,omitempty"`
+	ClientID         string   `json:"client_id,omitempty"`
+	ClientSecret     string   `json:"client_secret,omitempty"`
+	RefreshToken     string   `json:"refresh_token,omitempty"`
+	LoginCustomerID  string   `json:"login_customer_id,omitempty"`
+	
+	// Query and performance settings
 	CustomerIDs      []string `json:"customer_ids"`
 	Query            string   `json:"query"`
 	PageSize         int      `json:"page_size"`
 	MaxConcurrency   int      `json:"max_concurrency"`
 	StreamingEnabled bool     `json:"streaming_enabled"`
-	LoginCustomerID  string   `json:"login_customer_id,omitempty"`
 }
 
 // GoogleAdsResponse represents the API response structure
@@ -126,16 +141,11 @@ func (s *GoogleAdsSource) Initialize(ctx context.Context, config *config.BaseCon
 		return err
 	}
 
-	// Initialize OAuth2 client with circuit breaker protection
+	// Initialize authentication (OAuth2 client or dynamic credentials)
 	if err := s.ExecuteWithCircuitBreaker(func() error {
-		return s.initializeOAuth2Client()
+		return s.initializeAuthentication(ctx)
 	}); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to initialize OAuth2 client")
-	}
-
-	// Obtain access token
-	if err := s.refreshAccessToken(ctx); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeAuthentication, "failed to obtain access token")
+		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to initialize authentication")
 	}
 
 	// Discover schema based on GAQL query
@@ -175,29 +185,57 @@ func (s *GoogleAdsSource) validateAndExtractConfig(config *config.BaseConfig) er
 	// Extract configuration with validation
 	googleAdsConfig := &GoogleAdsConfig{}
 
-	// Required fields
-	if developerToken, ok := properties["developer_token"]; ok && developerToken != "" {
-		googleAdsConfig.DeveloperToken = developerToken
+	// Check if using dynamic authentication (TMS service)
+	if accountID, ok := properties["account_id"]; ok && accountID != "" {
+		// Dynamic authentication mode
+		googleAdsConfig.AccountID = accountID
+		
+		if platform, ok := properties["platform"]; ok && platform != "" {
+			googleAdsConfig.Platform = platform
+		} else {
+			googleAdsConfig.Platform = "GOOGLE" // Default to Google
+		}
+		
+		if tmsBaseURL := os.Getenv("TMS_BASE_URL"); tmsBaseURL != "" {
+			googleAdsConfig.TMSBaseURL = tmsBaseURL
+		} else {
+			return errors.New(errors.ErrorTypeConfig, "tms_base_url is required for dynamic authentication")
+		}
+		
+		if tmsAPIKey := os.Getenv("TMS_API_KEY"); tmsAPIKey != "" {
+			googleAdsConfig.TMSAPIKey = tmsAPIKey
+		} else {
+			return errors.New(errors.ErrorTypeConfig, "tms_api_key is required for dynamic authentication")
+		}
+		
+		// Initialize authentication service
+		s.authService = auth.NewPlatformAuthService(googleAdsConfig.TMSBaseURL, googleAdsConfig.TMSAPIKey)
+		
 	} else {
-		return errors.New(errors.ErrorTypeConfig, "developer_token is required")
-	}
+		// Legacy authentication mode - require all OAuth2 fields
+		if developerToken, ok := properties["developer_token"]; ok && developerToken != "" {
+			googleAdsConfig.DeveloperToken = developerToken
+		} else {
+			return errors.New(errors.ErrorTypeConfig, "developer_token is required")
+		}
 
-	if clientID, ok := properties["client_id"]; ok && clientID != "" {
-		googleAdsConfig.ClientID = clientID
-	} else {
-		return errors.New(errors.ErrorTypeConfig, "client_id is required")
-	}
+		if clientID, ok := properties["client_id"]; ok && clientID != "" {
+			googleAdsConfig.ClientID = clientID
+		} else {
+			return errors.New(errors.ErrorTypeConfig, "client_id is required")
+		}
 
-	if clientSecret, ok := properties["client_secret"]; ok && clientSecret != "" {
-		googleAdsConfig.ClientSecret = clientSecret
-	} else {
-		return errors.New(errors.ErrorTypeConfig, "client_secret is required")
-	}
+		if clientSecret, ok := properties["client_secret"]; ok && clientSecret != "" {
+			googleAdsConfig.ClientSecret = clientSecret
+		} else {
+			return errors.New(errors.ErrorTypeConfig, "client_secret is required")
+		}
 
-	if refreshToken, ok := properties["refresh_token"]; ok && refreshToken != "" {
-		googleAdsConfig.RefreshToken = refreshToken
-	} else {
-		return errors.New(errors.ErrorTypeConfig, "refresh_token is required")
+		if refreshToken, ok := properties["refresh_token"]; ok && refreshToken != "" {
+			googleAdsConfig.RefreshToken = refreshToken
+		} else {
+			return errors.New(errors.ErrorTypeConfig, "refresh_token is required")
+		}
 	}
 
 	if query, ok := properties["query"]; ok && query != "" {
@@ -244,6 +282,77 @@ func (s *GoogleAdsSource) validateAndExtractConfig(config *config.BaseConfig) er
 	s.streamingEnabled = googleAdsConfig.StreamingEnabled
 	s.refreshToken = googleAdsConfig.RefreshToken
 
+	return nil
+}
+
+// initializeAuthentication initializes authentication (dynamic or legacy OAuth2)
+func (s *GoogleAdsSource) initializeAuthentication(ctx context.Context) error {
+	if s.authService != nil {
+		// Dynamic authentication mode
+		return s.initializeDynamicAuth(ctx)
+	} else {
+		// Legacy OAuth2 mode
+		if err := s.initializeOAuth2Client(); err != nil {
+			return err
+		}
+		return s.refreshAccessToken(ctx)
+	}
+}
+
+// initializeDynamicAuth fetches credentials from TMS service
+func (s *GoogleAdsSource) initializeDynamicAuth(ctx context.Context) error {
+	// Fetch credentials from TMS service
+	creds, err := s.authService.GetGoogleAdsCredentials(s.config.AccountID)
+	if err != nil {
+		return errors.Wrap(err, errors.ErrorTypeAuthentication, "failed to fetch credentials from TMS")
+	}
+	
+	// Check if token is expired
+	if creds.IsTokenExpired() {
+		s.GetLogger().Warn("Access token is expired or will expire soon",
+			zap.Time("expires_at", creds.ExpiresAt))
+		// Note: In a production system, you might want to refresh the token here
+		// For now, we'll use the token as-is and let the API call handle the refresh
+	}
+	
+	// Store credentials
+	s.credentials = creds
+	s.accessToken = creds.AccessToken
+	s.refreshToken = creds.RefreshToken
+	
+	// Update config with fetched credentials for compatibility
+	s.config.DeveloperToken = creds.DeveloperToken
+	s.config.ClientID = creds.ClientID
+	s.config.ClientSecret = creds.ClientSecret
+	s.config.RefreshToken = creds.RefreshToken
+	s.config.LoginCustomerID = creds.LoginCustomerID
+	
+	// Initialize OAuth2 config for potential token refresh
+	s.oauth2Config = &oauth2.Config{
+		ClientID:     creds.ClientID,
+		ClientSecret: creds.ClientSecret,
+		Endpoint: oauth2.Endpoint{
+			TokenURL: "https://oauth2.googleapis.com/token",
+		},
+		Scopes: []string{"https://www.googleapis.com/auth/adwords"},
+	}
+	
+	// Create HTTP client
+	s.httpClient = &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 10,
+			IdleConnTimeout:     90 * time.Second,
+		},
+	}
+	
+	s.GetLogger().Info("Dynamic authentication initialized successfully",
+		zap.String("account_id", s.config.AccountID),
+		zap.String("platform", s.config.Platform),
+		zap.String("login_customer_id", creds.LoginCustomerID),
+		zap.Time("expires_at", creds.ExpiresAt))
+	
 	return nil
 }
 
@@ -578,7 +687,7 @@ func (s *GoogleAdsSource) makeAPIRequest(ctx context.Context, customerID, pageTo
 	// Build request URL using URLBuilder for optimized string handling
 	ub := stringpool.NewURLBuilder("https://googleads.googleapis.com")
 	defer ub.Close()
-	baseURL := ub.AddPath("v14", "customers", customerID, "googleAds:searchStream").String()
+	baseURL := ub.AddPath("v21", "customers", customerID, "googleAds:search").String()
 	
 	// Build request body
 	requestBody := map[string]interface{}{
@@ -587,10 +696,6 @@ func (s *GoogleAdsSource) makeAPIRequest(ctx context.Context, customerID, pageTo
 	
 	if pageToken != "" {
 		requestBody["pageToken"] = pageToken
-	}
-	
-	if s.pageSize > 0 {
-		requestBody["pageSize"] = s.pageSize
 	}
 
 	// Use pooled buffer for HTTP request body construction

@@ -1,0 +1,29 @@
+{
+  "name": "json-writer",
+  "type": "json",
+  "version": "1.0",
+  "performance": {
+    "batch_size": 1000,
+    "workers": 4,
+    "enable_streaming": true
+  },
+  "timeouts": {
+    "request": 30000000000,
+    "connection": 10000000000
+  },
+  "reliability": {
+    "max_retries": 3,
+    "retry_delay": 1000000000
+  },
+  "observability": {
+    "metrics_enabled": true,
+    "tracing_enabled": false
+  },
+  "security": {
+    "credentials": {
+      "path": "/Users/shubhamtomar/pixis-projects/nebula/users.json",
+      "format": "lines",
+      "pretty": "false"
+    }
+  }
+}

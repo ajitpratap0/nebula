@@ -1,0 +1,8 @@
+{
+  "batch_size": 5000,
+  "workers": 8,
+  "max_concurrency": 16,
+  "timeout": "1h",
+  "log_level": "info",
+  "enable_metrics": true
+}
