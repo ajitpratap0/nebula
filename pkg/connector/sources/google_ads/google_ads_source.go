@@ -186,26 +186,23 @@ func (s *GoogleAdsSource) validateAndExtractConfig(config *config.BaseConfig) er
 	googleAdsConfig := &GoogleAdsConfig{}
 
 	// Check if using dynamic authentication (TMS service)
-	if accountID, ok := properties["account_id"]; ok && accountID != "" {
+	tmsBaseURL := os.Getenv("TMS_BASE_URL")
+	tmsAPIKey := os.Getenv("TMS_API_KEY")
+	if tmsBaseURL != "" && tmsAPIKey != "" {
 		// Dynamic authentication mode
-		googleAdsConfig.AccountID = accountID
+		googleAdsConfig.TMSBaseURL = tmsBaseURL
+		googleAdsConfig.TMSAPIKey = tmsAPIKey
+
+		if accountID, ok := properties["account_id"]; ok && accountID != "" {
+			googleAdsConfig.AccountID = accountID
+		} else {
+			return errors.New(errors.ErrorTypeConfig, "account_id is required for dynamic authentication")
+		}
 		
 		if platform, ok := properties["platform"]; ok && platform != "" {
 			googleAdsConfig.Platform = platform
 		} else {
 			googleAdsConfig.Platform = "GOOGLE" // Default to Google
-		}
-		
-		if tmsBaseURL := os.Getenv("TMS_BASE_URL"); tmsBaseURL != "" {
-			googleAdsConfig.TMSBaseURL = tmsBaseURL
-		} else {
-			return errors.New(errors.ErrorTypeConfig, "tms_base_url is required for dynamic authentication")
-		}
-		
-		if tmsAPIKey := os.Getenv("TMS_API_KEY"); tmsAPIKey != "" {
-			googleAdsConfig.TMSAPIKey = tmsAPIKey
-		} else {
-			return errors.New(errors.ErrorTypeConfig, "tms_api_key is required for dynamic authentication")
 		}
 		
 		// Initialize authentication service
