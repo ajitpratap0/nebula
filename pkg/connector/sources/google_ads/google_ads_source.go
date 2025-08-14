@@ -296,7 +296,7 @@ func (s *GoogleAdsSource) initializeOAuth2Client() error {
 		},
 	}
 
-	s.GetLogger().Info("OAuth2 client initialized successfully",
+	s.GetLogger().Debug("OAuth2 client initialized successfully",
 		zap.String("client_id", s.config.ClientID),
 		zap.String("login_customer_id", s.config.LoginCustomerID),
 		zap.Bool("has_access_token", s.accessToken != ""))
