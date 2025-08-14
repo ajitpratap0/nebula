@@ -116,3 +116,91 @@ nebula run --source csv-source.json --destination json-destination.json
 ```
 
 The new format requires creating JSON configuration files but provides much more flexibility and consistency across all connector types.
+
+## Google Ads Source Connector
+
+### Direct OAuth2 Authentication (Simplified)
+
+The Google Ads source connector now uses direct OAuth2 token authentication instead of external Token Management Service (TMS). This provides a simpler, more direct authentication flow.
+
+#### Configuration Structure
+
+```json
+{
+  "name": "google_ads_direct",
+  "type": "google_ads",
+  "version": "1.0.0",
+  "description": "Google Ads source connector with direct OAuth2 token authentication",
+  "security": {
+    "credentials": {
+      "developer_token": "YOUR_DEVELOPER_TOKEN",
+      "client_id": "YOUR_CLIENT_ID",
+      "client_secret": "YOUR_CLIENT_SECRET",
+      "refresh_token": "YOUR_REFRESH_TOKEN",
+      "access_token": "",  // Optional - will be refreshed if empty
+      "login_customer_id": "YOUR_LOGIN_CUSTOMER_ID",
+      "customer_ids": "1234567890,0987654321",
+      "query": "SELECT customer.id, customer.descriptive_name FROM customer LIMIT 10"
+    }
+  }
+}
+```
+
+#### Required Fields
+
+- **developer_token**: Your Google Ads API developer token
+- **client_id**: OAuth2 client ID from Google Cloud Console
+- **client_secret**: OAuth2 client secret from Google Cloud Console  
+- **refresh_token**: OAuth2 refresh token for token renewal
+- **customer_ids**: Comma-separated list of Google Ads customer IDs
+- **query**: GAQL (Google Ads Query Language) query to execute
+
+#### Optional Fields
+
+- **access_token**: Pre-authenticated access token (will be refreshed automatically if not provided)
+- **login_customer_id**: Manager account ID for MCC access
+
+#### Usage Example
+
+```bash
+# Run Google Ads to JSON pipeline
+nebula run --source google-ads-direct.json --destination json-destination.json
+
+# With custom performance settings
+nebula run --source google-ads-direct.json --destination json-destination.json \
+  --batch-size 500 --workers 2 --timeout 10m
+```
+
+#### Authentication Flow
+
+1. **Token Validation**: Validates all required OAuth2 credentials
+2. **OAuth2 Setup**: Initializes OAuth2 client with provided credentials
+3. **Token Refresh**: Automatically refreshes access token if needed
+4. **API Connection**: Establishes connection to Google Ads API
+5. **Data Extraction**: Executes GAQL query and streams results
+
+#### Migration from TMS
+
+If you were previously using TMS (Token Management Service), update your configuration:
+
+**Old TMS Format:**
+```json
+{
+  "credentials": {
+    "account_id": "your_account_id",
+    "platform": "GOOGLE"
+  }
+}
+```
+
+**New Direct Format:**
+```json
+{
+  "credentials": {
+    "developer_token": "YOUR_DEVELOPER_TOKEN",
+    "client_id": "YOUR_CLIENT_ID",
+    "client_secret": "YOUR_CLIENT_SECRET",
+    "refresh_token": "YOUR_REFRESH_TOKEN"
+  }
+}
+```

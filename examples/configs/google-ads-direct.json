@@ -1,0 +1,31 @@
+{
+  "name": "google_ads_direct",
+  "type": "google_ads",
+  "version": "1.0.0",
+  "description": "Google Ads source connector with direct OAuth2 token authentication",
+  "performance": {
+    "batch_size": 100,
+    "max_concurrency": 5,
+    "enable_streaming": true,
+    "timeout": 300000000000,
+    "retry_attempts": 3,
+    "retry_delay": 5000000000
+  },
+  "observability": {
+    "enable_metrics": true,
+    "log_level": "info",
+    "enable_tracing": false
+  },
+  "security": {
+    "credentials": {
+      "developer_token": "",
+      "client_id": "",
+      "client_secret": "",
+      "refresh_token": "",
+      "access_token": "",
+      "login_customer_id": "",
+      "customer_ids": "",
+      "query": "SELECT metrics.cost_micros, metrics.clicks, metrics.impressions, metrics.average_cpc, metrics.average_cpm, metrics.ctr, metrics.conversions FROM campaign LIMIT 10"
+    }
+  }
+}

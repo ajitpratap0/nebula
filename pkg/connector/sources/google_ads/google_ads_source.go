@@ -4,12 +4,10 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/ajitpratap0/nebula/pkg/auth"
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
@@ -33,9 +31,7 @@ type GoogleAdsSource struct {
 	accessToken  string
 	refreshToken string
 
-	// Dynamic authentication
-	authService *auth.PlatformAuthService
-	credentials *auth.GoogleAdsCredentials
+
 
 	// API state management
 	customerIDs      []string
@@ -58,17 +54,12 @@ type GoogleAdsSource struct {
 
 // GoogleAdsConfig holds Google Ads API configuration
 type GoogleAdsConfig struct {
-	// Dynamic authentication fields
-	AccountID  string `json:"account_id"`   // TMS account ID for token fetching
-	Platform   string `json:"platform"`     // Platform name (e.g., "GOOGLE")
-	TMSBaseURL string `json:"tms_base_url"` // TMS service base URL
-	TMSAPIKey  string `json:"tms_api_key"`  // TMS API key
-
-	// Legacy fields (optional, for backward compatibility)
-	DeveloperToken  string `json:"developer_token,omitempty"`
-	ClientID        string `json:"client_id,omitempty"`
-	ClientSecret    string `json:"client_secret,omitempty"`
-	RefreshToken    string `json:"refresh_token,omitempty"`
+	// Required authentication fields
+	DeveloperToken  string `json:"developer_token"`
+	ClientID        string `json:"client_id"`
+	ClientSecret    string `json:"client_secret"`
+	RefreshToken    string `json:"refresh_token"`
+	AccessToken     string `json:"access_token,omitempty"`     // Optional, will be refreshed if not provided
 	LoginCustomerID string `json:"login_customer_id,omitempty"`
 
 	// Query and performance settings
@@ -185,53 +176,34 @@ func (s *GoogleAdsSource) validateAndExtractConfig(config *config.BaseConfig) er
 	// Extract configuration with validation
 	googleAdsConfig := &GoogleAdsConfig{}
 
-	// Check if using dynamic authentication (TMS service)
-	tmsBaseURL := os.Getenv("TMS_BASE_URL")
-	tmsAPIKey := os.Getenv("TMS_API_KEY")
-	if tmsBaseURL != "" && tmsAPIKey != "" {
-		// Dynamic authentication mode
-		googleAdsConfig.TMSBaseURL = tmsBaseURL
-		googleAdsConfig.TMSAPIKey = tmsAPIKey
-
-		if accountID, ok := properties["account_id"]; ok && accountID != "" {
-			googleAdsConfig.AccountID = accountID
-		} else {
-			return errors.New(errors.ErrorTypeConfig, "account_id is required for dynamic authentication")
-		}
-
-		if platform, ok := properties["platform"]; ok && platform != "" {
-			googleAdsConfig.Platform = platform
-		} else {
-			googleAdsConfig.Platform = "GOOGLE" // Default to Google
-		}
-
-		// Initialize authentication service
-		s.authService = auth.NewPlatformAuthService(googleAdsConfig.TMSBaseURL, googleAdsConfig.TMSAPIKey)
+	// Validate required authentication fields
+	if developerToken, ok := properties["developer_token"]; ok && developerToken != "" {
+		googleAdsConfig.DeveloperToken = developerToken
 	} else {
-		// Legacy authentication mode - require all OAuth2 fields
-		if developerToken, ok := properties["developer_token"]; ok && developerToken != "" {
-			googleAdsConfig.DeveloperToken = developerToken
-		} else {
-			return errors.New(errors.ErrorTypeConfig, "developer_token is required")
-		}
+		return errors.New(errors.ErrorTypeConfig, "developer_token is required")
+	}
 
-		if clientID, ok := properties["client_id"]; ok && clientID != "" {
-			googleAdsConfig.ClientID = clientID
-		} else {
-			return errors.New(errors.ErrorTypeConfig, "client_id is required")
-		}
+	if clientID, ok := properties["client_id"]; ok && clientID != "" {
+		googleAdsConfig.ClientID = clientID
+	} else {
+		return errors.New(errors.ErrorTypeConfig, "client_id is required")
+	}
 
-		if clientSecret, ok := properties["client_secret"]; ok && clientSecret != "" {
-			googleAdsConfig.ClientSecret = clientSecret
-		} else {
-			return errors.New(errors.ErrorTypeConfig, "client_secret is required")
-		}
+	if clientSecret, ok := properties["client_secret"]; ok && clientSecret != "" {
+		googleAdsConfig.ClientSecret = clientSecret
+	} else {
+		return errors.New(errors.ErrorTypeConfig, "client_secret is required")
+	}
 
-		if refreshToken, ok := properties["refresh_token"]; ok && refreshToken != "" {
-			googleAdsConfig.RefreshToken = refreshToken
-		} else {
-			return errors.New(errors.ErrorTypeConfig, "refresh_token is required")
-		}
+	if refreshToken, ok := properties["refresh_token"]; ok && refreshToken != "" {
+		googleAdsConfig.RefreshToken = refreshToken
+	} else {
+		return errors.New(errors.ErrorTypeConfig, "refresh_token is required")
+	}
+
+	// Optional access token
+	if accessToken, ok := properties["access_token"]; ok && accessToken != "" {
+		googleAdsConfig.AccessToken = accessToken
 	}
 
 	if query, ok := properties["query"]; ok && query != "" {
@@ -281,76 +253,21 @@ func (s *GoogleAdsSource) validateAndExtractConfig(config *config.BaseConfig) er
 	return nil
 }
 
-// initializeAuthentication initializes authentication (dynamic or legacy OAuth2)
+// initializeAuthentication initializes OAuth2 authentication
 func (s *GoogleAdsSource) initializeAuthentication(ctx context.Context) error {
-	if s.authService != nil {
-		// Dynamic authentication mode
-		return s.initializeDynamicAuth(ctx)
-	} else {
-		// Legacy OAuth2 mode
-		if err := s.initializeOAuth2Client(); err != nil {
-			return err
-		}
+	if err := s.initializeOAuth2Client(); err != nil {
+		return err
+	}
+	
+	// If no access token provided, refresh using refresh token
+	if s.accessToken == "" {
 		return s.refreshAccessToken(ctx)
 	}
-}
-
-// initializeDynamicAuth fetches credentials from TMS service
-func (s *GoogleAdsSource) initializeDynamicAuth(ctx context.Context) error {
-	// Fetch credentials from TMS service
-	creds, err := s.authService.GetGoogleAdsCredentials(ctx, s.config.AccountID)
-	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeAuthentication, "failed to fetch credentials from TMS")
-	}
-
-	// Check if token is expired
-	if creds.IsTokenExpired() {
-		s.GetLogger().Warn("Access token is expired or will expire soon",
-			zap.Time("expires_at", creds.ExpiresAt))
-		// Note: In a production system, you might want to refresh the token here
-		// For now, we'll use the token as-is and let the API call handle the refresh
-	}
-
-	// Store credentials
-	s.credentials = creds
-	s.accessToken = creds.AccessToken
-	s.refreshToken = creds.RefreshToken
-
-	// Update config with fetched credentials for compatibility
-	s.config.DeveloperToken = creds.DeveloperToken
-	s.config.ClientID = creds.ClientID
-	s.config.ClientSecret = creds.ClientSecret
-	s.config.RefreshToken = creds.RefreshToken
-	s.config.LoginCustomerID = creds.LoginCustomerID
-
-	// Initialize OAuth2 config for potential token refresh
-	s.oauth2Config = &oauth2.Config{
-		ClientID:     creds.ClientID,
-		ClientSecret: creds.ClientSecret,
-		Endpoint: oauth2.Endpoint{
-			TokenURL: "https://oauth2.googleapis.com/token",
-		},
-		Scopes: []string{"https://www.googleapis.com/auth/adwords"},
-	}
-
-	// Create HTTP client
-	s.httpClient = &http.Client{
-		Timeout: 30 * time.Second,
-		Transport: &http.Transport{
-			MaxIdleConns:        100,
-			MaxIdleConnsPerHost: 10,
-			IdleConnTimeout:     90 * time.Second,
-		},
-	}
-
-	s.GetLogger().Info("Dynamic authentication initialized successfully",
-		zap.String("account_id", s.config.AccountID),
-		zap.String("platform", s.config.Platform),
-		zap.String("login_customer_id", creds.LoginCustomerID),
-		zap.Time("expires_at", creds.ExpiresAt))
-
+	
 	return nil
 }
+
+
 
 // initializeOAuth2Client initializes the OAuth2 configuration
 func (s *GoogleAdsSource) initializeOAuth2Client() error {
@@ -363,6 +280,12 @@ func (s *GoogleAdsSource) initializeOAuth2Client() error {
 		Scopes: []string{"https://www.googleapis.com/auth/adwords"},
 	}
 
+	// Set tokens from config
+	s.refreshToken = s.config.RefreshToken
+	if s.config.AccessToken != "" {
+		s.accessToken = s.config.AccessToken
+	}
+
 	// Create HTTP client with timeouts and rate limiting
 	s.httpClient = &http.Client{
 		Timeout: 30 * time.Second,
@@ -372,6 +295,11 @@ func (s *GoogleAdsSource) initializeOAuth2Client() error {
 			IdleConnTimeout:     90 * time.Second,
 		},
 	}
+
+	s.GetLogger().Info("OAuth2 client initialized successfully",
+		zap.String("client_id", s.config.ClientID),
+		zap.String("login_customer_id", s.config.LoginCustomerID),
+		zap.Bool("has_access_token", s.accessToken != ""))
 
 	return nil
 }
