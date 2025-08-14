@@ -1,10 +1,13 @@
 # Binaries
 nebula
+!cmd/nebula/
+
 *.test
 *_bench
 debug_*
 bin/
 tmp/
+.env
 
 # Test outputs and data
 *_output.*
@@ -69,3 +72,4 @@ docker-compose.override.yml
 
 # Development-specific documents
 PRD.md
+localfile.json

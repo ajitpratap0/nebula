@@ -2,11 +2,6 @@ run:
   timeout: 5m
   issues-exit-code: 1
   tests: true
-  skip-dirs:
-    - vendor
-    - .git
-    - bin
-    - scripts
 
 linters:
   enable:
@@ -71,7 +66,8 @@ linters-settings:
       - performance
       - style
   govet:
-    check-shadowing: true
+    enable:
+      - shadow
   lll:
     line-length: 140
   misspell:
@@ -84,6 +80,11 @@ linters-settings:
     severity: warning
 
 issues:
+  exclude-dirs:
+    - vendor
+    - .git
+    - bin
+    - scripts
   exclude-rules:
     - path: _test\.go
       linters:

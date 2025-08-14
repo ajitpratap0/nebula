@@ -48,7 +48,7 @@ fmt:
 # Lint code
 lint:
 	@echo "Linting code..."
-	@golangci-lint run ./...
+	@$(shell go env GOPATH)/bin/golangci-lint run ./...
 
 # Check documentation coverage
 docs-check:
