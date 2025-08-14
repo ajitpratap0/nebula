@@ -18,13 +18,13 @@
   },
   "security": {
     "credentials": {
-      "developer_token": "",
-      "client_id": "",
-      "client_secret": "",
-      "refresh_token": "",
-      "access_token": "",
-      "login_customer_id": "",
-      "customer_ids": "",
+      "developer_token": "YOUR_DEVELOPER_TOKEN",
+      "client_id": "YOUR_CLIENT_ID",
+      "client_secret": "YOUR_CLIENT_SECRET",
+      "refresh_token": "YOUR_REFRESH_TOKEN",
+      "access_token": "YOUR_ACCESS_TOKEN",
+      "login_customer_id": "YOUR_LOGIN_CUSTOMER_ID",
+      "customer_ids": "1234567890,0987654321",
       "query": "SELECT metrics.cost_micros, metrics.clicks, metrics.impressions, metrics.average_cpc, metrics.average_cpm, metrics.ctr, metrics.conversions FROM campaign LIMIT 10"
     }
   }
