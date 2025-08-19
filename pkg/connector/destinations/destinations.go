@@ -8,6 +8,7 @@ import (
 	// Import all destination connectors to trigger init() registration
 	_ "github.com/ajitpratap0/nebula/pkg/connector/destinations/bigquery"
 	_ "github.com/ajitpratap0/nebula/pkg/connector/destinations/csv"
+	_ "github.com/ajitpratap0/nebula/pkg/connector/destinations/iceberg"
 	_ "github.com/ajitpratap0/nebula/pkg/connector/destinations/json"
 	_ "github.com/ajitpratap0/nebula/pkg/connector/destinations/s3"
 	_ "github.com/ajitpratap0/nebula/pkg/connector/destinations/snowflake"

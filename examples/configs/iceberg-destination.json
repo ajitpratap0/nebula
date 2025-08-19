@@ -1,0 +1,25 @@
+{
+  "connector_type": "iceberg",
+  "catalog": {
+    "type": "nessie",
+    "uri": "http://localhost:19120/api/v1",
+    "warehouse": "s3://warehouse/",
+    "name": "nessie",
+    "properties": {
+      "s3.region": "us-east-1",
+      "s3.endpoint": "http://localhost:9000",
+      "s3.access-key-id": "minioadmin",
+      "s3.secret-access-key": "minioadmin",
+      "s3.path-style-access": "true"
+    }
+  },
+  "database": "default",
+  "table": "google_ads_campaigns",
+  "branch": "main",
+  "write": {
+    "format": "parquet",
+    "compression": "snappy",
+    "batch_size": 1000,
+    "target_file_size_mb": 64
+  }
+}
