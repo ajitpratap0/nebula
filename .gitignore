@@ -8,6 +8,7 @@ debug_*
 bin/
 tmp/
 .env
+.vscode/	
 
 # Test outputs and data
 *_output.*

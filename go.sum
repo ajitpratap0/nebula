@@ -107,6 +107,8 @@ github.com/apache/arrow-go/v18 v18.3.0 h1:Xq4A6dZj9Nu33sqZibzn012LNnewkTUlfKVUFD
 github.com/apache/arrow-go/v18 v18.3.0/go.mod h1:eEM1DnUTHhgGAjf/ChvOAQbUQ+EPohtDrArffvUjPg8=
 github.com/apache/arrow/go/v15 v15.0.2 h1:60IliRbiyTWCWjERBCkO1W4Qun9svcYoZrSLcyOsMLE=
 github.com/apache/arrow/go/v15 v15.0.2/go.mod h1:DGXsR3ajT524njufqf95822i+KTh+yea1jass9YXgjA=
+github.com/apache/iceberg-go v0.3.0 h1:uS9AkXeY0xhavmftVw1fRPyBiwx991wQSIFS04xkodw=
+github.com/apache/iceberg-go v0.3.0/go.mod h1:nrgV4DFLwjx7RpKEKXtmi1z8ty/4GW+xCjhHgT77x0g=
 github.com/apache/thrift v0.21.0 h1:tdPmh/ptjE1IJnhbhrcl2++TauVjy242rkV/UzJChnE=
 github.com/apache/thrift v0.21.0/go.mod h1:W1H8aR/QRtYNvrPeFXBtobyRkd0/YVhTc6i07XIAgDw=
 github.com/apparentlymart/go-textseg/v15 v15.0.0 h1:uYvfpb3DyLSCGWnctWKGj857c6ew1u1fNQOlOtuGxQY=
@@ -559,6 +561,8 @@ github.com/pingcap/log v1.1.1-0.20230317032135-a0d097d16e22 h1:2SOzvGvE8beiC1Y4g
 github.com/pingcap/log v1.1.1-0.20230317032135-a0d097d16e22/go.mod h1:DWQW5jICDR7UJh4HtxXSM20Churx4CQL0fwL/SoOSA4=
 github.com/pingcap/tidb/pkg/parser v0.0.0-20241118164214-4f047be191be h1:t5EkCmZpxLCig5GQA0AZG47aqsuL5GTsJeeUD+Qfies=
 github.com/pingcap/tidb/pkg/parser v0.0.0-20241118164214-4f047be191be/go.mod h1:Hju1TEWZvrctQKbztTRwXH7rd41Yq0Pgmq4PrEKcq7o=
+github.com/pixisai/go-nessie v1.102.1 h1:iuDv2jtYB61nYMNYUQpSLU2wN7SQjqz19YPPLrB4jQk=
+github.com/pixisai/go-nessie v1.102.1/go.mod h1:rMVOle8EMuwEBJ/9sMMIHzyXxk2NNQPUBhz8HnFDp+E=
 github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c h1:+mdjkGKdHQG3305AYmdv1U2eRNDiU2ErMBj1gwrq8eQ=
 github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c/go.mod h1:7rwL4CYBLnjLxUqIJNnCWiEdr3bn6IUYi15bNlnbCCU=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
@@ -912,6 +916,8 @@ gonum.org/v1/gonum v0.16.0 h1:5+ul4Swaf3ESvrOnidPp4GZbzf0mxVQpDCYUQE7OJfk=
 gonum.org/v1/gonum v0.16.0/go.mod h1:fef3am4MQ93R2HHpKnLk4/Tbh/s0+wqD5nfa6Pnwy4E=
 google.golang.org/api v0.232.0 h1:qGnmaIMf7KcuwHOlF3mERVzChloDYwRfOJOrHt8YC3I=
 google.golang.org/api v0.232.0/go.mod h1:p9QCfBWZk1IJETUdbTKloR5ToFdKbYh2fkjsUL6vNoY=
+google.golang.org/api v0.233.0 h1:iGZfjXAJiUFSSaekVB7LzXl6tRfEKhUN7FkZN++07tI=
+google.golang.org/api v0.233.0/go.mod h1:TCIVLLlcwunlMpZIhIp7Ltk77W+vUSdUKAAIlbxY44c=
 google.golang.org/appengine v1.1.0/go.mod h1:EbEs0AVv82hx2wNQdGPgUI5lhzA/G0D9YwlJXL52JkM=
 google.golang.org/appengine v1.4.0/go.mod h1:xpcJRLb0r/rnEns0DIKYYv+WjYCduHsrkT7/EB5XEv4=
 google.golang.org/genproto v0.0.0-20180817151627-c66870c02cf8/go.mod h1:JiN7NxoALGmiZfu7CAH4rXhgtRTLTxftemlI0sWmxmc=
