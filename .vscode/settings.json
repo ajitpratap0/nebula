@@ -123,7 +123,11 @@
     "[markdown]": {
         "editor.wordWrap": "wordWrapColumn",
         "editor.wordWrapColumn": 100,
-        "editor.quickSuggestions": false
+        "editor.quickSuggestions": {
+			"comments": "off",
+			"strings": "off",
+			"other": "off"
+		}
     },
 
     // Breadcrumbs

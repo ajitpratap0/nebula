@@ -19,6 +19,7 @@ import (
 
 	// Import all available connectors to register them
 	_ "github.com/ajitpratap0/nebula/pkg/connector/destinations/csv"
+	_ "github.com/ajitpratap0/nebula/pkg/connector/destinations/iceberg"
 	_ "github.com/ajitpratap0/nebula/pkg/connector/destinations/json"
 	_ "github.com/ajitpratap0/nebula/pkg/connector/sources/csv"
 	_ "github.com/ajitpratap0/nebula/pkg/connector/sources/json"

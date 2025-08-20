@@ -1,21 +1,40 @@
 {
-  "connector_type": "iceberg",
-  "catalog": {
-    "type": "nessie",
-    "uri": "http://localhost:19120/api/v1",
-    "warehouse": "s3://warehouse/",
-    "name": "nessie",
-    "properties": {
-      "s3.region": "us-east-1",
-      "s3.endpoint": "http://localhost:9000",
-      "s3.access-key-id": "minioadmin",
-      "s3.secret-access-key": "minioadmin",
-      "s3.path-style-access": "true"
+  "name": "iceberg-writer",
+  "type": "iceberg",
+  "version": "1.0",
+  "performance": {
+    "batch_size": 1000,
+    "workers": 4,
+    "enable_streaming": true
+  },
+  "timeouts": {
+    "request": 30000000000,
+    "connection": 10000000000
+  },
+  "reliability": {
+    "max_retries": 3,
+    "retry_delay": 1000000000
+  },
+  "observability": {
+    "metrics_enabled": true,
+    "logging_enabled": true
+  },
+  "security": {
+    "credentials": {
+      "catalog_type": "nessie",
+      "catalog_uri": "http://localhost:19120/api/v1",
+      "warehouse": "s3://warehouse/",
+      "catalog_name": "nessie",
+      "database": "default",
+      "table": "google_ads_campaigns",
+      "branch": "main",
+      "prop_s3.region": "us-east-1",
+      "prop_s3.endpoint": "http://localhost:9000",
+      "prop_s3.access-key-id": "minioadmin",
+      "prop_s3.secret-access-key": "minioadmin",
+      "prop_s3.path-style-access": "true"
     }
   },
-  "database": "default",
-  "table": "google_ads_campaigns",
-  "branch": "main",
   "write": {
     "format": "parquet",
     "compression": "snappy",

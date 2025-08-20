@@ -3,12 +3,13 @@ package iceberg
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/pool"
-	"github.com/shubham-tomar/iceberg-go/table"
+	"go.uber.org/zap"
 )
 
 // IcebergDestination implements the Destination interface for Iceberg tables
@@ -16,14 +17,14 @@ type IcebergDestination struct {
 	*base.BaseConnector
 	config         *IcebergConfig
 	catalogManager *CatalogManager
-	table          *table.Table
-	writer         *IcebergWriter
 	schemaMapper   *SchemaMapper
+	writer         *IcebergWriter
+	table          interface{} // Placeholder for Iceberg table
 }
 
 // NewIcebergDestination creates a new Iceberg destination connector
-func NewIcebergDestination(name string, config *config.BaseConfig) (core.Destination, error) {
-	baseConnector := base.NewBaseConnector(name, core.ConnectorTypeDestination, "1.0.0")
+func NewIcebergDestination(config *config.BaseConfig) (core.Destination, error) {
+	baseConnector := base.NewBaseConnector(config.Name, core.ConnectorTypeDestination, "1.0.0")
 	
 	return &IcebergDestination{
 		BaseConnector: baseConnector,
@@ -33,10 +34,30 @@ func NewIcebergDestination(name string, config *config.BaseConfig) (core.Destina
 
 // Initialize prepares the Iceberg destination with configuration
 func (d *IcebergDestination) Initialize(ctx context.Context, config *config.BaseConfig) error {
-	// Parse Iceberg-specific configuration
+	// Parse Iceberg-specific configuration from the config
+	// For now, we'll extract from Security.Credentials and other fields
 	icebergConfig := &IcebergConfig{}
-	if err := config.UnmarshalConnectorConfig(icebergConfig); err != nil {
-		return fmt.Errorf("failed to unmarshal Iceberg config: %w", err)
+	
+	// Extract catalog configuration from credentials
+	if config.Security.Credentials == nil {
+		return fmt.Errorf("missing Iceberg configuration in security.credentials")
+	}
+	
+	// Parse catalog configuration
+	icebergConfig.Catalog.Type = config.Security.Credentials["catalog_type"]
+	icebergConfig.Catalog.URI = config.Security.Credentials["catalog_uri"]
+	icebergConfig.Catalog.Warehouse = config.Security.Credentials["warehouse"]
+	icebergConfig.Catalog.Name = config.Security.Credentials["catalog_name"]
+	icebergConfig.Database = config.Security.Credentials["database"]
+	icebergConfig.Table = config.Security.Credentials["table"]
+	icebergConfig.Branch = config.Security.Credentials["branch"]
+	
+	// Parse additional properties
+	icebergConfig.Catalog.Properties = make(map[string]string)
+	for k, v := range config.Security.Credentials {
+		if strings.HasPrefix(k, "prop_") {
+			icebergConfig.Catalog.Properties[strings.TrimPrefix(k, "prop_")] = v
+		}
 	}
 	
 	// Validate configuration
@@ -52,11 +73,11 @@ func (d *IcebergDestination) Initialize(ctx context.Context, config *config.Base
 		return fmt.Errorf("failed to initialize catalog: %w", err)
 	}
 	
-	d.Logger().Info("Iceberg destination initialized",
-		"catalog_type", icebergConfig.Catalog.Type,
-		"database", icebergConfig.Database,
-		"table", icebergConfig.Table,
-		"branch", icebergConfig.Branch)
+	d.GetLogger().Info("Iceberg destination initialized",
+		zap.String("catalog_type", icebergConfig.Catalog.Type),
+		zap.String("database", icebergConfig.Database),
+		zap.String("table", icebergConfig.Table),
+		zap.String("branch", icebergConfig.Branch))
 	
 	return nil
 }
@@ -76,35 +97,16 @@ func (d *IcebergDestination) CreateSchema(ctx context.Context, schema *core.Sche
 		return fmt.Errorf("failed to convert schema: %w", err)
 	}
 	
-	// Check if table already exists
-	exists, err := catalog.TableExists(ctx, tableIdentifier)
-	if err != nil {
-		return fmt.Errorf("failed to check table existence: %w", err)
+	// TODO: Implement actual table loading/creation with iceberg-go
+	// Placeholder implementation
+	d.table = map[string]interface{}{
+		"identifier": tableIdentifier,
+		"schema":     icebergSchema,
+		"catalog":    catalog,
 	}
 	
-	if exists {
-		// Load existing table
-		tbl, err := catalog.LoadTable(ctx, tableIdentifier, nil)
-		if err != nil {
-			return fmt.Errorf("failed to load existing table: %w", err)
-		}
-		d.table = tbl
-		
-		d.Logger().Info("Loaded existing Iceberg table",
-			"table", d.config.Table,
-			"schema_id", tbl.Schema().ID())
-	} else {
-		// Create new table
-		tbl, err := catalog.CreateTable(ctx, tableIdentifier, icebergSchema)
-		if err != nil {
-			return fmt.Errorf("failed to create Iceberg table: %w", err)
-		}
-		d.table = tbl
-		
-		d.Logger().Info("Created new Iceberg table",
-			"table", d.config.Table,
-			"schema_id", tbl.Schema().ID())
-	}
+	d.GetLogger().Info("Initialized Iceberg table (placeholder)",
+		zap.String("table", d.config.Table))
 	
 	// Initialize writer
 	d.writer = NewIcebergWriter(d.table, &d.config.Write)
@@ -157,7 +159,7 @@ func (d *IcebergDestination) Close(ctx context.Context) error {
 		return fmt.Errorf("errors during close: %v", errs)
 	}
 	
-	d.Logger().Info("Iceberg destination closed")
+	d.GetLogger().Info("Iceberg destination closed")
 	return nil
 }
 
@@ -181,8 +183,9 @@ func (d *IcebergDestination) Metrics() map[string]interface{} {
 	
 	// Add Iceberg-specific metrics
 	if d.table != nil {
-		metrics["iceberg_table_location"] = d.table.Location()
-		metrics["iceberg_schema_id"] = d.table.Schema().ID()
+		// TODO: Add actual table metrics once iceberg-go API is available
+		metrics["iceberg_table_location"] = "placeholder"
+		metrics["iceberg_schema_id"] = 1
 	}
 	
 	if d.config != nil {
@@ -198,6 +201,10 @@ func (d *IcebergDestination) Metrics() map[string]interface{} {
 // These will be implemented in future phases
 
 func (d *IcebergDestination) SupportsBatch() bool {
+	return true
+}
+
+func (d *IcebergDestination) SupportsStreaming() bool {
 	return true
 }
 
@@ -217,7 +224,7 @@ func (d *IcebergDestination) BeginTransaction(ctx context.Context) (core.Transac
 	return nil, fmt.Errorf("transactions not yet implemented")
 }
 
-func (d *IcebergDestination) BulkLoad(ctx context.Context, source string, options map[string]interface{}) error {
+func (d *IcebergDestination) BulkLoad(ctx context.Context, reader interface{}, format string) error {
 	return fmt.Errorf("bulk load not yet implemented")
 }
 

@@ -6,18 +6,17 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/pool"
-	"github.com/shubham-tomar/iceberg-go/table"
 )
 
 // IcebergWriter handles writing data to Iceberg tables
 type IcebergWriter struct {
-	table       *table.Table
+	table       interface{} // Placeholder for Iceberg table
 	config      *WriteConfig
 	schemaMapper *SchemaMapper
 }
 
 // NewIcebergWriter creates a new Iceberg writer
-func NewIcebergWriter(table *table.Table, config *WriteConfig) *IcebergWriter {
+func NewIcebergWriter(table interface{}, config *WriteConfig) *IcebergWriter {
 	return &IcebergWriter{
 		table:       table,
 		config:      config,
@@ -33,7 +32,7 @@ func (w *IcebergWriter) WriteRecords(ctx context.Context, records []*pool.Record
 	
 	// TODO: Implement actual writing logic
 	// For now, just log that we would write the records
-	fmt.Printf("IcebergWriter: Would write %d records to table %s\n", len(records), w.table.Identifier())
+	fmt.Printf("IcebergWriter: Would write %d records to table (placeholder)\n", len(records))
 	
 	// This is where we'll implement:
 	// 1. Convert records to Arrow format
@@ -96,7 +95,7 @@ func (w *IcebergWriter) WriteBatchStream(ctx context.Context, stream *core.Batch
 				return nil
 			}
 			
-			if err := w.WriteRecords(ctx, batch.Records); err != nil {
+			if err := w.WriteRecords(ctx, batch); err != nil {
 				return fmt.Errorf("failed to write batch: %w", err)
 			}
 		}
