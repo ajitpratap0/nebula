@@ -10,6 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/pool"
@@ -29,9 +32,15 @@ type IcebergDestination struct {
 	catalogURI   string
 	catalogName  string
 	warehouse    string
+	branch       string
 	database     string
 	tableName    string
-	branch       string
+	
+	// S3/MinIO configuration
+	region       string
+	s3Endpoint   string
+	accessKey    string
+	secretKey    string
 	properties   map[string]string
 	
 	logger *zap.Logger
@@ -77,11 +86,27 @@ func (d *IcebergDestination) Initialize(ctx context.Context, config *config.Base
 		return fmt.Errorf("failed to connect to Nessie server: %w", err)
 	}
 
+	// Load catalog for data writing operations (optional for now)
+	if err := d.loadCatalog(ctx); err != nil {
+		d.logger.Warn("Failed to load catalog, continuing without it (schema fetching via HTTP still works)",
+			zap.Error(err))
+		// Don't fail initialization - HTTP-based operations still work
+	}
+
 	// Test table accessibility via HTTP (skip catalog loading)
 	_, err := d.FetchTableSchema(ctx)
 	if err != nil {
 		d.logger.Warn("Table schema fetch failed during initialization", zap.Error(err))
 		return fmt.Errorf("failed to access table schema: %w", err)
+	}
+
+	// If catalog is loaded, also test catalog-based schema fetching with detailed logging
+	if d.catalog != nil {
+		d.logger.Info("Testing catalog-based schema fetching with detailed information")
+		_, err := d.getTableSchemaViaCatalog(ctx)
+		if err != nil {
+			d.logger.Warn("Catalog-based schema fetch failed", zap.Error(err))
+		}
 	}
 
 	d.logger.Info("Iceberg destination initialized successfully",
@@ -320,6 +345,17 @@ func (d *IcebergDestination) extractConfig(config *config.BaseConfig) error {
 		}
 	}
 
+	// Initialize properties map
+	if d.properties == nil {
+		d.properties = make(map[string]string)
+	}
+
+	// Extract S3 configuration from credentials
+	d.region = creds["prop_s3.region"]
+	d.s3Endpoint = creds["prop_s3.endpoint"]
+	d.accessKey = creds["prop_s3.access-key-id"]
+	d.secretKey = creds["prop_s3.secret-access-key"]
+
 	// Extract S3 properties
 	for key, value := range creds {
 		if strings.HasPrefix(key, "prop_") {
@@ -353,7 +389,481 @@ func (d *IcebergDestination) Write(ctx context.Context, stream *core.RecordStrea
 }
 
 func (d *IcebergDestination) WriteBatch(ctx context.Context, stream *core.BatchStream) error {
-	return fmt.Errorf("WriteBatch not implemented")
+	if d.catalog == nil {
+		d.logger.Warn("Catalog not available, WriteBatch will process but not write data")
+		// Continue processing to avoid pipeline errors
+	}
+
+	// Only attempt table loading if catalog is available
+	if d.catalog != nil {
+		// Create table identifier
+		identifier := catalog.ToIdentifier(fmt.Sprintf("%s.%s", d.database, d.tableName))
+		
+		// Load the table using catalog
+		_, err := d.catalog.LoadTable(ctx, identifier, nil)
+		if err != nil {
+			return fmt.Errorf("failed to load table: %w", err)
+		}
+
+		d.logger.Info("WriteBatch loaded table successfully",
+			zap.String("table", d.tableName),
+			zap.String("identifier", fmt.Sprintf("%s.%s", d.database, d.tableName)))
+	}
+
+	// Process batches from stream channels
+	batchCount := 0
+	for {
+		select {
+		case batch, ok := <-stream.Batches:
+			if !ok {
+				// Batches channel closed
+				d.logger.Info("WriteBatch completed",
+					zap.String("table", d.tableName),
+					zap.Int("batches_processed", batchCount))
+				return nil
+			}
+			
+			batchCount++
+			d.logger.Info("Processing batch",
+				zap.Int("batch_number", batchCount),
+				zap.Int("record_count", len(batch)))
+			
+			// Write batch data to Iceberg table
+			err := d.insertData(ctx, batch)
+			if err != nil {
+				d.logger.Error("Failed to write batch data",
+					zap.Int("batch_number", batchCount),
+					zap.Error(err))
+				return fmt.Errorf("failed to write batch %d: %w", batchCount, err)
+			}
+			
+		case err := <-stream.Errors:
+			if err != nil {
+				return fmt.Errorf("batch stream error: %w", err)
+			}
+			
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+}
+
+// loadCatalog loads the Iceberg catalog for data writing operations
+func (d *IcebergDestination) loadCatalog(ctx context.Context) error {
+	// Build catalog URI with branch path (following icebridge pattern)
+	// Remove /api/v1 suffix and use base URI like icebridge
+	baseURI := strings.TrimSuffix(d.catalogURI, "/api/v1")
+	catalogURI, err := url.JoinPath(baseURI, "iceberg", d.branch)
+	if err != nil {
+		return fmt.Errorf("failed to build catalog URI: %w", err)
+	}
+
+	d.logger.Info("Loading Iceberg catalog",
+		zap.String("catalog_uri", catalogURI),
+		zap.String("catalog_name", d.catalogName),
+		zap.String("warehouse", d.warehouse))
+
+	// Load catalog using iceberg-go catalog.Load (following icebridge pattern)
+	// Build catalog properties with all S3/MinIO configuration
+	props := icebergGo.Properties{
+		"uri":                      catalogURI,
+		"s3.region":               d.region,
+		"s3.endpoint":             d.s3Endpoint,
+		"s3.access-key-id":        d.accessKey,
+		"s3.secret-access-key":    d.secretKey,
+		"s3.path-style-access":    "true",
+	}
+	
+	d.logger.Info("Attempting catalog.Load with properties",
+		zap.String("uri", catalogURI),
+		zap.String("catalog_name", d.catalogName),
+		zap.Any("properties", props))
+	
+	iceCatalog, err := catalog.Load(ctx, d.catalogName, props)
+	if err != nil {
+		d.logger.Error("catalog.Load failed",
+			zap.String("uri", catalogURI),
+			zap.String("catalog_name", d.catalogName),
+			zap.Error(err))
+		return fmt.Errorf("failed to load catalog: %w", err)
+	}
+
+	// Type assert to REST catalog
+	restCatalog, ok := iceCatalog.(*rest.Catalog)
+	if !ok {
+		return fmt.Errorf("expected *rest.Catalog, got %T", iceCatalog)
+	}
+
+	d.catalog = restCatalog
+	d.logger.Info("Catalog loaded successfully",
+		zap.String("catalog_uri", catalogURI),
+		zap.String("catalog_name", d.catalogName))
+
+	return nil
+}
+
+// getTableSchemaViaCatalog retrieves detailed table schema using catalog.LoadTable
+func (d *IcebergDestination) getTableSchemaViaCatalog(ctx context.Context) (*core.Schema, error) {
+	if d.catalog == nil {
+		return nil, fmt.Errorf("catalog not initialized")
+	}
+
+	// Create table identifier
+	identifier := catalog.ToIdentifier(fmt.Sprintf("%s.%s", d.database, d.tableName))
+	
+	// Load the table using catalog
+	tbl, err := d.catalog.LoadTable(ctx, identifier, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load table: %w", err)
+	}
+
+	d.logger.Info("Successfully loaded table via catalog",
+		zap.String("table", d.tableName),
+		zap.String("location", tbl.Location()),
+		zap.String("identifier", fmt.Sprintf("%s.%s", d.database, d.tableName)))
+
+	// Get schema information
+	iceSchema := tbl.Schema()
+	var fields []core.Field
+
+	d.logger.Info("Table schema details",
+		zap.String("table", d.tableName),
+		zap.Int("schema_id", iceSchema.ID),
+		zap.Int("field_count", len(iceSchema.Fields())))
+
+	// Process schema fields to get detailed column info
+	for _, field := range iceSchema.Fields() {
+		coreField := core.Field{
+			Name:     field.Name,
+			Type:     core.FieldTypeString, // Default to string, can be enhanced later
+			Nullable: !field.Required,
+		}
+		
+		fields = append(fields, coreField)
+		
+		// Log detailed field information
+		d.logger.Info("Schema field details",
+			zap.String("table", d.tableName),
+			zap.Int("field_id", field.ID),
+			zap.String("field_name", field.Name),
+			zap.String("field_type", field.Type.String()),
+			zap.Bool("required", field.Required),
+			zap.String("doc", field.Doc))
+	}
+
+	// Get partition information if available
+	spec := tbl.Spec()
+	partitionCount := 0
+	for field := range spec.Fields() {
+		partitionCount++
+		d.logger.Info("Partition field details",
+			zap.String("table", d.tableName),
+			zap.Int("source_id", field.SourceID),
+			zap.Int("field_id", field.FieldID),
+			zap.String("name", field.Name),
+			zap.String("transform", field.Transform.String()))
+	}
+	
+	if partitionCount > 0 {
+		d.logger.Info("Table partition information",
+			zap.String("table", d.tableName),
+			zap.Int("partition_count", partitionCount))
+	}
+
+	// Get table metrics if available
+	if snap := tbl.CurrentSnapshot(); snap != nil {
+		d.logger.Info("Table snapshot information",
+			zap.String("table", d.tableName),
+			zap.Int64("snapshot_id", snap.SnapshotID),
+			zap.Int64("timestamp_ms", snap.TimestampMs),
+			zap.Int("schema_id", *snap.SchemaID))
+		
+		if snap.ParentSnapshotID != nil {
+			d.logger.Info("Parent snapshot information",
+				zap.String("table", d.tableName),
+				zap.Int64("parent_snapshot_id", *snap.ParentSnapshotID))
+		}
+	}
+
+	// Get table properties
+	props := tbl.Properties()
+	if len(props) > 0 {
+		d.logger.Info("Table properties",
+			zap.String("table", d.tableName),
+			zap.Any("properties", props))
+	}
+
+	return &core.Schema{
+		Name:    d.tableName,
+		Fields:  fields,
+		Version: iceSchema.ID,
+	}, nil
+}
+
+// insertData writes batch data to Iceberg table using catalog
+func (d *IcebergDestination) insertData(ctx context.Context, batch []*pool.Record) error {
+	if d.catalog == nil {
+		return fmt.Errorf("catalog not initialized for data writing")
+	}
+
+	// Load the table using catalog
+	identifier := catalog.ToIdentifier(fmt.Sprintf("%s.%s", d.database, d.tableName))
+	tbl, err := d.catalog.LoadTable(ctx, identifier, nil)
+	if err != nil {
+		d.logger.Error("Failed to load table for data writing", 
+			zap.String("identifier", fmt.Sprintf("%s.%s", d.database, d.tableName)),
+			zap.Error(err))
+		return fmt.Errorf("failed to load table: %w", err)
+	}
+
+	d.logger.Debug("Loaded table for data writing",
+		zap.String("table", d.tableName),
+		zap.String("database", d.database))
+
+	// Convert Iceberg schema to Arrow schema
+	icebergSchema := tbl.Schema()
+	arrowSchema, err := d.icebergToArrowSchema(icebergSchema)
+	if err != nil {
+		return fmt.Errorf("failed to convert schema: %w", err)
+	}
+
+	// Convert batch records to Arrow format
+	d.logger.Debug("Converting batch to Arrow record",
+		zap.Int("batch_size", len(batch)),
+		zap.Int("schema_fields", len(arrowSchema.Fields())))
+	
+	arrowRecord, err := d.batchToArrowRecord(arrowSchema, batch)
+	if err != nil {
+		return fmt.Errorf("failed to convert batch to Arrow: %w", err)
+	}
+	defer arrowRecord.Release()
+	
+	d.logger.Debug("Arrow record created",
+		zap.Int64("num_rows", arrowRecord.NumRows()),
+		zap.Int64("num_cols", arrowRecord.NumCols()))
+
+	// Create a RecordReader from the Arrow record
+	reader, err := array.NewRecordReader(arrowSchema, []arrow.Record{arrowRecord})
+	if err != nil {
+		return fmt.Errorf("failed to create record reader: %w", err)
+	}
+	defer reader.Release()
+	
+	// Write data to table using Append
+	d.logger.Debug("Starting table append operation",
+		zap.String("table", d.tableName),
+		zap.Int64("records", arrowRecord.NumRows()))
+	
+	newTable, err := tbl.Append(ctx, reader, nil)
+	if err != nil {
+		d.logger.Error("Failed to append data to table",
+			zap.String("table", d.tableName),
+			zap.Int64("records", arrowRecord.NumRows()),
+			zap.Error(err))
+		return fmt.Errorf("failed to append data: %w", err)
+	}
+
+	d.logger.Info("Successfully wrote batch to Iceberg table",
+		zap.String("table", d.tableName),
+		zap.Int64("records", arrowRecord.NumRows()),
+		zap.String("new_table_location", newTable.Location()),
+		zap.Int("new_schema_id", newTable.Schema().ID))
+
+	// For Nessie catalogs, we may need to ensure the commit is visible
+	// The table.Append() should handle this automatically, but let's verify
+	d.logger.Debug("Verifying table state after append",
+		zap.String("table_location", newTable.Location()),
+		zap.Any("current_snapshot", newTable.CurrentSnapshot()))
+
+	return nil
+}
+
+// icebergToArrowSchema converts Iceberg schema to Arrow schema
+func (d *IcebergDestination) icebergToArrowSchema(icebergSchema *icebergGo.Schema) (*arrow.Schema, error) {
+	fields := make([]arrow.Field, 0, len(icebergSchema.Fields()))
+	
+	for _, field := range icebergSchema.Fields() {
+		arrowType, err := d.icebergTypeToArrowType(field.Type)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert field %s: %w", field.Name, err)
+		}
+		
+		arrowField := arrow.Field{
+			Name:     field.Name,
+			Type:     arrowType,
+			Nullable: !field.Required,
+		}
+		fields = append(fields, arrowField)
+	}
+	
+	return arrow.NewSchema(fields, nil), nil
+}
+
+// icebergTypeToArrowType converts Iceberg type to Arrow type
+func (d *IcebergDestination) icebergTypeToArrowType(icebergType icebergGo.Type) (arrow.DataType, error) {
+	switch t := icebergType.(type) {
+	case icebergGo.BooleanType:
+		return arrow.FixedWidthTypes.Boolean, nil
+	case icebergGo.Int32Type:
+		return arrow.PrimitiveTypes.Int32, nil
+	case icebergGo.Int64Type:
+		return arrow.PrimitiveTypes.Int64, nil
+	case icebergGo.Float32Type:
+		return arrow.PrimitiveTypes.Float32, nil
+	case icebergGo.Float64Type:
+		return arrow.PrimitiveTypes.Float64, nil
+	case icebergGo.StringType:
+		return arrow.BinaryTypes.String, nil
+	case icebergGo.TimestampType:
+		return arrow.FixedWidthTypes.Timestamp_us, nil
+	case icebergGo.DateType:
+		return arrow.FixedWidthTypes.Date32, nil
+	default:
+		// Default to string for unsupported types
+		d.logger.Warn("Unsupported Iceberg type, defaulting to string",
+			zap.String("type", t.String()))
+		return arrow.BinaryTypes.String, nil
+	}
+}
+
+// batchToArrowRecord converts Nebula batch to Arrow record
+func (d *IcebergDestination) batchToArrowRecord(schema *arrow.Schema, batch []*pool.Record) (arrow.Record, error) {
+	if len(batch) == 0 {
+		return nil, fmt.Errorf("no records to convert")
+	}
+
+	d.logger.Debug("Starting batch to Arrow conversion",
+		zap.Int("num_records", len(batch)),
+		zap.Int("num_fields", len(schema.Fields())))
+
+	// Log sample record data for debugging
+	if len(batch) > 0 {
+		d.logger.Debug("Sample record data", zap.Any("record_data", batch[0].Data))
+	}
+
+	pool := memory.NewGoAllocator()
+	recBuilder := array.NewRecordBuilder(pool, schema)
+	defer recBuilder.Release()
+
+	// Build arrays for each field
+	for i, field := range schema.Fields() {
+		d.logger.Debug("Processing field", 
+			zap.String("field_name", field.Name),
+			zap.String("field_type", field.Type.String()))
+		
+		fieldBuilder := recBuilder.Field(i)
+		for recordIdx, record := range batch {
+			val, exists := record.GetData(field.Name)
+			d.logger.Debug("Field value", 
+				zap.String("field", field.Name),
+				zap.Int("record_idx", recordIdx),
+				zap.Bool("exists", exists),
+				zap.Any("value", val))
+			d.appendToBuilder(field.Type, fieldBuilder, val)
+		}
+	}
+
+	rec := recBuilder.NewRecord()
+	rec.Retain() // retain to return after releasing builder
+	
+	d.logger.Debug("Arrow record built successfully",
+		zap.Int64("rows", rec.NumRows()),
+		zap.Int64("cols", rec.NumCols()))
+	
+	return rec, nil
+}
+
+// appendToBuilder appends value to Arrow array builder based on type
+func (d *IcebergDestination) appendToBuilder(dt arrow.DataType, b array.Builder, val interface{}) {
+	if val == nil {
+		b.AppendNull()
+		return
+	}
+
+	switch builder := b.(type) {
+	case *array.BooleanBuilder:
+		if v, ok := val.(bool); ok {
+			builder.Append(v)
+		} else {
+			builder.AppendNull()
+		}
+	case *array.Int32Builder:
+		if v, ok := val.(int); ok {
+			builder.Append(int32(v))
+		} else if v, ok := val.(int32); ok {
+			builder.Append(v)
+		} else if v, ok := val.(float64); ok {
+			// Handle numbers from JSON
+			builder.Append(int32(v))
+		} else {
+			builder.AppendNull()
+		}
+	case *array.Int64Builder:
+		if v, ok := val.(int64); ok {
+			builder.Append(v)
+		} else if v, ok := val.(int); ok {
+			builder.Append(int64(v))
+		} else if v, ok := val.(float64); ok {
+			builder.Append(int64(v))
+		} else {
+			builder.AppendNull()
+		}
+	case *array.Float32Builder:
+		if v, ok := val.(float32); ok {
+			builder.Append(v)
+		} else if v, ok := val.(float64); ok {
+			builder.Append(float32(v))
+		} else {
+			builder.AppendNull()
+		}
+	case *array.Float64Builder:
+		if v, ok := val.(float64); ok {
+			builder.Append(v)
+		} else if v, ok := val.(float32); ok {
+			builder.Append(float64(v))
+		} else {
+			builder.AppendNull()
+		}
+	case *array.StringBuilder:
+		if v, ok := val.(string); ok {
+			builder.Append(v)
+		} else {
+			// Convert other types to string
+			builder.Append(fmt.Sprintf("%v", val))
+		}
+	case *array.TimestampBuilder:
+		if v, ok := val.(time.Time); ok {
+			builder.Append(arrow.Timestamp(v.UnixMicro()))
+		} else if v, ok := val.(string); ok {
+			// Try to parse string as timestamp
+			if t, err := time.Parse(time.RFC3339, v); err == nil {
+				builder.Append(arrow.Timestamp(t.UnixMicro()))
+			} else {
+				builder.AppendNull()
+			}
+		} else {
+			builder.AppendNull()
+		}
+	case *array.Date32Builder:
+		if v, ok := val.(time.Time); ok {
+			days := int32(v.Unix() / 86400) // Convert to days since epoch
+			builder.Append(arrow.Date32(days))
+		} else if v, ok := val.(string); ok {
+			if t, err := time.Parse("2006-01-02", v); err == nil {
+				days := int32(t.Unix() / 86400)
+				builder.Append(arrow.Date32(days))
+			} else {
+				builder.AppendNull()
+			}
+		} else {
+			builder.AppendNull()
+		}
+	default:
+		// Default case - append null for unsupported types
+		d.logger.Warn("Unsupported Arrow builder type",
+			zap.String("type", fmt.Sprintf("%T", builder)))
+		b.AppendNull()
+	}
 }
 
 func (d *IcebergDestination) Close(ctx context.Context) error {
