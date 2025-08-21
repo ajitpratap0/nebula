@@ -60,7 +60,6 @@ func (d *IcebergDestination) insertData(ctx context.Context, batch []*pool.Recor
 	}
 	defer reader.Release()
 	
-	// Write data to table using Append
 	d.logger.Debug("Starting table append operation",
 		zap.String("table", d.tableName),
 		zap.Int64("records", arrowRecord.NumRows()))
@@ -80,8 +79,6 @@ func (d *IcebergDestination) insertData(ctx context.Context, batch []*pool.Recor
 		zap.String("new_table_location", newTable.Location()),
 		zap.Int("new_schema_id", newTable.Schema().ID))
 
-	// For Nessie catalogs, we may need to ensure the commit is visible
-	// The table.Append() should handle this automatically, but let's verify
 	d.logger.Debug("Verifying table state after append",
 		zap.String("table_location", newTable.Location()),
 		zap.Any("current_snapshot", newTable.CurrentSnapshot()))

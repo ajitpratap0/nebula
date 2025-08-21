@@ -8,7 +8,6 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/connector/registry"
 	"github.com/ajitpratap0/nebula/pkg/pool"
-	groot "github.com/pixisai/go-nessie/api"
 	"go.uber.org/zap"
 )
 
@@ -19,7 +18,6 @@ func init() {
 	})
 }
 
-// Initialize initializes the Iceberg destination connector
 func (d *IcebergDestination) Initialize(ctx context.Context, config *config.BaseConfig) error {
 	if err := d.extractConfig(config); err != nil {
 		return err
@@ -27,8 +25,6 @@ func (d *IcebergDestination) Initialize(ctx context.Context, config *config.Base
 
 	d.logger.Info("Initializing Iceberg destination",
 		zap.String("table", fmt.Sprintf("%s.%s", d.database, d.tableName)))
-
-	d.nessieClient = groot.NewClient(d.catalogURI)
 
 	if err := d.validateConnection(ctx, d.catalogURI); err != nil {
 		return fmt.Errorf("failed to connect to Nessie server: %w", err)
@@ -46,7 +42,6 @@ func (d *IcebergDestination) Initialize(ctx context.Context, config *config.Base
 	return nil
 }
 
-// CreateSchema validates that the table exists and schema is accessible
 func (d *IcebergDestination) CreateSchema(ctx context.Context, schema *core.Schema) error {
 	existingSchema, err := d.getTableSchemaViaCatalog(ctx)
 	if err != nil {

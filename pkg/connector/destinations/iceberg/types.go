@@ -3,7 +3,6 @@ package iceberg
 import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	groot "github.com/pixisai/go-nessie/api"
 	"github.com/shubham-tomar/iceberg-go/catalog/rest"
 	"go.uber.org/zap"
 )
@@ -11,7 +10,6 @@ import (
 // IcebergDestination is a minimal Iceberg destination connector
 type IcebergDestination struct {
 	catalog      *rest.Catalog
-	nessieClient *groot.Client
 	
 	// Configuration
 	catalogURI   string

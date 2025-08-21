@@ -13,7 +13,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// icebergToArrowSchema converts Iceberg schema to Arrow schema
 func (d *IcebergDestination) icebergToArrowSchema(icebergSchema *icebergGo.Schema) (*arrow.Schema, error) {
 	fields := make([]arrow.Field, 0, len(icebergSchema.Fields()))
 	
@@ -34,7 +33,6 @@ func (d *IcebergDestination) icebergToArrowSchema(icebergSchema *icebergGo.Schem
 	return arrow.NewSchema(fields, nil), nil
 }
 
-// icebergTypeToArrowType converts Iceberg type to Arrow type
 func (d *IcebergDestination) icebergTypeToArrowType(icebergType icebergGo.Type) (arrow.DataType, error) {
 	switch t := icebergType.(type) {
 	case icebergGo.BooleanType:

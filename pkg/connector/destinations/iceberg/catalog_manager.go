@@ -13,7 +13,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// loadCatalog loads the appropriate catalog based on catalog type in config
 func (d *IcebergDestination) loadCatalog(ctx context.Context) error {
 	switch strings.ToLower(d.catalogName) {
 	case "nessie":
@@ -27,10 +26,7 @@ func (d *IcebergDestination) loadCatalog(ctx context.Context) error {
 	}
 }
 
-// loadNessieCatalog loads Nessie catalog with proper configuration
 func (d *IcebergDestination) loadNessieCatalog(ctx context.Context) error {
-	// Build catalog URI with branch path (following icebridge pattern)
-	// Remove /api/v1 suffix and use base URI like icebridge
 	baseURI := strings.TrimSuffix(d.catalogURI, "/api/v1")
 	catalogURI, err := url.JoinPath(baseURI, "iceberg", d.branch)
 	if err != nil {
@@ -42,7 +38,6 @@ func (d *IcebergDestination) loadNessieCatalog(ctx context.Context) error {
 		zap.String("catalog_name", d.catalogName),
 		zap.String("warehouse", d.warehouse))
 
-	// Build catalog properties with all S3/MinIO configuration for Nessie
 	props := icebergGo.Properties{
 		"uri":                      catalogURI,
 		"s3.region":               d.region,
@@ -80,30 +75,24 @@ func (d *IcebergDestination) loadNessieCatalog(ctx context.Context) error {
 	return nil
 }
 
-// loadRestCatalog loads REST catalog (placeholder implementation)
 func (d *IcebergDestination) loadRestCatalog(ctx context.Context) error {
 	d.logger.Warn("REST catalog implementation not yet available",
 		zap.String("catalog_name", d.catalogName))
 	return fmt.Errorf("REST catalog not implemented yet")
 }
 
-// loadGlueCatalog loads AWS Glue catalog (placeholder implementation)
 func (d *IcebergDestination) loadGlueCatalog(ctx context.Context) error {
 	d.logger.Warn("Glue catalog implementation not yet available",
 		zap.String("catalog_name", d.catalogName))
 	return fmt.Errorf("Glue catalog not implemented yet")
 }
 
-// getTableSchemaViaCatalog retrieves detailed table schema using catalog.LoadTable
 func (d *IcebergDestination) getTableSchemaViaCatalog(ctx context.Context) (*core.Schema, error) {
 	if d.catalog == nil {
 		return nil, fmt.Errorf("catalog not initialized")
 	}
 
-	// Create table identifier
 	identifier := catalog.ToIdentifier(fmt.Sprintf("%s.%s", d.database, d.tableName))
-	
-	// Load the table using catalog
 	tbl, err := d.catalog.LoadTable(ctx, identifier, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load table: %w", err)
@@ -114,7 +103,6 @@ func (d *IcebergDestination) getTableSchemaViaCatalog(ctx context.Context) (*cor
 		zap.String("location", tbl.Location()),
 		zap.String("identifier", fmt.Sprintf("%s.%s", d.database, d.tableName)))
 
-	// Get schema information
 	iceSchema := tbl.Schema()
 	var fields []core.Field
 
@@ -123,12 +111,10 @@ func (d *IcebergDestination) getTableSchemaViaCatalog(ctx context.Context) (*cor
 		zap.Int("schema_id", iceSchema.ID),
 		zap.Int("field_count", len(iceSchema.Fields())))
 
-	// Process schema fields to get detailed column info
 	for _, field := range iceSchema.Fields() {
 		coreField := convertIcebergFieldToCore(field)
 		fields = append(fields, coreField)
 		
-		// Log detailed field information
 		d.logger.Info("Schema field details",
 			zap.String("table", d.tableName),
 			zap.Int("field_id", field.ID),
@@ -138,7 +124,6 @@ func (d *IcebergDestination) getTableSchemaViaCatalog(ctx context.Context) (*cor
 			zap.String("doc", field.Doc))
 	}
 
-	// Get partition information if available
 	spec := tbl.Spec()
 	partitionCount := 0
 	for field := range spec.Fields() {
@@ -157,7 +142,6 @@ func (d *IcebergDestination) getTableSchemaViaCatalog(ctx context.Context) (*cor
 			zap.Int("partition_count", partitionCount))
 	}
 
-	// Get table metrics if available
 	if snap := tbl.CurrentSnapshot(); snap != nil {
 		d.logger.Info("Table snapshot information",
 			zap.String("table", d.tableName),
@@ -172,7 +156,6 @@ func (d *IcebergDestination) getTableSchemaViaCatalog(ctx context.Context) (*cor
 		}
 	}
 
-	// Get table properties
 	props := tbl.Properties()
 	if len(props) > 0 {
 		d.logger.Info("Table properties",
