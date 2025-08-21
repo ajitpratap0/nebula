@@ -4,25 +4,25 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/ajitpratap0/nebula/pkg/config"
+	"github.com/ajitpratap0/nebula/pkg/connector/core"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 	icebergGo "github.com/shubham-tomar/iceberg-go"
-	"github.com/shubham-tomar/iceberg-go/catalog"
-	"github.com/shubham-tomar/iceberg-go/catalog/rest"
 	"go.uber.org/zap"
 )
 
-// extractConfig extracts configuration from BaseConfig
 func (d *IcebergDestination) extractConfig(config *config.BaseConfig) error {
 	creds := config.Security.Credentials
 	if creds == nil {
 		return fmt.Errorf("missing security credentials")
 	}
 
-	// Required fields
 	requiredFields := map[string]*string{
 		"catalog_uri":  &d.catalogURI,
 		"warehouse":    &d.warehouse,
@@ -62,83 +62,235 @@ func (d *IcebergDestination) extractConfig(config *config.BaseConfig) error {
 	return nil
 }
 
-// validateConnection checks if the Nessie server is accessible
 func (d *IcebergDestination) validateConnection(ctx context.Context, baseURI string) error {
 	client := &http.Client{Timeout: 10 * time.Second}
-	
-	// Test basic connectivity to Nessie API
-	req, err := http.NewRequestWithContext(ctx, "GET", baseURI+"/config", nil)
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to connect to Nessie server at '%s': %w. Please ensure Nessie server is running", baseURI, err)
-	}
-	defer resp.Body.Close()
+	switch strings.ToLower(d.catalogName) {
+	case "nessie":
+		req, err := http.NewRequestWithContext(ctx, "GET", baseURI+"/config", nil)
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
 
-	if resp.StatusCode >= 400 {
-		return fmt.Errorf("Nessie server returned error status %d for '%s'", resp.StatusCode, baseURI)
-	}
+		resp, err := client.Do(req)
+		if err != nil {
+			return fmt.Errorf("failed to connect to catalog server at '%s': %w. Please ensure catalog server is running", baseURI, err)
+		}
+		defer resp.Body.Close()
 
-	d.logger.Info("Successfully validated connection to Nessie server", zap.String("uri", baseURI))
-	return nil
+		if resp.StatusCode >= 400 {
+			return fmt.Errorf("catalog server returned error status %d for '%s'", resp.StatusCode, baseURI)
+		}
+
+		d.logger.Info("Successfully validated connection to catalog server", zap.String("uri", baseURI))
+		return nil
+	default:
+		return fmt.Errorf("unsupported catalog type: %s", d.catalogName)
+	}
 }
 
+func (d *IcebergDestination) icebergToArrowSchema(icebergSchema *icebergGo.Schema) (*arrow.Schema, error) {
+	fields := make([]arrow.Field, 0, len(icebergSchema.Fields()))
+	
+	for _, field := range icebergSchema.Fields() {
+		arrowType, err := d.icebergTypeToArrowType(field.Type)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert field %s: %w", field.Name, err)
+		}
+		
+		arrowField := arrow.Field{
+			Name:     field.Name,
+			Type:     arrowType,
+			Nullable: !field.Required,
+		}
+		fields = append(fields, arrowField)
+	}
+	
+	return arrow.NewSchema(fields, nil), nil
+}
 
-// LoadCatalog loads the Iceberg catalog with Nessie integration (based on icebridge implementation)
-func (d *IcebergDestination) LoadCatalog(ctx context.Context, workingBranch string, catalogName string, config CatalogConfig) (*rest.Catalog, error) {
-	// First validate connection to Nessie server
-	if err := d.validateConnection(ctx, config.URI); err != nil {
-		return nil, err
+func (d *IcebergDestination) icebergTypeToArrowType(icebergType icebergGo.Type) (arrow.DataType, error) {
+	switch t := icebergType.(type) {
+	case icebergGo.BooleanType:
+		return arrow.FixedWidthTypes.Boolean, nil
+	case icebergGo.Int32Type:
+		return arrow.PrimitiveTypes.Int32, nil
+	case icebergGo.Int64Type:
+		return arrow.PrimitiveTypes.Int64, nil
+	case icebergGo.Float32Type:
+		return arrow.PrimitiveTypes.Float32, nil
+	case icebergGo.Float64Type:
+		return arrow.PrimitiveTypes.Float64, nil
+	case icebergGo.StringType:
+		return arrow.BinaryTypes.String, nil
+	case icebergGo.TimestampType:
+		return arrow.FixedWidthTypes.Timestamp_us, nil
+	case icebergGo.DateType:
+		return arrow.FixedWidthTypes.Date32, nil
+	default:
+		d.logger.Warn("Unsupported Iceberg type, defaulting to string",
+			zap.String("type", t.String()))
+		return arrow.BinaryTypes.String, nil
+	}
+}
+
+func (d *IcebergDestination) batchToArrowRecord(schema *arrow.Schema, batch []*pool.Record) (arrow.Record, error) {
+	if len(batch) == 0 {
+		return nil, fmt.Errorf("no records to convert")
 	}
 
-	// Use correct Nessie Iceberg REST API path: /iceberg/v1/{branch} instead of /api/v1/iceberg/{branch}
-	baseURL := strings.TrimSuffix(config.URI, "/api/v1")
-	uri, err := url.JoinPath(baseURL, "iceberg", "v1", workingBranch)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct catalog URI: %w", err)
+	d.logger.Debug("Starting batch to Arrow conversion",
+		zap.Int("num_records", len(batch)),
+		zap.Int("num_fields", len(schema.Fields())))
+
+	if len(batch) > 0 {
+		d.logger.Debug("Sample record data", zap.Any("record_data", batch[0].Data))
 	}
 
-	d.logger.Info("Loading Iceberg catalog",
-		zap.String("catalog_name", catalogName),
-		zap.String("base_uri", config.URI),
-		zap.String("branch", workingBranch),
-		zap.String("full_uri", uri))
+	pool := memory.NewGoAllocator()
+	recBuilder := array.NewRecordBuilder(pool, schema)
+	defer recBuilder.Release()
 
-	// Build properties from configuration
-	properties := icebergGo.Properties{
-		"uri":       uri,
-		"s3.region": "us-east-1",
+	for i, field := range schema.Fields() {
+		d.logger.Debug("Processing field", 
+			zap.String("field_name", field.Name),
+			zap.String("field_type", field.Type.String()))
+		
+		fieldBuilder := recBuilder.Field(i)
+		for recordIdx, record := range batch {
+			val, exists := record.GetData(field.Name)
+			d.logger.Debug("Field value", 
+				zap.String("field", field.Name),
+				zap.Int("record_idx", recordIdx),
+				zap.Bool("exists", exists),
+				zap.Any("value", val))
+			d.appendToBuilder(field.Type, fieldBuilder, val)
+		}
 	}
 
-	// Add S3 properties from config
-	for key, value := range d.properties {
-		properties[key] = value
-		d.logger.Debug("Added catalog property", zap.String("key", key), zap.String("value", value))
+	rec := recBuilder.NewRecord()
+	rec.Retain()
+	
+	d.logger.Debug("Arrow record built successfully",
+		zap.Int64("rows", rec.NumRows()),
+		zap.Int64("cols", rec.NumCols()))
+	
+	return rec, nil
+}
+
+func (d *IcebergDestination) appendToBuilder(dt arrow.DataType, b array.Builder, val interface{}) {
+	if val == nil {
+		b.AppendNull()
+		return
 	}
 
-	d.logger.Info("Attempting to load catalog with properties", zap.Any("properties", properties))
+	switch builder := b.(type) {
+	case *array.BooleanBuilder:
+		if v, ok := val.(bool); ok {
+			builder.Append(v)
+		} else {
+			builder.AppendNull()
+		}
+	case *array.Int32Builder:
+		if v, ok := val.(int); ok {
+			builder.Append(int32(v))
+		} else if v, ok := val.(int32); ok {
+			builder.Append(v)
+		} else if v, ok := val.(float64); ok {
+			builder.Append(int32(v))
+		} else {
+			builder.AppendNull()
+		}
+	case *array.Int64Builder:
+		if v, ok := val.(int64); ok {
+			builder.Append(v)
+		} else if v, ok := val.(int); ok {
+			builder.Append(int64(v))
+		} else if v, ok := val.(float64); ok {
+			builder.Append(int64(v))
+		} else {
+			builder.AppendNull()
+		}
+	case *array.Float32Builder:
+		if v, ok := val.(float32); ok {
+			builder.Append(v)
+		} else if v, ok := val.(float64); ok {
+			builder.Append(float32(v))
+		} else {
+			builder.AppendNull()
+		}
+	case *array.Float64Builder:
+		if v, ok := val.(float64); ok {
+			builder.Append(v)
+		} else if v, ok := val.(float32); ok {
+			builder.Append(float64(v))
+		} else {
+			builder.AppendNull()
+		}
+	case *array.StringBuilder:
+		if v, ok := val.(string); ok {
+			builder.Append(v)
+		} else {
+			builder.Append(fmt.Sprintf("%v", val))
+		}
+	case *array.TimestampBuilder:
+		if v, ok := val.(time.Time); ok {
+			builder.Append(arrow.Timestamp(v.UnixMicro()))
+		} else if v, ok := val.(string); ok {
+			if t, err := time.Parse(time.RFC3339, v); err == nil {
+				builder.Append(arrow.Timestamp(t.UnixMicro()))
+			} else {
+				builder.AppendNull()
+			}
+		} else {
+			builder.AppendNull()
+		}
+	case *array.Date32Builder:
+		if v, ok := val.(time.Time); ok {
+			days := int32(v.Unix() / 86400)
+			builder.Append(arrow.Date32(days))
+		} else if v, ok := val.(string); ok {
+			if t, err := time.Parse("2006-01-02", v); err == nil {
+				days := int32(t.Unix() / 86400)
+				builder.Append(arrow.Date32(days))
+			} else {
+				builder.AppendNull()
+			}
+		} else {
+			builder.AppendNull()
+		}
+	default:
+		d.logger.Warn("Unsupported Arrow builder type",
+			zap.String("type", fmt.Sprintf("%T", builder)))
+		b.AppendNull()
+	}
+}
 
-	iceCatalog, err := catalog.Load(ctx, catalogName, properties)
-	if err != nil {
-		d.logger.Error("Failed to load catalog",
-			zap.String("catalog_name", catalogName),
-			zap.String("uri", uri),
-			zap.Error(err))
-		return nil, fmt.Errorf("failed to load catalog '%s' from '%s': %w", catalogName, uri, err)
+func convertIcebergFieldToCore(field icebergGo.NestedField) core.Field {
+	var fieldType core.FieldType
+	switch field.Type.String() {
+	case "string":
+		fieldType = core.FieldTypeString
+	case "int", "long":
+		fieldType = core.FieldTypeInt
+	case "float", "double":
+		fieldType = core.FieldTypeFloat
+	case "boolean":
+		fieldType = core.FieldTypeBool
+	case "timestamp":
+		fieldType = core.FieldTypeTimestamp
+	case "date":
+		fieldType = core.FieldTypeDate
+	case "time":
+		fieldType = core.FieldTypeTime
+	default:
+		fieldType = core.FieldTypeString
 	}
 
-	restCatalog, ok := iceCatalog.(*rest.Catalog)
-	if !ok {
-		return nil, fmt.Errorf("expected *rest.Catalog, got %T", iceCatalog)
+	return core.Field{
+		Name:     field.Name,
+		Type:     fieldType,
+		Nullable: !field.Required,
 	}
-
-	d.logger.Info("Successfully loaded Iceberg catalog",
-		zap.String("catalog_name", catalogName),
-		zap.String("uri", uri))
-
-	return restCatalog, nil
 }
 

@@ -27,7 +27,7 @@ func (d *IcebergDestination) Initialize(ctx context.Context, config *config.Base
 		zap.String("table", fmt.Sprintf("%s.%s", d.database, d.tableName)))
 
 	if err := d.validateConnection(ctx, d.catalogURI); err != nil {
-		return fmt.Errorf("failed to connect to Nessie server: %w", err)
+		return fmt.Errorf("failed to connect to catalog server: %w", err)
 	}
 
 	if err := d.loadCatalog(ctx); err != nil {
