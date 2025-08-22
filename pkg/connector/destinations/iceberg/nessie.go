@@ -59,12 +59,10 @@ func (n *NessieCatalog) Connect(ctx context.Context, config CatalogConfig) error
 		zap.String("catalog_name", config.Name),
 		zap.String("warehouse", config.WarehouseLocation))
 
-	// Create properties for catalog.Load
 	props := icebergGo.Properties{
 		"uri": catalogURI,
 	}
 
-	// Add S3 properties if provided
 	if config.Region != "" {
 		props["s3.region"] = config.Region
 	}
@@ -81,7 +79,6 @@ func (n *NessieCatalog) Connect(ctx context.Context, config CatalogConfig) error
 		props["s3.path-style-access"] = "true"
 	}
 
-	// Add additional properties
 	for key, value := range config.Properties {
 		props[key] = value
 	}
@@ -91,7 +88,6 @@ func (n *NessieCatalog) Connect(ctx context.Context, config CatalogConfig) error
 		zap.String("catalog_name", config.Name),
 		zap.Any("properties", props))
 
-	// Load catalog using proper Nessie mechanism
 	iceCatalog, err := catalog.Load(ctx, config.Name, props)
 	if err != nil {
 		n.logger.Error("Nessie catalog.Load failed",
@@ -178,17 +174,13 @@ func (n *NessieCatalog) WriteData(ctx context.Context, database, table string, b
 		zap.String("table", table),
 		zap.String("database", database))
 
-	// Convert Iceberg schema to Arrow schema using utility functions
 	icebergSchema := tbl.Schema()
-	
-	// Create a temporary IcebergDestination to use utility functions
 	tempDest := &IcebergDestination{logger: n.logger}
 	arrowSchema, err := tempDest.icebergToArrowSchema(icebergSchema)
 	if err != nil {
 		return fmt.Errorf("failed to convert schema: %w", err)
 	}
 
-	// Convert batch records to Arrow format using utility functions
 	n.logger.Debug("Converting batch to Arrow record",
 		zap.Int("batch_size", len(batch)),
 		zap.Int("schema_fields", len(arrowSchema.Fields())))
@@ -203,7 +195,6 @@ func (n *NessieCatalog) WriteData(ctx context.Context, database, table string, b
 		zap.Int64("num_rows", arrowRecord.NumRows()),
 		zap.Int64("num_cols", arrowRecord.NumCols()))
 
-	// Create a RecordReader from the Arrow record
 	reader, err := array.NewRecordReader(arrowSchema, []arrow.Record{arrowRecord})
 	if err != nil {
 		return fmt.Errorf("failed to create record reader: %w", err)
@@ -247,28 +238,21 @@ func (n *NessieCatalog) Health(ctx context.Context) error {
 	return nil
 }
 
-// Type returns the catalog type
 func (n *NessieCatalog) Type() string {
 	return "nessie"
 }
 
-// DeleteBranch deletes a branch in Nessie
 func (n *NessieCatalog) DeleteBranch(ctx context.Context, branchName string) error {
 	return fmt.Errorf("DeleteBranch not implemented")
 }
 
-
-// CreateBranch creates a new branch in Nessie
 func (n *NessieCatalog) CreateBranch(ctx context.Context, branchName, fromRef string) error {
 	return fmt.Errorf("CreateBranch not implemented yet")
 }
 
-// MergeBranch merges a branch in Nessie
 func (n *NessieCatalog) MergeBranch(ctx context.Context, branchName, targetBranch string) error {
 	return fmt.Errorf("MergeBranch not implemented yet")
 }
-
-// ListBranches lists all branches in Nessie
 func (n *NessieCatalog) ListBranches(ctx context.Context) ([]string, error) {
 	return nil, fmt.Errorf("ListBranches not implemented yet")
 }
