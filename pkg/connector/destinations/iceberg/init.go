@@ -23,31 +23,49 @@ func (d *IcebergDestination) Initialize(ctx context.Context, config *config.Base
 		return err
 	}
 
-	d.logger.Info("Initializing Iceberg destination",
+	d.logger.Debug("Initializing Iceberg destination",
 		zap.String("table", fmt.Sprintf("%s.%s", d.database, d.tableName)))
 
-	if err := d.validateConnection(ctx, d.catalogURI); err != nil {
-		return fmt.Errorf("failed to connect to catalog server: %w", err)
+	// Create catalog provider using factory
+	catalogProvider, err := NewCatalogProvider(d.catalogName, d.logger)
+	if err != nil {
+		return fmt.Errorf("failed to create catalog provider: %w", err)
+	}
+	d.catalogProvider = catalogProvider
+
+	// Create catalog config
+	catalogConfig := CatalogConfig{
+		Name:              d.catalogName,
+		URI:               d.catalogURI,
+		WarehouseLocation: d.warehouse,
+		Branch:            d.branch,
+		Region:            d.region,
+		S3Endpoint:        d.s3Endpoint,
+		AccessKey:         d.accessKey,
+		SecretKey:         d.secretKey,
+		Properties:        d.properties,
 	}
 
-	if err := d.loadCatalog(ctx); err != nil {
-		return fmt.Errorf("failed to load catalog: %w", err)
+	// Connect to catalog
+	if err := d.catalogProvider.Connect(ctx, catalogConfig); err != nil {
+		return fmt.Errorf("failed to connect to catalog: %w", err)
 	}
 
-	if _, err := d.getTableSchemaViaCatalog(ctx); err != nil {
+	// Test table accessibility
+	if _, err := d.catalogProvider.GetSchema(ctx, d.database, d.tableName); err != nil {
 		return fmt.Errorf("failed to access table schema: %w", err)
 	}
 
-	d.logger.Info("Iceberg destination initialized successfully")
+	d.logger.Debug("Iceberg destination initialized successfully")
 	return nil
 }
 
 func (d *IcebergDestination) CreateSchema(ctx context.Context, schema *core.Schema) error {
-	existingSchema, err := d.getTableSchemaViaCatalog(ctx)
+	existingSchema, err := d.catalogProvider.GetSchema(ctx, d.database, d.tableName)
 	if err != nil {
 		return fmt.Errorf("failed to validate table schema: %w", err)
 	}
-	d.logger.Info("Table schema validated", zap.Int("fields", len(existingSchema.Fields)))
+	d.logger.Debug("Table schema validated", zap.Int("fields", len(existingSchema.Fields)))
 	return nil
 }
 
@@ -61,12 +79,12 @@ func (d *IcebergDestination) WriteBatch(ctx context.Context, stream *core.BatchS
 		select {
 		case batch, ok := <-stream.Batches:
 			if !ok {
-				d.logger.Info("WriteBatch completed", zap.Int("batches", batchCount))
+				d.logger.Debug("WriteBatch completed", zap.Int("batches", batchCount))
 				return nil
 			}
 			batchCount++
-			d.logger.Info("Processing batch", zap.Int("records", len(batch)))
-			if err := d.insertData(ctx, batch); err != nil {
+			d.logger.Debug("Processing batch", zap.Int("records", len(batch)))
+			if err := d.catalogProvider.WriteData(ctx, d.database, d.tableName, batch); err != nil {
 				return fmt.Errorf("failed to write batch %d: %w", batchCount, err)
 			}
 		case err := <-stream.Errors:
@@ -79,13 +97,18 @@ func (d *IcebergDestination) WriteBatch(ctx context.Context, stream *core.BatchS
 	}
 }
 
-func (d *IcebergDestination) Close(ctx context.Context) error { return nil }
-
-func (d *IcebergDestination) Health(ctx context.Context) error {
-	if d.catalog == nil {
-		return fmt.Errorf("catalog not initialized")
+func (d *IcebergDestination) Close(ctx context.Context) error {
+	if d.catalogProvider != nil {
+		return d.catalogProvider.Close(ctx)
 	}
 	return nil
+}
+
+func (d *IcebergDestination) Health(ctx context.Context) error {
+	if d.catalogProvider == nil {
+		return fmt.Errorf("catalog provider not initialized")
+	}
+	return d.catalogProvider.Health(ctx)
 }
 
 // Capability methods - Iceberg connector currently supports batch writing only
@@ -119,6 +142,6 @@ func (d *IcebergDestination) Metrics() map[string]interface{} {
 	return map[string]interface{}{
 		"connector_type": "iceberg",
 		"table":          fmt.Sprintf("%s.%s", d.database, d.tableName),
-		"initialized":    d.catalog != nil,
+		"initialized":    d.catalogProvider != nil,
 	}
 }

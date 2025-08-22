@@ -1,9 +1,7 @@
 package iceberg
 
 import (
-	"context"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -60,33 +58,6 @@ func (d *IcebergDestination) extractConfig(config *config.BaseConfig) error {
 	}
 
 	return nil
-}
-
-func (d *IcebergDestination) validateConnection(ctx context.Context, baseURI string) error {
-	client := &http.Client{Timeout: 10 * time.Second}
-
-	switch strings.ToLower(d.catalogName) {
-	case "nessie":
-		req, err := http.NewRequestWithContext(ctx, "GET", baseURI+"/config", nil)
-		if err != nil {
-			return fmt.Errorf("failed to create request: %w", err)
-		}
-
-		resp, err := client.Do(req)
-		if err != nil {
-			return fmt.Errorf("failed to connect to catalog server at '%s': %w. Please ensure catalog server is running", baseURI, err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode >= 400 {
-			return fmt.Errorf("catalog server returned error status %d for '%s'", resp.StatusCode, baseURI)
-		}
-
-		d.logger.Info("Successfully validated connection to catalog server", zap.String("uri", baseURI))
-		return nil
-	default:
-		return fmt.Errorf("unsupported catalog type: %s", d.catalogName)
-	}
 }
 
 func (d *IcebergDestination) icebergToArrowSchema(icebergSchema *icebergGo.Schema) (*arrow.Schema, error) {
