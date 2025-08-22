@@ -49,7 +49,7 @@ func (r *Registry) RegisterSource(name string, factory SourceFactory) error {
 	}
 
 	r.sources[name] = factory
-	r.logger.Info("source connector registered", zap.String("name", name))
+	r.logger.Debug("source connector registered", zap.String("name", name))
 	return nil
 }
 
@@ -63,7 +63,7 @@ func (r *Registry) RegisterDestination(name string, factory DestinationFactory) 
 	}
 
 	r.destinations[name] = factory
-	r.logger.Info("destination connector registered", zap.String("name", name))
+	r.logger.Debug("destination connector registered", zap.String("name", name))
 	return nil
 }
 

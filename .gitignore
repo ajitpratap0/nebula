@@ -8,6 +8,7 @@ debug_*
 bin/
 tmp/
 .env
+.vscode/	
 
 # Test outputs and data
 *_output.*
@@ -73,3 +74,4 @@ docker-compose.override.yml
 # Development-specific documents
 PRD.md
 localfile.json
+go.sum

@@ -1,0 +1,44 @@
+{
+  "name": "iceberg-writer",
+  "type": "iceberg",
+  "version": "1.0",
+  "performance": {
+    "batch_size": 1000,
+    "workers": 4,
+    "enable_streaming": true
+  },
+  "timeouts": {
+    "request": 30000000000,
+    "connection": 10000000000
+  },
+  "reliability": {
+    "max_retries": 3,
+    "retry_delay": 1000000000
+  },
+  "observability": {
+    "metrics_enabled": true,
+    "logging_enabled": true
+  },
+  "security": {
+    "credentials": {
+      "catalog_type": "nessie",
+      "catalog_uri": "http://localhost:19120/api/v1",
+      "warehouse": "s3://warehouse/",
+      "catalog_name": "nessie",
+      "database": "dummy",
+      "table": "test_csv",
+      "branch": "main",
+      "prop_s3.region": "us-east-1",
+      "prop_s3.endpoint": "http://localhost:9000",
+      "prop_s3.access-key-id": "admin",
+      "prop_s3.secret-access-key": "password",
+      "prop_s3.path-style-access": "true"
+    }
+  },
+  "write": {
+    "format": "parquet",
+    "compression": "snappy",
+    "batch_size": 1000,
+    "target_file_size_mb": 64
+  }
+}

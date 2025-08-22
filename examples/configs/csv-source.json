@@ -21,7 +21,7 @@
   },
   "security": {
     "credentials": {
-      "path": "/Users/shubhamtomar/pixis-projects/nebula/users.csv"
+      "path": "/tmp/test_users.csv"
     }
   }
 }

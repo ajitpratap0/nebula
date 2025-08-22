@@ -173,6 +173,12 @@ func (p *SimplePipeline) Run(ctx context.Context) error {
 		zap.Int("worker_count", p.workerCount),
 		zap.Int("transforms", len(p.transforms)))
 
+	// Initialize destination schema (load existing table)
+	p.logger.Info("initializing destination schema")
+	if err := p.destination.CreateSchema(ctx, nil); err != nil {
+		return fmt.Errorf("failed to initialize destination schema: %w", err)
+	}
+
 	// Create buffered channels for data flow
 	// Buffer sizes prevent blocking and enable smooth streaming
 	recordChan := make(chan *models.Record, p.batchSize*2)
@@ -280,13 +286,13 @@ func (p *SimplePipeline) readSource(ctx context.Context, recordChan chan<- *mode
 // transformWorker applies transformations to records
 func (p *SimplePipeline) transformWorker(ctx context.Context, id int, in <-chan *models.Record, out chan<- *models.Record, errorChan chan<- error) {
 	logger := p.logger.With(zap.Int("worker", id))
-	logger.Info("transform worker started")
+	logger.Debug("transform worker started")
 
 	for {
 		select {
 		case record, ok := <-in:
 			if !ok {
-				logger.Info("input channel closed, worker exiting", zap.Int("worker", id))
+				logger.Debug("input channel closed, worker exiting", zap.Int("worker", id))
 				return
 			}
 
