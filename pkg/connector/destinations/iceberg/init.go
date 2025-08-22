@@ -51,11 +51,6 @@ func (d *IcebergDestination) Initialize(ctx context.Context, config *config.Base
 		return fmt.Errorf("failed to connect to catalog: %w", err)
 	}
 
-	// Test table accessibility
-	if _, err := d.catalogProvider.GetSchema(ctx, d.database, d.tableName); err != nil {
-		return fmt.Errorf("failed to access table schema: %w", err)
-	}
-
 	d.logger.Debug("Iceberg destination initialized successfully")
 	return nil
 }
