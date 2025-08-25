@@ -95,7 +95,13 @@ func (d *IcebergDestination) icebergTypeToArrowType(icebergType icebergGo.Type) 
 	case icebergGo.StringType:
 		return arrow.BinaryTypes.String, nil
 	case icebergGo.TimestampType:
-		return arrow.FixedWidthTypes.Timestamp_us, nil
+		d.logger.Debug("Converting Iceberg timestamp type", 
+			zap.String("type", t.String()))
+		// Create timestamp type without timezone to match Iceberg requirements
+		return &arrow.TimestampType{
+			Unit:     arrow.Microsecond,
+			TimeZone: "", // must be empty to indicate *no time zone*
+		}, nil
 	case icebergGo.DateType:
 		return arrow.FixedWidthTypes.Date32, nil
 	default:
@@ -114,8 +120,26 @@ func (d *IcebergDestination) batchToArrowRecord(schema *arrow.Schema, batch []*p
 		zap.Int("num_records", len(batch)),
 		zap.Int("num_fields", len(schema.Fields())))
 
+	// Log arrow schema details for debugging
+	for i, field := range schema.Fields() {
+		d.logger.Debug("Arrow schema field",
+			zap.Int("index", i),
+			zap.String("name", field.Name),
+			zap.String("type", field.Type.String()),
+			zap.Bool("nullable", field.Nullable))
+	}
+
 	if len(batch) > 0 {
+		// Log sample record structure
 		d.logger.Debug("Sample record data", zap.Any("record_data", batch[0].Data))
+		
+		// Log data types of each field in sample record
+		for k, v := range batch[0].Data {
+			d.logger.Debug("Record field type info",
+				zap.String("field_name", k),
+				zap.String("go_type", fmt.Sprintf("%T", v)),
+				zap.Any("value", v))
+		}
 	}
 
 	pool := memory.NewGoAllocator()
@@ -205,12 +229,48 @@ func (d *IcebergDestination) appendToBuilder(dt arrow.DataType, b array.Builder,
 			builder.Append(fmt.Sprintf("%v", val))
 		}
 	case *array.TimestampBuilder:
+		tsType := dt.(*arrow.TimestampType)
+		unit := tsType.Unit
+		
+		getTimestampValue := func(t time.Time) arrow.Timestamp {
+			switch unit {
+			case arrow.Nanosecond:
+				return arrow.Timestamp(t.UnixNano())
+			case arrow.Microsecond:
+				return arrow.Timestamp(t.UnixNano() / 1000)
+			case arrow.Millisecond:
+				return arrow.Timestamp(t.UnixNano() / 1000000)
+			case arrow.Second:
+				return arrow.Timestamp(t.Unix())
+			default:
+				return arrow.Timestamp(t.UnixMicro()) // Default to microseconds
+			}
+		}
+
 		if v, ok := val.(time.Time); ok {
-			builder.Append(arrow.Timestamp(v.UnixMicro()))
+			builder.Append(getTimestampValue(v))
 		} else if v, ok := val.(string); ok {
-			if t, err := time.Parse(time.RFC3339, v); err == nil {
-				builder.Append(arrow.Timestamp(t.UnixMicro()))
-			} else {
+			// Try multiple timestamp formats
+			formats := []string{
+				time.RFC3339,
+				time.RFC3339Nano,
+				"2006-01-02T15:04:05",
+				"2006-01-02 15:04:05",
+				"2006-01-02 15:04:05.999999",
+				"2006-01-02",
+			}
+
+			var parsed bool
+			for _, format := range formats {
+				if t, err := time.Parse(format, v); err == nil {
+					builder.Append(getTimestampValue(t))
+					parsed = true
+					break
+				}
+			}
+
+			if !parsed {
+				d.logger.Warn("Failed to parse timestamp string", zap.String("value", v))
 				builder.AppendNull()
 			}
 		} else {

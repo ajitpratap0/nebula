@@ -35,6 +35,7 @@ type SystemFlags struct {
 	BatchSize      int           `json:"batch_size"`
 	Workers        int           `json:"workers"`
 	MaxConcurrency int           `json:"max_concurrency"`
+	FlushInterval  time.Duration `json:"flush_interval"`
 	Timeout        time.Duration `json:"timeout"`
 	LogLevel       string        `json:"log_level"`
 	EnableMetrics  bool          `json:"enable_metrics"`
@@ -46,6 +47,7 @@ func DefaultSystemFlags() *SystemFlags {
 		BatchSize:      1000,
 		Workers:        runtime.NumCPU(),
 		MaxConcurrency: runtime.NumCPU() * 2,
+		FlushInterval:  10,
 		Timeout:        30 * time.Minute,
 		LogLevel:       "info",
 		EnableMetrics:  true,
@@ -97,7 +99,7 @@ It provides ultra-fast data transfer between various sources and destinations wi
 	// Main run command
 	var sourceConfigFile, destConfigFile, systemFlagsFile string
 	var batchSize, workers, maxConcurrency int
-	var timeout time.Duration
+	var timeout, flushInterval time.Duration
 	var logLevel string
 	var enableMetrics bool
 
@@ -114,6 +116,7 @@ Example:
 				BatchSize:      batchSize,
 				Workers:        workers,
 				MaxConcurrency: maxConcurrency,
+				FlushInterval:  flushInterval,
 				Timeout:        timeout,
 				LogLevel:       logLevel,
 				EnableMetrics:  enableMetrics,
@@ -133,6 +136,7 @@ Example:
 	runCmd.Flags().IntVar(&workers, "workers", runtime.NumCPU(), "Number of worker threads")
 	runCmd.Flags().IntVar(&maxConcurrency, "max-concurrency", runtime.NumCPU()*2, "Maximum concurrent operations")
 	runCmd.Flags().DurationVar(&timeout, "timeout", 30*time.Minute, "Pipeline timeout")
+	runCmd.Flags().DurationVar(&flushInterval, "flush-interval", time.Second, "Time interval for batch flushing")
 	runCmd.Flags().StringVar(&logLevel, "log-level", "error", "Log level (debug, info, warn, error)")
 	runCmd.Flags().BoolVar(&enableMetrics, "enable-metrics", false, "Enable metrics collection")
 
@@ -227,7 +231,8 @@ func runPipeline(sourceConfigFile, destConfigFile, systemConfigFile string, cmdS
 		zap.String("source_config", sourceConfigFile),
 		zap.String("dest_config", destConfigFile),
 		zap.Int("batch_size", systemFlags.BatchSize),
-		zap.Int("workers", systemFlags.Workers))
+		zap.Int("workers", systemFlags.Workers),
+		zap.Duration("flush_interval", systemFlags.FlushInterval))
 
 	// Apply system flags to connector configurations
 	applySystemFlags(sourceConfig, systemFlags)
@@ -257,10 +262,11 @@ func runPipeline(sourceConfigFile, destConfigFile, systemConfigFile string, cmdS
 		return fmt.Errorf("failed to initialize destination: %w", err)
 	}
 
-	// Create and configure pipeline
+	// Create pipeline config
 	pipelineConfig := &pipeline.PipelineConfig{
-		BatchSize:   systemFlags.BatchSize,
-		WorkerCount: systemFlags.Workers,
+		BatchSize:     systemFlags.BatchSize,
+		WorkerCount:   systemFlags.Workers,
+		FlushInterval: systemFlags.FlushInterval,
 	}
 
 	simplePipeline := pipeline.NewSimplePipeline(source, destination, pipelineConfig, log)

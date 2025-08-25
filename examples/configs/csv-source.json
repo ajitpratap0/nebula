@@ -21,7 +21,7 @@
   },
   "security": {
     "credentials": {
-      "path": "/tmp/test_users.csv"
+      "path": "/Users/shubhamtomar/pixis-projects/aalearning/adhoc/pypy/spark/fp1/nyc-taxi.csv"
     }
   }
 }
