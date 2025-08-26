@@ -3,7 +3,6 @@ package benchmarks
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"

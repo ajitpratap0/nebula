@@ -2,12 +2,14 @@ package benchmarks
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/ajitpratap0/nebula/internal/pipeline"
-	"github.com/ajitpratap0/nebula/pkg/connector/core"
+	"github.com/ajitpratap0/nebula/pkg/config"
 	csvdest "github.com/ajitpratap0/nebula/pkg/connector/destinations/csv"
 	csvsrc "github.com/ajitpratap0/nebula/pkg/connector/sources/csv"
 	"github.com/ajitpratap0/nebula/pkg/logger"
@@ -20,7 +22,7 @@ import (
 // BenchmarkPipelineWithProfiling benchmarks pipeline with profiling enabled
 func BenchmarkPipelineWithProfiling(b *testing.B) {
 	ctx := context.Background()
-	logger := logger.NewLogger("benchmark")
+	logger := logger.Get()
 	
 	// Create test data
 	testFile := createTestCSV(b, 100000, 10) // 100K records, 10 columns
@@ -74,7 +76,7 @@ func BenchmarkPipelineWithProfiling(b *testing.B) {
 // TestProfileBottleneckDetection tests bottleneck detection
 func TestProfileBottleneckDetection(t *testing.T) {
 	ctx := context.Background()
-	logger := logger.NewLogger("test")
+	logger := logger.Get()
 	
 	tests := []struct {
 		name           string
@@ -89,7 +91,7 @@ func TestProfileBottleneckDetection(t *testing.T) {
 			simulateIssue: func(t *testing.T, p *pipeline.SimplePipeline) {
 				// Simulate memory leak by holding references
 				var leakedRecords []*models.Record
-				p.AddTransform(func(record *models.Record) (*models.Record, error) {
+				p.AddTransform(func(ctx context.Context, record *models.Record) (*models.Record, error) {
 					// Leak memory by keeping references
 					leakedRecords = append(leakedRecords, record)
 					return record, nil
@@ -102,7 +104,7 @@ func TestProfileBottleneckDetection(t *testing.T) {
 			expectedBottleneck: profiling.CPUBottleneck,
 			simulateIssue: func(t *testing.T, p *pipeline.SimplePipeline) {
 				// Simulate CPU-intensive operation
-				p.AddTransform(func(record *models.Record) (*models.Record, error) {
+				p.AddTransform(func(ctx context.Context, record *models.Record) (*models.Record, error) {
 					// Expensive computation
 					sum := 0
 					for i := 0; i < 10000; i++ {
@@ -119,7 +121,7 @@ func TestProfileBottleneckDetection(t *testing.T) {
 			expectedBottleneck: profiling.GCBottleneck,
 			simulateIssue: func(t *testing.T, p *pipeline.SimplePipeline) {
 				// Create lots of garbage
-				p.AddTransform(func(record *models.Record) (*models.Record, error) {
+				p.AddTransform(func(ctx context.Context, record *models.Record) (*models.Record, error) {
 					// Create temporary allocations
 					for i := 0; i < 100; i++ {
 						temp := make([]byte, 1024)
@@ -166,11 +168,10 @@ func TestProfileBottleneckDetection(t *testing.T) {
 			runCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 			defer cancel()
 			
-			err = p.Start(runCtx)
+			err = p.Run(runCtx)
 			require.NoError(t, err)
 			
-			<-runCtx.Done()
-			p.Stop(context.Background())
+			p.Stop()
 			
 			// Stop profiling and analyze
 			result, err := pipelineProfiler.Stop()
@@ -196,7 +197,7 @@ func TestProfileBottleneckDetection(t *testing.T) {
 // TestProfileAccuracy tests profiling accuracy
 func TestProfileAccuracy(t *testing.T) {
 	ctx := context.Background()
-	logger := logger.NewLogger("test")
+	logger := logger.Get()
 	
 	// Create test data with known size
 	recordCount := 10000
@@ -257,15 +258,12 @@ func TestProfileAccuracy(t *testing.T) {
 
 func runBenchmarkPipeline(b testing.TB, ctx context.Context, profiler *profiling.PipelineProfiler, inputFile, outputFile string, logger *zap.Logger) {
 	// Create source
-	sourceConfig := &core.Config{
-		Name: "csv-source",
-		Type: core.ConnectorTypeSource,
-		Properties: map[string]interface{}{
-			"file_path": inputFile,
-		},
+	sourceConfig := config.NewBaseConfig("csv-source", "source")
+	sourceConfig.Security.Credentials = map[string]string{
+		"file_path": inputFile,
 	}
 	
-	source, err := csvsrc.NewCSVSource("benchmark-source", sourceConfig)
+	source, err := csvsrc.NewCSVSource(sourceConfig)
 	require.NoError(b, err)
 	
 	// Wrap with profiling
@@ -276,15 +274,12 @@ func runBenchmarkPipeline(b testing.TB, ctx context.Context, profiler *profiling
 	defer source.Close(ctx)
 	
 	// Create destination
-	destConfig := &core.Config{
-		Name: "csv-destination",
-		Type: core.ConnectorTypeDestination,
-		Properties: map[string]interface{}{
-			"file_path": outputFile,
-		},
+	destConfig := config.NewBaseConfig("csv-destination", "destination")
+	destConfig.Security.Credentials = map[string]string{
+		"file_path": outputFile,
 	}
 	
-	dest, err := csvdest.NewCSVDestination("benchmark-dest", destConfig)
+	dest, err := csvdest.NewCSVDestination(destConfig)
 	require.NoError(b, err)
 	
 	// Wrap with profiling
@@ -295,67 +290,90 @@ func runBenchmarkPipeline(b testing.TB, ctx context.Context, profiler *profiling
 	defer dest.Close(ctx)
 	
 	// Create pipeline
-	pipelineConfig := &pipeline.Config{
-		Name:        "benchmark-pipeline",
-		BufferSize:  10000,
-		WorkerCount: 4,
+	pipelineConfig := &pipeline.PipelineConfig{
 		BatchSize:   1000,
+		WorkerCount: 4,
 	}
 	
-	p, err := pipeline.NewSimplePipeline(pipelineConfig, source, dest, logger)
-	require.NoError(b, err)
+	p := pipeline.NewSimplePipeline(source, dest, pipelineConfig, logger)
 	
 	// Run pipeline
-	err = p.Start(ctx)
+	err = p.Run(ctx)
 	require.NoError(b, err)
 	
-	// Wait for completion
-	p.Wait()
+	// Pipeline run is complete
 }
 
 func createTestPipeline(t *testing.T, inputFile, outputFile string, logger *zap.Logger) *pipeline.SimplePipeline {
 	ctx := context.Background()
 	
 	// Create source
-	sourceConfig := &core.Config{
-		Name: "test-source",
-		Type: core.ConnectorTypeSource,
-		Properties: map[string]interface{}{
-			"file_path": inputFile,
-		},
+	sourceConfig := config.NewBaseConfig("test-source", "source")
+	sourceConfig.Security.Credentials = map[string]string{
+		"file_path": inputFile,
 	}
 	
-	source, err := csvsrc.NewCSVSource("test-source", sourceConfig)
+	source, err := csvsrc.NewCSVSource(sourceConfig)
 	require.NoError(t, err)
 	
 	err = source.Initialize(ctx, sourceConfig)
 	require.NoError(t, err)
 	
 	// Create destination
-	destConfig := &core.Config{
-		Name: "test-destination",
-		Type: core.ConnectorTypeDestination,
-		Properties: map[string]interface{}{
-			"file_path": outputFile,
-		},
+	destConfig := config.NewBaseConfig("test-destination", "destination")
+	destConfig.Security.Credentials = map[string]string{
+		"file_path": outputFile,
 	}
 	
-	dest, err := csvdest.NewCSVDestination("test-dest", destConfig)
+	dest, err := csvdest.NewCSVDestination(destConfig)
 	require.NoError(t, err)
 	
 	err = dest.Initialize(ctx, destConfig)
 	require.NoError(t, err)
 	
 	// Create pipeline
-	pipelineConfig := &pipeline.Config{
-		Name:        "test-pipeline",
-		BufferSize:  1000,
-		WorkerCount: 2,
+	pipelineConfig := &pipeline.PipelineConfig{
 		BatchSize:   100,
+		WorkerCount: 2,
 	}
 	
-	p, err := pipeline.NewSimplePipeline(pipelineConfig, source, dest, logger)
-	require.NoError(t, err)
+	p := pipeline.NewSimplePipeline(source, dest, pipelineConfig, logger)
 	
 	return p
+}
+
+// createTestCSV creates a CSV file with test data for benchmarking
+func createTestCSV(tb testing.TB, recordCount, columnCount int) string {
+	tempFile := fmt.Sprintf("/tmp/test_%d_%d.csv", recordCount, columnCount)
+	file, err := os.Create(tempFile)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	defer file.Close()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	// Write header
+	headers := make([]string, columnCount)
+	for i := 0; i < columnCount; i++ {
+		headers[i] = fmt.Sprintf("col_%d", i)
+	}
+	writer.Write(headers)
+
+	// Write records
+	for i := 0; i < recordCount; i++ {
+		record := make([]string, columnCount)
+		for j := 0; j < columnCount; j++ {
+			record[j] = fmt.Sprintf("value_%d_%d", i, j)
+		}
+		writer.Write(record)
+	}
+
+	return tempFile
+}
+
+// removeTestFile removes a test file, ignoring errors
+func removeTestFile(filename string) {
+	os.Remove(filename)
 }

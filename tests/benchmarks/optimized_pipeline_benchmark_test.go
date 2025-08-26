@@ -217,3 +217,34 @@ func BenchmarkMemoryComparison(b *testing.B) {
 		b.ReportMetric(float64(recordCount), "records")
 	})
 }
+
+// createTestData creates a CSV file with test data
+func createTestData(b *testing.B, filename string, records int) {
+	file, err := os.Create(filename)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer file.Close()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	// Write header
+	headers := []string{"id", "name", "email", "age", "department", "salary", "created_at"}
+	writer.Write(headers)
+
+	// Write records
+	departments := []string{"Engineering", "Sales", "Marketing", "HR", "Finance"}
+	for i := 0; i < records; i++ {
+		record := []string{
+			fmt.Sprintf("%d", i),
+			fmt.Sprintf("User_%d", i),
+			fmt.Sprintf("user%d@example.com", i),
+			fmt.Sprintf("%d", 20+(i%40)),
+			departments[i%len(departments)],
+			fmt.Sprintf("%.2f", 50000+float64(i%50000)),
+			time.Now().Add(time.Duration(i)*time.Second).Format(time.RFC3339),
+		}
+		writer.Write(record)
+	}
+}

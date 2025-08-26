@@ -300,7 +300,7 @@ func BenchmarkDirectStorageAdapter(b *testing.B) {
 					record.SetData("id", fmt.Sprintf("%d", j))
 					record.SetData("value", fmt.Sprintf("value_%d", j))
 					record.SetData("category", fmt.Sprintf("cat_%d", j%10))
-					record.SetData("amount", j*1.5)
+					record.SetData("amount", float64(j)*1.5)
 					
 					adapter.AddRecord(record)
 					record.Release()

@@ -4,7 +4,6 @@ package benchmarks
 import (
 	"bytes"
 	"compress/gzip"
-	"context"
 	"fmt"
 	"io"
 	"sync"
@@ -12,8 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/connector/destinations"
 	"github.com/ajitpratap0/nebula/pkg/models"
 )
 
@@ -132,7 +129,6 @@ func BenchmarkSnowflakeOptimizedWrite(b *testing.B) {
 		b.Run(scenario.name, func(b *testing.B) {
 			stage := NewMockSnowflakeStage()
 
-			totalRecords := scenario.recordsPerBatch * scenario.batchCount
 			var recordsWritten int64
 			var bytesUploaded int64
 			var uploadDuration time.Duration

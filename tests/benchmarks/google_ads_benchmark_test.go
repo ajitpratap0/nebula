@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/connector/sources"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 )
