@@ -250,7 +250,7 @@ func createBenchmarkTestData(b *testing.B, filename string, records int) {
 	file.WriteString(headers)
 
 	// Generate realistic data patterns
-	statuses := []string{"pending", "processing", "shipped", "delivered", "cancelled"}
+	statuses := []string{"pending", "processing", "shipped", "delivered", "canceled"}
 	categories := []string{"Electronics", "Clothing", "Home", "Books", "Food", "Sports"}
 	regions := []string{"North", "South", "East", "West", "Central"}
 

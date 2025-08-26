@@ -373,7 +373,7 @@ func BenchmarkMetaAdsMockAPI(b *testing.B) {
 				start := time.Now()
 
 				// Make a mock HTTP request to insights endpoint
-				resp, err := http.Get(mockAPI.URL() + "/v18.0/act_123456789/insights")
+				resp, err := http.DefaultClient.Get(mockAPI.URL() + "/v18.0/act_123456789/insights")
 				if err != nil {
 					b.Fatal(err)
 				}

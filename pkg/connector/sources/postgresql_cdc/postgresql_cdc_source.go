@@ -445,7 +445,7 @@ func (s *PostgreSQLCDCSource) streamEvents(ctx context.Context) {
 			}
 
 		case <-ctx.Done():
-			s.GetLogger().Info("context cancelled, stopping event streaming")
+			s.GetLogger().Info("context canceled, stopping event streaming")
 			return
 		}
 	}

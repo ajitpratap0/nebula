@@ -262,7 +262,10 @@ func TestProfileAccuracy(t *testing.T) {
 
 // Helper functions
 
-func runBenchmarkPipeline(b testing.TB, ctx context.Context, profiler *profiling.PipelineProfiler, inputFile, outputFile string, logger *zap.Logger) {
+func runBenchmarkPipeline(
+	b testing.TB, ctx context.Context,
+	profiler *profiling.PipelineProfiler,
+	inputFile, outputFile string, logger *zap.Logger) {
 	// Create source
 	sourceConfig := config.NewBaseConfig("csv-source", "source")
 	sourceConfig.Security.Credentials = map[string]string{

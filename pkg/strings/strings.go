@@ -3,7 +3,6 @@ package strings
 
 import (
 	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -17,7 +16,7 @@ func BytesToString(b []byte) string {
 	if len(b) == 0 {
 		return ""
 	}
-	return *(*string)(unsafe.Pointer(&b))
+	return unsafe.String(&b[0], len(b))
 }
 
 // StringToBytes converts string to byte slice without allocation
@@ -27,13 +26,7 @@ func StringToBytes(s string) []byte {
 	if len(s) == 0 {
 		return nil
 	}
-	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
-	bh := reflect.SliceHeader{
-		Data: sh.Data,
-		Len:  sh.Len,
-		Cap:  sh.Len,
-	}
-	return *(*[]byte)(unsafe.Pointer(&bh))
+	return unsafe.Slice(unsafe.StringData(s), len(s))
 }
 
 // Builder provides efficient string building with zero-copy operations

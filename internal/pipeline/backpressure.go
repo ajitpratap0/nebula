@@ -470,7 +470,7 @@ func (bc *BackpressureController) applyDropStrategy(severity int32, record *mode
 }
 
 func (bc *BackpressureController) applyBlockStrategy(ctx context.Context, severity int32) (bool, error) {
-	// Block until backpressure is released or context is cancelled
+	// Block until backpressure is released or context is canceled
 	for atomic.LoadInt32(&bc.isActive) == 1 {
 		select {
 		case <-ctx.Done():

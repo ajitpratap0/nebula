@@ -386,7 +386,7 @@ func (bc *BaseConnector) ExecuteWithCircuitBreaker(fn func() error) error {
 //
 //	for _, record := range records {
 //	    if err := connector.RateLimit(ctx); err != nil {
-//	        return err // Context cancelled
+//	        return err // Context canceled
 //	    }
 //	    process(record)
 //	}

@@ -2,6 +2,7 @@
 package compression
 
 import (
+	crypto_rand "crypto/rand"
 	"bytes"
 	"fmt"
 	"math/rand"
@@ -72,7 +73,7 @@ func generateBinaryData(size int) []byte {
 	}
 
 	defer pool.PutByteSlice(data)
-	rand.Read(data)
+	_, _ = crypto_rand.Read(data)
 	return data
 }
 

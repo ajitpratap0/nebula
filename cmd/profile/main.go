@@ -162,7 +162,7 @@ func writeProfile(profileName, filename string) {
 		return
 	}
 
-	fmt.Printf("%s profile written to: %s\n", strings.Title(profileName), filename)
+	fmt.Printf("%s profile written to: %s\n", profileName, filename)
 }
 
 // parseProfileTypes parses the profile types string
