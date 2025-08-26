@@ -113,9 +113,7 @@ func BenchmarkStdEncoder(b *testing.B) {
 	b.ResetTimer()
 	
 	for i := 0; i < b.N; i++ {
-		buf := pool.GlobalBufferPool.Get()
-
-		defer pool.GlobalBufferPool.Put(buf)
+		var buf bytes.Buffer
 		enc := json.NewEncoder(&buf)
 		
 		for _, record := range records {
@@ -156,9 +154,7 @@ func BenchmarkStreamingEncoder(b *testing.B) {
 	b.ResetTimer()
 	
 	for i := 0; i < b.N; i++ {
-		buf := pool.GlobalBufferPool.Get()
-
-		defer pool.GlobalBufferPool.Put(buf)
+		var buf bytes.Buffer
 		enc := NewStreamingEncoder(&buf, false)
 		
 		for _, record := range records {

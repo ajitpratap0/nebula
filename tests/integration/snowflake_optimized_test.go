@@ -8,9 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/connector/destinations"
-	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -19,7 +20,7 @@ import (
 type SnowflakeOptimizedTestSuite struct {
 	suite.Suite
 	connector *destinations.SnowflakeOptimizedDestination
-	config    *core.Config
+	config    *config.BaseConfig
 	ctx       context.Context
 	cancel    context.CancelFunc
 }
@@ -33,29 +34,19 @@ func (suite *SnowflakeOptimizedTestSuite) SetupSuite() {
 	suite.ctx, suite.cancel = context.WithTimeout(context.Background(), 5*time.Minute)
 
 	// Create configuration
-	suite.config = &core.Config{
-		Type: "snowflake_optimized",
-		Properties: map[string]interface{}{
-			"account":                os.Getenv("SNOWFLAKE_ACCOUNT"),
-			"user":                   os.Getenv("SNOWFLAKE_USER"),
-			"password":               os.Getenv("SNOWFLAKE_PASSWORD"),
-			"database":               os.Getenv("SNOWFLAKE_DATABASE"),
-			"schema":                 os.Getenv("SNOWFLAKE_SCHEMA"),
-			"warehouse":              os.Getenv("SNOWFLAKE_WAREHOUSE"),
-			"table":                  "NEBULA_TEST_OPTIMIZED",
-			"stage_name":             "NEBULA_TEST_STAGE",
-			"stage_prefix":           "test_data",
-			"parallel_uploads":       8,
-			"connection_pool_size":   4,
-			"micro_batch_size":       10000,
-			"micro_batch_timeout_ms": 1000,
-			"file_format":            "CSV",
-			"compression_type":       "GZIP",
-			"files_per_copy":         5,
-			"enable_streaming":       true,
-			"async_copy":             true,
-		},
+	suite.config = config.NewBaseConfig("test_optimized", "snowflake_optimized")
+	// Set Snowflake specific configurations in the security section
+	suite.config.Security.Credentials = map[string]string{
+		"account":   os.Getenv("SNOWFLAKE_ACCOUNT"),
+		"user":      os.Getenv("SNOWFLAKE_USER"),
+		"password":  os.Getenv("SNOWFLAKE_PASSWORD"),
+		"database":  os.Getenv("SNOWFLAKE_DATABASE"),
+		"schema":    os.Getenv("SNOWFLAKE_SCHEMA"),
+		"warehouse": os.Getenv("SNOWFLAKE_WAREHOUSE"),
 	}
+	// Set performance configuration
+	suite.config.Performance.BatchSize = 10000
+	suite.config.Performance.Workers = 8
 
 	// Create optimized connector
 	conn, err := destinations.NewSnowflakeOptimizedDestination("test_optimized", suite.config)
@@ -83,8 +74,8 @@ func (suite *SnowflakeOptimizedTestSuite) TestHighThroughputWrite() {
 	// Create schema
 	schema := &core.Schema{
 		Name: "test_schema",
-		Fields: []*core.Field{
-			{Name: "id", Type: core.FieldTypeInteger, Required: true},
+		Fields: []core.Field{
+			{Name: "id", Type: core.FieldTypeInt},
 			{Name: "name", Type: core.FieldTypeString},
 			{Name: "amount", Type: core.FieldTypeFloat},
 			{Name: "created_at", Type: core.FieldTypeTimestamp},
@@ -104,23 +95,20 @@ func (suite *SnowflakeOptimizedTestSuite) TestHighThroughputWrite() {
 	go func() {
 		defer stream.Close()
 
-		batch := make([]*models.Record, 0, 1000)
+		batch := make([]*pool.Record, 0, 1000)
 		for i := 0; i < recordCount; i++ {
-			record := &models.Record{
-				Data: map[string]interface{}{
-					"id":         i,
-					"name":       fmt.Sprintf("Record_%d", i),
-					"amount":     float64(i) * 1.23,
-					"created_at": time.Now(),
-					"metadata":   map[string]interface{}{"index": i, "type": "test"},
-				},
-			}
+			record := pool.GetRecord()
+			record.SetData("id", i)
+			record.SetData("name", fmt.Sprintf("Record_%d", i))
+			record.SetData("amount", float64(i)*1.23)
+			record.SetData("created_at", time.Now())
+			record.SetData("metadata", map[string]interface{}{"index": i, "type": "test"})
 			batch = append(batch, record)
 
 			// Send batch when full
 			if len(batch) >= 1000 {
 				stream.Records <- batch
-				batch = make([]*models.Record, 0, 1000)
+				batch = make([]*pool.Record, 0, 1000)
 			}
 		}
 
@@ -167,8 +155,8 @@ func (suite *SnowflakeOptimizedTestSuite) TestParquetFormat() {
 	// Create schema
 	schema := &core.Schema{
 		Name: "parquet_schema",
-		Fields: []*core.Field{
-			{Name: "id", Type: core.FieldTypeInteger, Required: true},
+		Fields: []core.Field{
+			{Name: "id", Type: core.FieldTypeInt},
 			{Name: "value", Type: core.FieldTypeFloat},
 			{Name: "timestamp", Type: core.FieldTypeTimestamp},
 		},
@@ -184,18 +172,16 @@ func (suite *SnowflakeOptimizedTestSuite) TestParquetFormat() {
 	go func() {
 		defer batchStream.Close()
 
-		records := make([]*models.Record, 10000)
+		records := make([]*pool.Record, 10000)
 		for i := 0; i < 10000; i++ {
-			records[i] = &models.Record{
-				Data: map[string]interface{}{
-					"id":        i,
-					"value":     float64(i) * 0.5,
-					"timestamp": time.Now(),
-				},
-			}
+			record := pool.GetRecord()
+			record.SetData("id", i)
+			record.SetData("value", float64(i)*0.5)
+			record.SetData("timestamp", time.Now())
+			records[i] = record
 		}
 
-		batch := &models.RecordBatch{
+		batch := &pool.RecordBatch{
 			Records: records,
 		}
 
@@ -230,8 +216,8 @@ func (suite *SnowflakeOptimizedTestSuite) TestExternalStageS3() {
 	// Create simple test schema
 	schema := &core.Schema{
 		Name: "s3_test_schema",
-		Fields: []*core.Field{
-			{Name: "id", Type: core.FieldTypeInteger},
+		Fields: []core.Field{
+			{Name: "id", Type: core.FieldTypeInt},
 			{Name: "message", Type: core.FieldTypeString},
 		},
 	}
@@ -245,14 +231,12 @@ func (suite *SnowflakeOptimizedTestSuite) TestExternalStageS3() {
 	go func() {
 		defer stream.Close()
 
-		records := make([]*models.Record, 1000)
+		records := make([]*pool.Record, 1000)
 		for i := 0; i < 1000; i++ {
-			records[i] = &models.Record{
-				Data: map[string]interface{}{
-					"id":      i,
-					"message": fmt.Sprintf("S3 test message %d", i),
-				},
-			}
+			record := pool.GetRecord()
+			record.SetData("id", i)
+			record.SetData("message", fmt.Sprintf("S3 test message %d", i))
+			records[i] = record
 		}
 
 		stream.Records <- records
@@ -280,15 +264,12 @@ func (suite *SnowflakeOptimizedTestSuite) TestMicroBatching() {
 				defer stream.Close()
 
 				for i := 0; i < count; i++ {
-					record := &models.Record{
-						Data: map[string]interface{}{
-							"id":    i,
-							"value": i * 2,
-						},
-					}
+					record := pool.GetRecord()
+					record.SetData("id", i)
+					record.SetData("value", i*2)
 
 					// Send single record
-					stream.Records <- []*models.Record{record}
+					stream.Records <- []*pool.Record{record}
 
 					// Small delay to simulate streaming
 					if i%100 == 0 {
@@ -319,25 +300,17 @@ func BenchmarkSnowflakeOptimizedThroughput(b *testing.B) {
 		b.Skip("Skipping Snowflake benchmark - no credentials provided")
 	}
 
-	config := &core.Config{
-		Type: "snowflake_optimized",
-		Properties: map[string]interface{}{
-			"account":              os.Getenv("SNOWFLAKE_ACCOUNT"),
-			"user":                 os.Getenv("SNOWFLAKE_USER"),
-			"password":             os.Getenv("SNOWFLAKE_PASSWORD"),
-			"database":             os.Getenv("SNOWFLAKE_DATABASE"),
-			"schema":               os.Getenv("SNOWFLAKE_SCHEMA"),
-			"warehouse":            os.Getenv("SNOWFLAKE_WAREHOUSE"),
-			"table":                "NEBULA_BENCHMARK",
-			"stage_name":           "NEBULA_BENCHMARK_STAGE",
-			"parallel_uploads":     16,
-			"connection_pool_size": 8,
-			"micro_batch_size":     200000,
-			"file_format":          "CSV",
-			"compression_type":     "GZIP",
-			"files_per_copy":       10,
-		},
+	config := config.NewBaseConfig("benchmark", "snowflake_optimized")
+	config.Security.Credentials = map[string]string{
+		"account":   os.Getenv("SNOWFLAKE_ACCOUNT"),
+		"user":      os.Getenv("SNOWFLAKE_USER"),
+		"password":  os.Getenv("SNOWFLAKE_PASSWORD"),
+		"database":  os.Getenv("SNOWFLAKE_DATABASE"),
+		"schema":    os.Getenv("SNOWFLAKE_SCHEMA"),
+		"warehouse": os.Getenv("SNOWFLAKE_WAREHOUSE"),
 	}
+	config.Performance.BatchSize = 200000
+	config.Performance.Workers = 16
 
 	ctx := context.Background()
 
@@ -364,17 +337,15 @@ func BenchmarkSnowflakeOptimizedThroughput(b *testing.B) {
 
 			batchSize := 10000
 			for j := 0; j < recordCount; j += batchSize {
-				batch := make([]*models.Record, batchSize)
+				batch := make([]*pool.Record, batchSize)
 				for k := 0; k < batchSize; k++ {
 					idx := j + k
-					batch[k] = &models.Record{
-						Data: map[string]interface{}{
-							"id":        idx,
-							"name":      fmt.Sprintf("Record_%d", idx),
-							"amount":    float64(idx) * 1.23,
-							"timestamp": time.Now(),
-						},
-					}
+					record := pool.GetRecord()
+					record.SetData("id", idx)
+					record.SetData("name", fmt.Sprintf("Record_%d", idx))
+					record.SetData("amount", float64(idx)*1.23)
+					record.SetData("timestamp", time.Now())
+					batch[k] = record
 				}
 				stream.Records <- batch
 			}

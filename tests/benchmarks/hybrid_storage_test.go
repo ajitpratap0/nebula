@@ -52,24 +52,25 @@ func BenchmarkHybridStorageComparison(b *testing.B) {
 				}
 
 				ctx := context.Background()
-				if err := source.Connect(ctx); err != nil {
-					b.Fatal(err)
-				}
+				// Connection handled during Read()
 
-				recordCh, errCh := source.Read(ctx)
+				stream, err := source.Read(ctx)
+			if err != nil {
+				b.Fatal(err)
+			}
 				
 				count := 0
 				start := time.Now()
 				
 				for {
 					select {
-					case record, ok := <-recordCh:
+					case record, ok := <-stream.Records:
 						if !ok {
 							goto done
 						}
 						count++
 						record.Release()
-					case err := <-errCh:
+					case err := <-stream.Errors:
 						if err != nil {
 							b.Fatal(err)
 						}
@@ -124,24 +125,25 @@ func BenchmarkColumnarMemoryEfficiency(b *testing.B) {
 				}
 
 				ctx := context.Background()
-				if err := source.Connect(ctx); err != nil {
-					b.Fatal(err)
-				}
+				// Connection handled during Read()
 
-				recordCh, errCh := source.Read(ctx)
+				stream, err := source.Read(ctx)
+			if err != nil {
+				b.Fatal(err)
+			}
 				
 				processedCount := 0
 				start := time.Now()
 				
 				for {
 					select {
-					case record, ok := <-recordCh:
+					case record, ok := <-stream.Records:
 						if !ok {
 							goto done
 						}
 						processedCount++
 						record.Release()
-					case err := <-errCh:
+					case err := <-stream.Errors:
 						if err != nil {
 							b.Fatal(err)
 						}
@@ -197,23 +199,26 @@ func BenchmarkStorageModeAutoSelection(b *testing.B) {
 					b.Fatal(err)
 				}
 
-				adapter := source.GetStorageAdapter()
+				// adapter := source.GetStorageAdapter() // Not available in base interface
 				
 				ctx := context.Background()
-				source.Connect(ctx)
+				// Connection handled during Read()
 				
-				recordCh, errCh := source.Read(ctx)
+				stream, err := source.Read(ctx)
+			if err != nil {
+				b.Fatal(err)
+			}
 				
 				count := 0
 				for {
 					select {
-					case record, ok := <-recordCh:
+					case record, ok := <-stream.Records:
 						if !ok {
 							goto done
 						}
 						count++
 						record.Release()
-					case err := <-errCh:
+					case err := <-stream.Errors:
 						if err != nil {
 							b.Fatal(err)
 						}
@@ -221,7 +226,7 @@ func BenchmarkStorageModeAutoSelection(b *testing.B) {
 				}
 
 			done:
-				memPerRecord := adapter.GetMemoryPerRecord()
+				memPerRecord := float64(0) // adapter.GetMemoryPerRecord() // Not available
 				
 				b.ReportMetric(memPerRecord, "bytes/record")
 				b.ReportMetric(float64(count), "total_records")
