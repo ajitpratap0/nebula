@@ -231,7 +231,7 @@ func createTestData(b *testing.B, filename string, records int) {
 
 	// Write header
 	headers := []string{"id", "name", "email", "age", "department", "salary", "created_at"}
-	writer.Write(headers)
+	_ = writer.Write(headers)
 
 	// Write records
 	departments := []string{"Engineering", "Sales", "Marketing", "HR", "Finance"}
@@ -245,6 +245,6 @@ func createTestData(b *testing.B, filename string, records int) {
 			fmt.Sprintf("%.2f", 50000+float64(i%50000)),
 			time.Now().Add(time.Duration(i) * time.Second).Format(time.RFC3339),
 		}
-		writer.Write(record)
+		_ = writer.Write(record)
 	}
 }

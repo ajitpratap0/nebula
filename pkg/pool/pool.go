@@ -24,7 +24,7 @@
 //	    func() *MyType { return &MyType{} },
 //	    func(obj *MyType) { obj.Reset() },
 //	)
-//	obj := myPool.Get()
+//	obj, _ := myPool.Get()
 //	defer myPool.Put(obj)
 package pool
 

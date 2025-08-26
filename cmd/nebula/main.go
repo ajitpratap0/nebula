@@ -121,8 +121,8 @@ Example:
 	// Required flags
 	runCmd.Flags().StringVarP(&sourceConfigFile, "source", "s", "", "Path to source configuration JSON file (required)")
 	runCmd.Flags().StringVarP(&destConfigFile, "destination", "d", "", "Path to destination configuration JSON file (required)")
-	runCmd.MarkFlagRequired("source")
-	runCmd.MarkFlagRequired("destination")
+	_ = runCmd.MarkFlagRequired("source")
+	_ = runCmd.MarkFlagRequired("destination")
 
 	// Optional system flags
 	runCmd.Flags().StringVar(&systemFlagsFile, "system-flags", "", "Path to system configuration JSON file (optional)")

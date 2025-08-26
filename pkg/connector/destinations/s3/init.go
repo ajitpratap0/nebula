@@ -8,12 +8,12 @@ import (
 
 func init() {
 	// Register the S3 destination connector
-	registry.RegisterDestination("s3", func(config *config.BaseConfig) (core.Destination, error) {
+	_ = registry.RegisterDestination("s3", func(config *config.BaseConfig) (core.Destination, error) {
 		return NewS3Destination("s3", config)
 	})
 
 	// Register connector metadata
-	registry.RegisterConnectorInfo(&registry.ConnectorInfo{
+	_ = registry.RegisterConnectorInfo(&registry.ConnectorInfo{
 		Name:        "s3",
 		Type:        "destination",
 		Description: "Amazon S3 destination connector with batching and compression support",

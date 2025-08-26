@@ -155,7 +155,7 @@ func (s *ColumnStore) AddColumn(name string, colType ColumnType) error {
 	// If we already have data, fill with nulls
 	if s.rowCount > 0 {
 		for i := 0; i < s.rowCount; i++ {
-			col.Append("")
+			_ = col.Append("")
 		}
 	}
 
@@ -201,7 +201,7 @@ func (s *ColumnStore) AppendRow(data map[string]interface{}) error {
 			}
 		} else {
 			// Append null/empty value
-			col.Append("")
+			_ = col.Append("")
 		}
 	}
 
@@ -247,9 +247,9 @@ func (s *ColumnStore) AppendBatch(rows []map[string]interface{}) error {
 	for _, row := range rows {
 		for name, col := range s.columns {
 			if value, exists := row[name]; exists {
-				col.Append(value)
+				_ = col.Append(value)
 			} else {
-				col.Append("")
+				_ = col.Append("")
 			}
 		}
 		s.rowCount++

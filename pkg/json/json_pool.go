@@ -236,7 +236,7 @@ func NewStreamingEncoder(w io.Writer, isArray bool) *StreamingEncoder {
 	}
 
 	if isArray {
-		w.Write([]byte{'['})
+		_, _ = w.Write([]byte{'['})
 	}
 
 	return se

@@ -6,10 +6,10 @@ import (
 
 func init() {
 	// Register JSON source factory
-	registry.RegisterSource("json", NewJSONSource)
+	_ = registry.RegisterSource("json", NewJSONSource)
 
 	// Register connector info
-	registry.RegisterConnectorInfo(&registry.ConnectorInfo{
+	_ = registry.RegisterConnectorInfo(&registry.ConnectorInfo{
 		Name:        "json",
 		Type:        "source",
 		Description: "JSON file source connector supporting array and line-delimited formats",

@@ -35,7 +35,19 @@ var typedRecordPool = &sync.Pool{
 
 // GetTypedRecord gets a typed record from the pool
 func GetTypedRecord() *TypedRecord {
-	tr := typedRecordPool.Get().(*TypedRecord)
+	obj := typedRecordPool.Get()
+	if obj == nil {
+		return &TypedRecord{
+			Record:       &Record{},
+			StringFields: make(map[string]string, 16),
+			IntFields:    make(map[string]int64, 8),
+			FloatFields:  make(map[string]float64, 8),
+			BoolFields:   make(map[string]bool, 4),
+			TimeFields:   make(map[string]time.Time, 4),
+			BytesFields:  make(map[string][]byte, 4),
+		}
+	}
+	tr := obj.(*TypedRecord)
 	// Initialize the base record
 	tr.Record = GetRecord()
 	return tr

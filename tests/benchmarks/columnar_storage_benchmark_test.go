@@ -292,7 +292,7 @@ func createTestDataForColumnar(b *testing.B, filename string, records int) {
 		"id", "name", "age", "city", "status", "score",
 		"created_at", "active", "category", "value",
 	}
-	writer.Write(headers)
+	_ = writer.Write(headers)
 
 	// Generate data with some repetition for dictionary encoding
 	cities := []string{"New York", "Los Angeles", "Chicago", "Houston", "Phoenix"}
@@ -312,7 +312,7 @@ func createTestDataForColumnar(b *testing.B, filename string, records int) {
 			categories[i%len(categories)],                                       // category (repetitive)
 			fmt.Sprintf("%d", i*10),                                             // value
 		}
-		writer.Write(record)
+		_ = writer.Write(record)
 	}
 
 	writer.Flush()
@@ -329,7 +329,7 @@ func createCategoricalTestData(b *testing.B, filename string, records, categorie
 
 	// Headers
 	headers := []string{"id", "category1", "category2", "category3", "value"}
-	writer.Write(headers)
+	_ = writer.Write(headers)
 
 	// Generate categorical values
 	var catValues []string
@@ -345,7 +345,7 @@ func createCategoricalTestData(b *testing.B, filename string, records, categorie
 			catValues[(i*3)%len(catValues)],
 			fmt.Sprintf("%d", i),
 		}
-		writer.Write(record)
+		_ = writer.Write(record)
 	}
 
 	writer.Flush()

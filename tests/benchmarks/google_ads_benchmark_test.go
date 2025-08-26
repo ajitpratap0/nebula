@@ -148,7 +148,7 @@ func (m *MockGoogleAdsServer) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		PageSize  int    `json:"page_size"`
 		PageToken string `json:"page_token"`
 	}
-	jsonpool.Unmarshal(body, &request)
+	_ = jsonpool.Unmarshal(body, &request)
 
 	// Extract customer ID from URL
 	customerID := "customer_0" // Simplified for benchmark
@@ -194,7 +194,7 @@ func (m *MockGoogleAdsServer) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	atomic.AddInt64(&m.bytesServed, int64(len(respBytes)))
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(respBytes)
+	_, _ = w.Write(respBytes)
 }
 
 // BenchmarkGoogleAdsStreamingRead benchmarks streaming read performance

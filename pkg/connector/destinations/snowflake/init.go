@@ -8,12 +8,12 @@ import (
 
 func init() {
 	// Register Snowflake optimized destination connector in the global registry
-	registry.RegisterDestination("snowflake_optimized", func(config *config.BaseConfig) (core.Destination, error) {
+	_ = registry.RegisterDestination("snowflake_optimized", func(config *config.BaseConfig) (core.Destination, error) {
 		return NewSnowflakeOptimizedDestination("snowflake_optimized", config)
 	})
 
 	// Also register as "snowflake" for backwards compatibility
-	registry.RegisterDestination("snowflake", func(config *config.BaseConfig) (core.Destination, error) {
+	_ = registry.RegisterDestination("snowflake", func(config *config.BaseConfig) (core.Destination, error) {
 		return NewSnowflakeOptimizedDestination("snowflake", config)
 	})
 }

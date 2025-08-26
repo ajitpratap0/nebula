@@ -57,7 +57,7 @@ func (d *DirectCSVToColumnar) ProcessCSV(reader *csv.Reader) error {
 			if i < len(d.headers) && i < len(d.store.columns) {
 				col, exists := d.store.columns[d.headers[i]]
 				if exists && col != nil {
-					col.Append(value)
+					_ = col.Append(value)
 				}
 			}
 		}
@@ -161,10 +161,10 @@ func (d *DirectCSVToColumnar) convertColumn(strCol *StringColumn, newType Column
 		for i := 0; i < strCol.Len(); i++ {
 			val := strCol.Get(i).(string)
 			if val == "" {
-				intCol.Append(int64(0))
+				_ = 				intCol.Append(int64(0))
 			} else {
 				intVal, _ := strconv.ParseInt(val, 10, 64)
-				intCol.Append(intVal)
+				_ = 				intCol.Append(intVal)
 			}
 		}
 		return intCol
@@ -174,10 +174,10 @@ func (d *DirectCSVToColumnar) convertColumn(strCol *StringColumn, newType Column
 		for i := 0; i < strCol.Len(); i++ {
 			val := strCol.Get(i).(string)
 			if val == "" {
-				floatCol.Append(0.0)
+				_ = 				floatCol.Append(0.0)
 			} else {
 				floatVal, _ := strconv.ParseFloat(val, 64)
-				floatCol.Append(floatVal)
+				_ = 				floatCol.Append(floatVal)
 			}
 		}
 		return floatCol
@@ -187,10 +187,10 @@ func (d *DirectCSVToColumnar) convertColumn(strCol *StringColumn, newType Column
 		for i := 0; i < strCol.Len(); i++ {
 			val := strCol.Get(i).(string)
 			if val == "" {
-				boolCol.Append(false)
+				_ = 				boolCol.Append(false)
 			} else {
 				boolVal := val == "true" || val == "1" || val == "yes"
-				boolCol.Append(boolVal)
+				_ = 				boolCol.Append(boolVal)
 			}
 		}
 		return boolCol
@@ -267,7 +267,7 @@ func (s *StreamingDirectCSVToColumnar) Flush() error {
 		for i, value := range row {
 			if i < len(s.headers) {
 				col := s.store.columns[s.headers[i]]
-				col.Append(value)
+				_ = col.Append(value)
 			}
 		}
 		s.store.rowCount++

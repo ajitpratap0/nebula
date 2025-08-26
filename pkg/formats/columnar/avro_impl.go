@@ -290,7 +290,7 @@ func nebulaToAvroType(fieldType core.FieldType) string {
 func avroToNebulaSchema(avroSchema string) *core.Schema {
 	// Parse Avro schema JSON
 	var schemaMap map[string]interface{}
-	jsonpool.Unmarshal([]byte(avroSchema), &schemaMap)
+	_ = jsonpool.Unmarshal([]byte(avroSchema), &schemaMap)
 
 	fields := make([]core.Field, 0)
 

@@ -6,10 +6,10 @@ import (
 
 func init() {
 	// Register the PostgreSQL source connector
-	registry.RegisterSource("postgresql", NewPostgreSQLSource)
+	_ = registry.RegisterSource("postgresql", NewPostgreSQLSource)
 
 	// Register connector metadata
-	registry.RegisterConnectorInfo(&registry.ConnectorInfo{
+	_ = registry.RegisterConnectorInfo(&registry.ConnectorInfo{
 		Name:        "postgresql",
 		Type:        "source",
 		Description: "PostgreSQL source connector with connection pooling",

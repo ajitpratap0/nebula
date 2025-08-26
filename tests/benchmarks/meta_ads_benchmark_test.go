@@ -90,7 +90,7 @@ func (m *MockMetaAdsAPI) handleValidation(w http.ResponseWriter, _ *http.Request
 		"id":   "123456789",
 		"name": "Test User",
 	})
-	w.Write(data)
+	_, _ = w.Write(data)
 }
 
 func (m *MockMetaAdsAPI) handleCreateAsyncJob(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +112,7 @@ func (m *MockMetaAdsAPI) handleCreateAsyncJob(w http.ResponseWriter, r *http.Req
 	data, _ := jsonpool.Marshal(map[string]interface{}{
 		"report_run_id": jobID,
 	})
-	w.Write(data)
+	_, _ = w.Write(data)
 }
 
 func (m *MockMetaAdsAPI) processAsyncJob(jobID string) {
@@ -157,7 +157,7 @@ func (m *MockMetaAdsAPI) handleJobStatus(w http.ResponseWriter, r *http.Request,
 	}
 
 	data, _ := jsonpool.Marshal(response)
-	w.Write(data)
+	_, _ = w.Write(data)
 }
 
 func (m *MockMetaAdsAPI) handleSyncInsights(w http.ResponseWriter, _ *http.Request) {
@@ -191,7 +191,7 @@ func (m *MockMetaAdsAPI) handleSyncInsights(w http.ResponseWriter, _ *http.Reque
 	}
 
 	data, _ := jsonpool.Marshal(response)
-	w.Write(data)
+	_, _ = w.Write(data)
 }
 
 func (m *MockMetaAdsAPI) handleCampaigns(w http.ResponseWriter, _ *http.Request) {
@@ -199,7 +199,7 @@ func (m *MockMetaAdsAPI) handleCampaigns(w http.ResponseWriter, _ *http.Request)
 	data, _ := jsonpool.Marshal(map[string]interface{}{
 		"data": campaigns,
 	})
-	w.Write(data)
+	_, _ = w.Write(data)
 }
 
 func (m *MockMetaAdsAPI) handleAdsets(w http.ResponseWriter, _ *http.Request) {
@@ -207,7 +207,7 @@ func (m *MockMetaAdsAPI) handleAdsets(w http.ResponseWriter, _ *http.Request) {
 	data, _ := jsonpool.Marshal(map[string]interface{}{
 		"data": adsets,
 	})
-	w.Write(data)
+	_, _ = w.Write(data)
 }
 
 func (m *MockMetaAdsAPI) handleAds(w http.ResponseWriter, _ *http.Request) {
@@ -215,7 +215,7 @@ func (m *MockMetaAdsAPI) handleAds(w http.ResponseWriter, _ *http.Request) {
 	data, _ := jsonpool.Marshal(map[string]interface{}{
 		"data": ads,
 	})
-	w.Write(data)
+	_, _ = w.Write(data)
 }
 
 func (m *MockMetaAdsAPI) Close() {

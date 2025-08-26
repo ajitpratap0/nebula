@@ -6,13 +6,13 @@ import (
 
 func init() {
 	// Register the V2 CSV destination connector as primary
-	registry.RegisterDestination("csv", NewCSVDestination)
+	_ = registry.RegisterDestination("csv", NewCSVDestination)
 
 	// Register the simple CSV destination connector as legacy (deprecated)
-	registry.RegisterDestination("csv-legacy", NewSimpleCSVDestination)
+	_ = registry.RegisterDestination("csv-legacy", NewSimpleCSVDestination)
 
 	// Register primary connector info (V2 promoted)
-	registry.RegisterConnectorInfo(&registry.ConnectorInfo{
+	_ = registry.RegisterConnectorInfo(&registry.ConnectorInfo{
 		Name:        "csv",
 		Type:        "destination",
 		Description: "Production-ready CSV file destination connector with BaseConnector features",
@@ -56,7 +56,7 @@ func init() {
 	})
 
 	// Register legacy connector info (deprecated)
-	registry.RegisterConnectorInfo(&registry.ConnectorInfo{
+	_ = registry.RegisterConnectorInfo(&registry.ConnectorInfo{
 		Name:        "csv-legacy",
 		Type:        "destination",
 		Description: "DEPRECATED: CSV file destination connector (use 'csv' instead)",

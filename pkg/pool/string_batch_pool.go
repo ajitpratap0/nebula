@@ -23,7 +23,11 @@ var (
 
 // GetStringBatch gets a [][]string from the pool
 func GetStringBatch(capacity int) [][]string {
-	batch := StringBatchPool.Get().([][]string)
+	obj := StringBatchPool.Get()
+	if obj == nil {
+		return make([][]string, 0, 5000)
+	}
+	batch := obj.([][]string)
 	if cap(batch) < capacity {
 		batch = make([][]string, 0, capacity)
 	}
@@ -45,7 +49,11 @@ func PutStringBatch(batch [][]string) {
 
 // GetCSVRow gets a []string from the pool for CSV row operations
 func GetCSVRow(capacity int) []string {
-	slice := csvRowPool.Get().([]string)
+	obj := csvRowPool.Get()
+	if obj == nil {
+		return make([]string, 0, 20)
+	}
+	slice := obj.([]string)
 	if cap(slice) < capacity {
 		return make([]string, 0, capacity)
 	}

@@ -8,7 +8,7 @@ import (
 
 func init() {
 	// Register Meta Ads source connector in the global registry
-	registry.RegisterSource("meta_ads", func(config *config.BaseConfig) (core.Source, error) {
+	_ = registry.RegisterSource("meta_ads", func(config *config.BaseConfig) (core.Source, error) {
 		return NewMetaAdsSource("meta_ads", config)
 	})
 }

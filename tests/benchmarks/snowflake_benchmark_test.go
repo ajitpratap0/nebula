@@ -291,7 +291,7 @@ func BenchmarkSnowflakeCompression(b *testing.B) {
 					start := time.Now()
 					var compBuf bytes.Buffer
 					gw, _ := gzip.NewWriterLevel(&compBuf, comp.level)
-					io.Copy(gw, &csvBuf)
+					_, _ = io.Copy(gw, &csvBuf)
 					gw.Close()
 					compressionTime = time.Since(start)
 					compressedSize = compBuf.Len()
@@ -433,7 +433,7 @@ func generateBatchData(recordCount int, compressionType string) []byte {
 	if compressionType == "GZIP" {
 		var compBuf bytes.Buffer
 		gw := gzip.NewWriter(&compBuf)
-		io.Copy(gw, &buf)
+		_, _ = io.Copy(gw, &buf)
 		gw.Close()
 		return compBuf.Bytes()
 	}

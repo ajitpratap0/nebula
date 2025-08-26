@@ -361,7 +361,7 @@ func (s *MetaAdsSource) validateAccessToken(ctx context.Context) error {
 		errorBuffer := stringpool.GetBuilder(stringpool.Small)
 		defer stringpool.PutBuilder(errorBuffer, stringpool.Small)
 
-		io.Copy(errorBuffer, resp.Body)
+		_, _ = io.Copy(errorBuffer, resp.Body)
 		return errors.New(errors.ErrorTypeAuthentication,
 			stringpool.Sprintf("access token validation failed: %d %s", resp.StatusCode, errorBuffer.String()))
 	}
@@ -716,7 +716,7 @@ func (s *MetaAdsSource) makeAPIRequest(ctx context.Context, accountID, cursor st
 		errorBuffer := stringpool.GetBuilder(stringpool.Small)
 		defer stringpool.PutBuilder(errorBuffer, stringpool.Small)
 
-		io.Copy(errorBuffer, resp.Body)
+		_, _ = io.Copy(errorBuffer, resp.Body)
 		return nil, errors.New(errors.ErrorTypeConnection,
 			stringpool.Sprintf("API returned status %d: %s", resp.StatusCode, errorBuffer.String()))
 	}

@@ -8,7 +8,7 @@ import (
 
 func init() {
 	// Register Google Ads source connector in the global registry
-	registry.RegisterSource("google_ads", func(config *config.BaseConfig) (core.Source, error) {
+	_ = registry.RegisterSource("google_ads", func(config *config.BaseConfig) (core.Source, error) {
 		return NewGoogleAdsSource("google_ads", config)
 	})
 }

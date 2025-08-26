@@ -368,7 +368,7 @@ func createTestCSV(tb testing.TB, recordCount, columnCount int) string {
 	for i := 0; i < columnCount; i++ {
 		headers[i] = fmt.Sprintf("col_%d", i)
 	}
-	writer.Write(headers)
+	_ = writer.Write(headers)
 
 	// Write records
 	for i := 0; i < recordCount; i++ {
@@ -376,7 +376,7 @@ func createTestCSV(tb testing.TB, recordCount, columnCount int) string {
 		for j := 0; j < columnCount; j++ {
 			record[j] = fmt.Sprintf("value_%d_%d", i, j)
 		}
-		writer.Write(record)
+		_ = writer.Write(record)
 	}
 
 	return tempFile
