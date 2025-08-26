@@ -1,4 +1,4 @@
-package postgresql_cdc
+package postgresqlcdc
 
 import (
 	"github.com/ajitpratap0/nebula/pkg/config"

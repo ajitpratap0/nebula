@@ -1,4 +1,4 @@
-package meta_ads
+package metaads
 
 import (
 	"github.com/ajitpratap0/nebula/pkg/config"

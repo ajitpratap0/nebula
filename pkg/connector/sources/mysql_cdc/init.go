@@ -1,4 +1,4 @@
-package mysql_cdc
+package mysqlcdc
 
 import (
 	"github.com/ajitpratap0/nebula/pkg/config"

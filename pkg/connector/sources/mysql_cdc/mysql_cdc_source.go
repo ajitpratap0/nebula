@@ -1,4 +1,4 @@
-package mysql_cdc
+package mysqlcdc
 
 import (
 	"context"
@@ -103,11 +103,11 @@ func (s *MySQLCDCSource) Initialize(ctx context.Context, config *config.BaseConf
 	}
 
 	// Extract MySQL-specific options
-	if serverIdStr, ok := config.Security.Credentials["server_id"]; ok && serverIdStr != "" {
+	if serverIDStr, ok := config.Security.Credentials["server_id"]; ok && serverIDStr != "" {
 		if s.cdcConfig.Options == nil {
 			s.cdcConfig.Options = pool.GetMap()
 		}
-		s.cdcConfig.Options["server_id"] = serverIdStr
+		s.cdcConfig.Options["server_id"] = serverIDStr
 	}
 
 	// Create CDC connector

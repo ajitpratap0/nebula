@@ -110,8 +110,8 @@ func (c *MySQLConnector) Connect(config CDCConfig) error {
 	if opts, ok := config.Options["mysql"]; ok {
 		if optsMap, ok := opts.(map[string]interface{}); ok {
 			if val, ok := optsMap["server_id"]; ok {
-				if serverId, ok := val.(float64); ok {
-					mysqlConfig.ServerID = uint32(serverId)
+				if serverID, ok := val.(float64); ok {
+					mysqlConfig.ServerID = uint32(serverID)
 				}
 			}
 			if val, ok := optsMap["start_position"]; ok {

@@ -54,10 +54,7 @@ func DefaultSystemFlags() *SystemFlags {
 
 func main() {
 	// Load .env file if it exists
-	if err := godotenv.Load(); err != nil {
-		// Silently ignore if .env file doesn't exist
-		// This allows the app to work with or without .env file
-	}
+	_ = godotenv.Load() // Ignore error if .env doesn't exist
 
 	root := &cobra.Command{
 		Use:   "nebula",

@@ -1,4 +1,4 @@
-package mongodb_cdc
+package mongodbcdc
 
 import (
 	"context"

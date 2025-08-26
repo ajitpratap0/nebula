@@ -1,4 +1,4 @@
-package google_ads
+package googleads
 
 import (
 	"github.com/ajitpratap0/nebula/pkg/config"

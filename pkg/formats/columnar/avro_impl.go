@@ -251,14 +251,14 @@ func nebulaToAvroSchema(schema *core.Schema) string {
 		fields = append(fields, avroField)
 	}
 
-	schema_map := map[string]interface{}{
+	schemaMap := map[string]interface{}{
 		"type":   "record",
 		"name":   schema.Name,
 		"fields": fields,
 	}
 
 	// Convert to JSON string
-	schemaBytes, _ := jsonpool.Marshal(schema_map)
+	schemaBytes, _ := jsonpool.Marshal(schemaMap)
 	return string(schemaBytes)
 }
 

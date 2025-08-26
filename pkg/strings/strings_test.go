@@ -1,7 +1,6 @@
 package strings
 
 import (
-	"reflect"
 	"strings"
 	"testing"
 	"unsafe"
@@ -263,9 +262,7 @@ func TestIntern(t *testing.T) {
 	}
 
 	// Check that they are actually the same underlying string
-	h1 := (*reflect.StringHeader)(unsafe.Pointer(&s1))
-	h2 := (*reflect.StringHeader)(unsafe.Pointer(&s2))
-	if h1.Data != h2.Data {
+	if unsafe.StringData(s1) != unsafe.StringData(s2) {
 		t.Error("interned strings should share memory")
 	}
 

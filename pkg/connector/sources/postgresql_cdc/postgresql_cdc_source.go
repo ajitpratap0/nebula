@@ -68,7 +68,7 @@
 //	        record.Release()
 //	    }
 //	}
-package postgresql_cdc
+package postgresqlcdc
 
 import (
 	"context"

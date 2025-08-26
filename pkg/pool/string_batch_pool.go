@@ -40,7 +40,7 @@ func PutStringBatch(batch [][]string) {
 		batch[i] = nil
 	}
 	batch = batch[:0]
-	StringBatchPool.Put(batch)
+	StringBatchPool.Put(&batch)
 }
 
 // GetCSVRow gets a []string from the pool for CSV row operations
@@ -62,5 +62,5 @@ func PutCSVRow(slice []string) {
 		slice[i] = ""
 	}
 	slice = slice[:0]
-	csvRowPool.Put(slice)
+	csvRowPool.Put(&slice)
 }

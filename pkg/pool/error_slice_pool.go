@@ -53,11 +53,11 @@ func PutErrorSlice(errs []error) {
 	// Return to appropriate pool based on capacity
 	cap := cap(errs)
 	if cap <= 10 {
-		globalErrorSlicePool.small.Put(errs)
+		globalErrorSlicePool.small.Put(&errs)
 	} else if cap <= 100 {
-		globalErrorSlicePool.medium.Put(errs)
+		globalErrorSlicePool.medium.Put(&errs)
 	} else if cap <= 1000 {
-		globalErrorSlicePool.large.Put(errs)
+		globalErrorSlicePool.large.Put(&errs)
 	}
 	// Don't pool very large slices to avoid memory bloat
 }

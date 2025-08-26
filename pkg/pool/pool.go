@@ -232,7 +232,7 @@ var (
 			for i := range s {
 				s[i] = ""
 			}
-			s = s[:0]
+			// Reset slice length (assignment not needed)
 		},
 	)
 
@@ -243,7 +243,7 @@ var (
 			return make([]byte, 0, 1024)
 		},
 		func(b []byte) {
-			b = b[:0]
+			// Reset slice length (assignment not needed)
 		},
 	)
 
@@ -254,7 +254,7 @@ var (
 			return make([]byte, 0, 64)
 		},
 		func(b []byte) {
-			b = b[:0]
+			// Reset slice length (assignment not needed)
 		},
 	)
 
@@ -269,7 +269,7 @@ var (
 			for i := range s {
 				s[i] = nil
 			}
-			s = s[:0]
+			// Reset slice length (assignment not needed)
 		},
 	)
 )
@@ -488,7 +488,7 @@ func NewBufferPool() *BufferPool {
 				return make([]byte, size)
 			},
 			func(b []byte) {
-				b = b[:0]
+				// Reset slice length (assignment not needed)
 			},
 		)
 	}

@@ -145,7 +145,7 @@ func BenchmarkColumnarDictionaryEncoding(b *testing.B) {
 				if col, ok := store.GetColumn(colName); ok {
 					if strCol, ok := col.(*columnar.StringColumn); ok {
 						// Access internal state (would need to expose this properly)
-						dictStats = append(dictStats, fmt.Sprintf("%s: dict=%v", colName, strCol))
+						_ = fmt.Sprintf("%s: dict=%v", colName, strCol) // Note: dictStats not used later
 					}
 				}
 			}

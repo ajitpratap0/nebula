@@ -141,13 +141,9 @@ func BenchmarkBackpressureController(b *testing.B) {
 		controller.UpdateBufferMetrics(utilization, 1000, 10000)
 
 		// Apply backpressure
-		allowed, err := controller.Apply(ctx, record)
+		_, err := controller.Apply(ctx, record)
 		if err != nil {
 			b.Fatalf("Backpressure error: %v", err)
-		}
-
-		if !allowed {
-			// Record was dropped/throttled
 		}
 	}
 }

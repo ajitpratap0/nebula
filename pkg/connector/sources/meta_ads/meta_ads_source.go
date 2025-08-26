@@ -1,4 +1,4 @@
-package meta_ads
+package metaads
 
 import (
 	"context"

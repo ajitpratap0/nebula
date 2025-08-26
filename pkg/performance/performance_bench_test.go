@@ -333,6 +333,7 @@ func BenchmarkMemoryAllocationPatterns(b *testing.B) {
 					for j := 0; j < size; j++ {
 						s = append(s, j)
 					}
+					_ = s // Use the slice to avoid linter warning
 				}
 			})
 
