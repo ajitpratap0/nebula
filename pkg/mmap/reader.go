@@ -205,7 +205,7 @@ func (r *Reader) prefetchRange(start, end int64) {
 	}
 
 	// Advise kernel to prefetch
-	_ = madvise(r.data[startPage:endPage], MADV_WILLNEED)
+	madvise(r.data[startPage:endPage], MADV_WILLNEED) //nolint:errcheck
 }
 
 // Close unmaps the file and closes it

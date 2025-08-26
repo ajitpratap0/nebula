@@ -24,7 +24,12 @@ func NewChannelPool[T any](size int) *ChannelPool[T] {
 
 // Get retrieves a channel from the pool
 func (p *ChannelPool[T]) Get() chan T {
-	return p.pool.Get().(chan T)
+	ch, ok := p.pool.Get().(chan T)
+	if !ok {
+		// Create new channel if type assertion fails
+		return make(chan T, p.size)
+	}
+	return ch
 }
 
 // Put returns a channel to the pool after draining it

@@ -88,7 +88,7 @@ func New[T any](new func() T, reset func(T)) *Pool[T] {
 // longer needed to enable reuse and reduce allocations.
 func (p *Pool[T]) Get() T {
 	atomic.AddInt64(&p.stats.inUse, 1)
-	obj := p.pool.Get().(T)
+	obj, _ := p.pool.Get().(T) //nolint:errcheck
 	atomic.AddInt64(&p.stats.hits, 1)
 	return obj
 }

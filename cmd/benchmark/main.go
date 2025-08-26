@@ -101,8 +101,8 @@ func runGoogleSheetsBenchmarks(timestamp string) {
 			continue
 		}
 
-		_, _ = f.WriteString(fmt.Sprintf("\n=== %s ===\n", benchmark))
-		_, _ = f.Write(output)
+		f.WriteString(fmt.Sprintf("\n=== %s ===\n", benchmark)) //nolint:errcheck
+		f.Write(output) //nolint:errcheck
 		f.Close()
 
 		// Print summary

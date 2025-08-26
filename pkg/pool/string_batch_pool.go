@@ -27,7 +27,10 @@ func GetStringBatch(capacity int) [][]string {
 	if obj == nil {
 		return make([][]string, 0, 5000)
 	}
-	batch := obj.([][]string)
+	batch, ok := obj.([][]string)
+	if !ok {
+		return make([][]string, 0, 5000)
+	}
 	if cap(batch) < capacity {
 		batch = make([][]string, 0, capacity)
 	}
@@ -53,7 +56,10 @@ func GetCSVRow(capacity int) []string {
 	if obj == nil {
 		return make([]string, 0, 20)
 	}
-	slice := obj.([]string)
+	slice, ok := obj.([]string)
+	if !ok {
+		return make([]string, 0, 20)
+	}
 	if cap(slice) < capacity {
 		return make([]string, 0, capacity)
 	}

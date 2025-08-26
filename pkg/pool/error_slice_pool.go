@@ -33,11 +33,20 @@ var globalErrorSlicePool = &ErrorSlicePool{
 // GetErrorSlice gets an error slice from the pool based on expected size
 func GetErrorSlice(expectedSize int) []error {
 	if expectedSize <= 10 {
-		return globalErrorSlicePool.small.Get().([]error)
+		if v, ok := globalErrorSlicePool.small.Get().([]error); ok {
+			return v
+		}
+		return make([]error, 0, 10)
 	} else if expectedSize <= 100 {
-		return globalErrorSlicePool.medium.Get().([]error)
+		if v, ok := globalErrorSlicePool.medium.Get().([]error); ok {
+			return v
+		}
+		return make([]error, 0, 100)
 	} else {
-		return globalErrorSlicePool.large.Get().([]error)
+		if v, ok := globalErrorSlicePool.large.Get().([]error); ok {
+			return v
+		}
+		return make([]error, 0, 1000)
 	}
 }
 

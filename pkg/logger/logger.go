@@ -184,7 +184,7 @@ func Get() *zap.Logger {
 		}
 		if err := Init(cfg); err != nil {
 			// Fallback to basic logger
-			logger, _ := zap.NewProduction()
+			logger, _ := zap.NewProduction() //nolint:errcheck
 			globalLogger = logger
 		}
 	}
