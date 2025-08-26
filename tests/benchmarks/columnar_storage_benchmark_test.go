@@ -140,7 +140,6 @@ func BenchmarkColumnarDictionaryEncoding(b *testing.B) {
 			actualAlloc := m2.TotalAlloc - m1.TotalAlloc
 
 			// Get dictionary stats for string columns
-			var dictStats []string
 			for _, colName := range store.ColumnNames() {
 				if col, ok := store.GetColumn(colName); ok {
 					if strCol, ok := col.(*columnar.StringColumn); ok {
