@@ -10,9 +10,9 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
 )
@@ -271,7 +271,6 @@ func (s *MySQLCDCSource) ReadBatch(ctx context.Context, batchSize int) (*core.Ba
 		}()
 
 		batch := pool.GetBatchSlice(batchSize)
-
 
 		defer pool.PutBatchSlice(batch)
 		timeout := time.NewTimer(5 * time.Second)

@@ -27,20 +27,20 @@ func createGoogleAdsConfig(name string, customerIDs []string, pageSize, maxConcu
 		"refresh_token":   "test_refresh",
 		"query":           "SELECT * FROM campaign",
 	}
-	
+
 	// Store customer IDs as JSON array
 	if len(customerIDs) > 0 {
 		customerIDsJSON, _ := jsonpool.Marshal(customerIDs)
 		cfg.Security.Credentials["customer_ids"] = string(customerIDsJSON)
 	}
-	
+
 	cfg.Performance.BatchSize = pageSize
 	cfg.Performance.MaxConcurrency = maxConcurrency
-	
+
 	if streamingEnabled {
 		cfg.Security.Credentials["streaming_enabled"] = "true"
 	}
-	
+
 	return cfg
 }
 

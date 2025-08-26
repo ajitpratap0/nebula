@@ -334,14 +334,14 @@ func (sp *StreamingPipeline) processRecord(ctx context.Context, record *Streamin
 	result := models.NewRecord(record.Metadata.Source, record.Data)
 	result.ID = record.ID
 	result.SetTimestamp(record.GetTimestamp())
-	
+
 	// Copy custom metadata if it exists
 	if record.Metadata.Custom != nil {
 		for k, v := range record.Metadata.Custom {
 			result.SetMetadata(k, v)
 		}
 	}
-	
+
 	return result
 }
 

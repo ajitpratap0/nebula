@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	gojson "github.com/goccy/go-json"
 	"github.com/ajitpratap0/nebula/pkg/pool"
+	gojson "github.com/goccy/go-json"
 )
 
 // Test data structures
@@ -60,7 +60,7 @@ func generatePoolRecords(n int) []*pool.Record {
 func BenchmarkStdMarshal(b *testing.B) {
 	records := generateTestRecords(100)
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		for _, record := range records {
 			_, err := json.Marshal(record)
@@ -69,7 +69,7 @@ func BenchmarkStdMarshal(b *testing.B) {
 			}
 		}
 	}
-	
+
 	b.ReportMetric(float64(len(records)*b.N), "records/op")
 }
 
@@ -77,7 +77,7 @@ func BenchmarkStdMarshal(b *testing.B) {
 func BenchmarkGoccyMarshal(b *testing.B) {
 	records := generateTestRecords(100)
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		for _, record := range records {
 			_, err := gojson.Marshal(record)
@@ -86,7 +86,7 @@ func BenchmarkGoccyMarshal(b *testing.B) {
 			}
 		}
 	}
-	
+
 	b.ReportMetric(float64(len(records)*b.N), "records/op")
 }
 
@@ -94,7 +94,7 @@ func BenchmarkGoccyMarshal(b *testing.B) {
 func BenchmarkOptimizedMarshal(b *testing.B) {
 	records := generateTestRecords(100)
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		for _, record := range records {
 			_, err := Marshal(record)
@@ -103,7 +103,7 @@ func BenchmarkOptimizedMarshal(b *testing.B) {
 			}
 		}
 	}
-	
+
 	b.ReportMetric(float64(len(records)*b.N), "records/op")
 }
 
@@ -111,18 +111,18 @@ func BenchmarkOptimizedMarshal(b *testing.B) {
 func BenchmarkStdEncoder(b *testing.B) {
 	records := generateTestRecords(100)
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		var buf bytes.Buffer
 		enc := json.NewEncoder(&buf)
-		
+
 		for _, record := range records {
 			if err := enc.Encode(record); err != nil {
 				b.Fatal(err)
 			}
 		}
 	}
-	
+
 	b.ReportMetric(float64(len(records)*b.N), "records/op")
 }
 
@@ -130,21 +130,21 @@ func BenchmarkStdEncoder(b *testing.B) {
 func BenchmarkPooledEncoder(b *testing.B) {
 	records := generateTestRecords(100)
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		buf := GetBuffer()
 		enc := GetEncoder(buf)
-		
+
 		for _, record := range records {
 			if err := enc.Encode(record); err != nil {
 				b.Fatal(err)
 			}
 		}
-		
+
 		PutEncoder(enc)
 		PutBuffer(buf)
 	}
-	
+
 	b.ReportMetric(float64(len(records)*b.N), "records/op")
 }
 
@@ -152,20 +152,20 @@ func BenchmarkPooledEncoder(b *testing.B) {
 func BenchmarkStreamingEncoder(b *testing.B) {
 	records := generateTestRecords(100)
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		var buf bytes.Buffer
 		enc := NewStreamingEncoder(&buf, false)
-		
+
 		for _, record := range records {
 			if err := enc.Encode(record); err != nil {
 				b.Fatal(err)
 			}
 		}
-		
+
 		enc.Close()
 	}
-	
+
 	b.ReportMetric(float64(len(records)*b.N), "records/op")
 }
 
@@ -177,16 +177,16 @@ func BenchmarkMarshalRecordsArray(b *testing.B) {
 			r.Release()
 		}
 	}()
-	
+
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		_, err := MarshalRecordsArray(records)
 		if err != nil {
 			b.Fatal(err)
 		}
 	}
-	
+
 	b.ReportMetric(float64(len(records)*b.N), "records/op")
 }
 
@@ -198,28 +198,28 @@ func BenchmarkMarshalRecordsLines(b *testing.B) {
 			r.Release()
 		}
 	}()
-	
+
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		_, err := MarshalRecordsLines(records)
 		if err != nil {
 			b.Fatal(err)
 		}
 	}
-	
+
 	b.ReportMetric(float64(len(records)*b.N), "records/op")
 }
 
 // Benchmark with different record counts
 func BenchmarkMarshalScaling(b *testing.B) {
 	recordCounts := []int{10, 100, 1000, 10000}
-	
+
 	for _, count := range recordCounts {
 		b.Run(b.Name()+"/StdLib", func(b *testing.B) {
 			records := generateTestRecords(count)
 			b.ResetTimer()
-			
+
 			for i := 0; i < b.N; i++ {
 				var data []map[string]interface{}
 				for _, r := range records {
@@ -233,14 +233,14 @@ func BenchmarkMarshalScaling(b *testing.B) {
 					}
 					data = append(data, m)
 				}
-				
+
 				_, err := json.Marshal(data)
 				if err != nil {
 					b.Fatal(err)
 				}
 			}
 		})
-		
+
 		b.Run(b.Name()+"/Optimized", func(b *testing.B) {
 			records := generatePoolRecords(count)
 			defer func() {
@@ -248,9 +248,9 @@ func BenchmarkMarshalScaling(b *testing.B) {
 					r.Release()
 				}
 			}()
-			
+
 			b.ResetTimer()
-			
+
 			for i := 0; i < b.N; i++ {
 				_, err := MarshalRecordsArray(records)
 				if err != nil {
@@ -274,18 +274,18 @@ func TestMarshalCorrectness(t *testing.T) {
 		},
 		Timestamp: 1234567890,
 	}
-	
+
 	// Compare standard and optimized output
 	stdData, err := json.Marshal(record)
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	optData, err := Marshal(record)
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	// The output should be functionally equivalent
 	var stdResult, optResult map[string]interface{}
 	if err := json.Unmarshal(stdData, &stdResult); err != nil {
@@ -294,7 +294,7 @@ func TestMarshalCorrectness(t *testing.T) {
 	if err := json.Unmarshal(optData, &optResult); err != nil {
 		t.Fatal(err)
 	}
-	
+
 	// Compare the parsed results
 	if stdResult["id"] != optResult["id"] {
 		t.Errorf("ID mismatch: %v != %v", stdResult["id"], optResult["id"])

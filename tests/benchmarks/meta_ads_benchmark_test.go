@@ -85,7 +85,7 @@ func NewMockMetaAdsAPI(tier string) *MockMetaAdsAPI {
 	return mock
 }
 
-func (m *MockMetaAdsAPI) handleValidation(w http.ResponseWriter, r *http.Request) {
+func (m *MockMetaAdsAPI) handleValidation(w http.ResponseWriter, _ *http.Request) {
 	data, _ := jsonpool.Marshal(map[string]interface{}{
 		"id":   "123456789",
 		"name": "Test User",
@@ -160,7 +160,7 @@ func (m *MockMetaAdsAPI) handleJobStatus(w http.ResponseWriter, r *http.Request,
 	w.Write(data)
 }
 
-func (m *MockMetaAdsAPI) handleSyncInsights(w http.ResponseWriter, r *http.Request) {
+func (m *MockMetaAdsAPI) handleSyncInsights(w http.ResponseWriter, _ *http.Request) {
 	// Simulate rate limiting based on tier
 	latency := map[string]time.Duration{
 		"development": 100 * time.Millisecond,
@@ -194,7 +194,7 @@ func (m *MockMetaAdsAPI) handleSyncInsights(w http.ResponseWriter, r *http.Reque
 	w.Write(data)
 }
 
-func (m *MockMetaAdsAPI) handleCampaigns(w http.ResponseWriter, r *http.Request) {
+func (m *MockMetaAdsAPI) handleCampaigns(w http.ResponseWriter, _ *http.Request) {
 	campaigns := generateMockCampaigns(100)
 	data, _ := jsonpool.Marshal(map[string]interface{}{
 		"data": campaigns,
@@ -202,7 +202,7 @@ func (m *MockMetaAdsAPI) handleCampaigns(w http.ResponseWriter, r *http.Request)
 	w.Write(data)
 }
 
-func (m *MockMetaAdsAPI) handleAdsets(w http.ResponseWriter, r *http.Request) {
+func (m *MockMetaAdsAPI) handleAdsets(w http.ResponseWriter, _ *http.Request) {
 	adsets := generateMockAdsets(500)
 	data, _ := jsonpool.Marshal(map[string]interface{}{
 		"data": adsets,
@@ -210,7 +210,7 @@ func (m *MockMetaAdsAPI) handleAdsets(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func (m *MockMetaAdsAPI) handleAds(w http.ResponseWriter, r *http.Request) {
+func (m *MockMetaAdsAPI) handleAds(w http.ResponseWriter, _ *http.Request) {
 	ads := generateMockAds(2000)
 	data, _ := jsonpool.Marshal(map[string]interface{}{
 		"data": ads,

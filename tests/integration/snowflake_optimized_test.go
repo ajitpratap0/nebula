@@ -20,24 +20,24 @@ import (
 func createRecordStream() (*core.RecordStream, chan *pool.Record, chan error) {
 	recordsChan := make(chan *pool.Record, 1000)
 	errorsChan := make(chan error, 10)
-	
+
 	stream := &core.RecordStream{
 		Records: recordsChan,
 		Errors:  errorsChan,
 	}
-	
+
 	return stream, recordsChan, errorsChan
 }
 
 func createBatchStream() (*core.BatchStream, chan []*pool.Record, chan error) {
 	batchesChan := make(chan []*pool.Record, 100)
 	errorsChan := make(chan error, 10)
-	
+
 	stream := &core.BatchStream{
 		Batches: batchesChan,
 		Errors:  errorsChan,
 	}
-	
+
 	return stream, batchesChan, errorsChan
 }
 
@@ -133,7 +133,7 @@ func (suite *SnowflakeOptimizedTestSuite) TestHighThroughputWrite() {
 				record.SetData("amount", float64(idx)*1.23)
 				record.SetData("created_at", time.Now())
 				record.SetData("metadata", map[string]interface{}{"index": idx, "type": "test"})
-				
+
 				recordsChan <- record
 			}
 		}

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/bigquery"
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/ajitpratap0/nebula/pkg/compression"
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
@@ -18,6 +17,7 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/errors"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
 	"google.golang.org/api/option"
@@ -28,27 +28,27 @@ type BigQueryDestination struct {
 	*base.BaseConnector
 
 	// Connection configuration
-	projectID      string
-	datasetID      string
-	tableID        string
+	projectID       string
+	datasetID       string
+	tableID         string
 	credentialsPath string
-	location       string
+	location        string
 
 	// BigQuery client
-	client    *bigquery.Client
-	dataset   *bigquery.Dataset
-	table     *bigquery.Table
-	inserter  *bigquery.Inserter
+	client   *bigquery.Client
+	dataset  *bigquery.Dataset
+	table    *bigquery.Table
+	inserter *bigquery.Inserter
 
 	// Performance configuration
-	batchSize              int
-	batchTimeout           time.Duration
-	maxConcurrentBatches   int
-	streamingBuffer        int
-	enableStreaming        bool
-	autoDetectSchema       bool
-	createDisposition      string
-	writeDisposition       string
+	batchSize            int
+	batchTimeout         time.Duration
+	maxConcurrentBatches int
+	streamingBuffer      int
+	enableStreaming      bool
+	autoDetectSchema     bool
+	createDisposition    string
+	writeDisposition     string
 
 	// Partitioning configuration
 	partitionField         string
@@ -63,11 +63,11 @@ type BigQueryDestination struct {
 	// Removed optimization layer - simplified for compilation
 
 	// State management
-	currentSchema      *core.Schema
-	recordsWritten     int64
-	bytesWritten       int64
-	batchesProcessed   int64
-	errorsEncountered  int64
+	currentSchema     *core.Schema
+	recordsWritten    int64
+	bytesWritten      int64
+	batchesProcessed  int64
+	errorsEncountered int64
 
 	// Micro-batching
 	microBatch      []*models.Record
@@ -75,10 +75,10 @@ type BigQueryDestination struct {
 	microBatchTimer *time.Timer
 
 	// Worker pool
-	workerCount    int
-	batchChan      chan *RecordBatch
-	workerWG       sync.WaitGroup
-	shutdownOnce   sync.Once
+	workerCount  int
+	batchChan    chan *RecordBatch
+	workerWG     sync.WaitGroup
+	shutdownOnce sync.Once
 
 	// Statistics
 	stats      *BigQueryStats
@@ -163,12 +163,12 @@ func (b *BigQueryDestination) Initialize(ctx context.Context, config *config.Bas
 	b.startWorkerPool(ctx)
 
 	b.UpdateHealth(true, map[string]interface{}{
-		"project_id":       b.projectID,
-		"dataset_id":       b.datasetID,
-		"table_id":         b.tableID,
-		"batch_size":       b.batchSize,
+		"project_id":        b.projectID,
+		"dataset_id":        b.datasetID,
+		"table_id":          b.tableID,
+		"batch_size":        b.batchSize,
 		"streaming_enabled": b.enableStreaming,
-		"worker_count":     b.workerCount,
+		"worker_count":      b.workerCount,
 	})
 
 	b.GetLogger().Info("BigQuery destination initialized",
@@ -431,7 +431,7 @@ func (b *BigQueryDestination) BulkLoad(ctx context.Context, reader interface{}, 
 		return nil
 	}
 
-	b.GetLogger().Info("Starting BigQuery bulk load operation", 
+	b.GetLogger().Info("Starting BigQuery bulk load operation",
 		zap.Int("total_records", len(records)),
 		zap.String("format", format))
 
@@ -461,13 +461,13 @@ func (b *BigQueryDestination) executeBulkLoadJob(ctx context.Context, records []
 	// Configure the load job
 	loader := b.table.LoaderFrom(source)
 	loader.WriteDisposition = bigquery.WriteAppend // Or WriteEmpty/WriteTruncate based on needs
-	
+
 	// Configure job labels for high throughput tracking
 	loader.Labels = map[string]string{
-		"source":      "nebula",
-		"type":        "bulk_load", 
-		"records":     stringpool.Sprintf("%d", len(records)),
-		"created_at":  stringpool.Sprintf("%d", time.Now().Unix()),
+		"source":     "nebula",
+		"type":       "bulk_load",
+		"records":    stringpool.Sprintf("%d", len(records)),
+		"created_at": stringpool.Sprintf("%d", time.Now().Unix()),
 	}
 
 	b.GetLogger().Info("Submitting BigQuery load job",
@@ -494,7 +494,7 @@ func (b *BigQueryDestination) executeBulkLoadJob(ctx context.Context, records []
 		b.GetLogger().Error("BigQuery load job failed",
 			zap.Error(status.Err()),
 			zap.String("job_id", job.ID()))
-		
+
 		// Check for detailed errors
 		if len(status.Errors) > 0 {
 			for i, jobErr := range status.Errors {
@@ -505,7 +505,7 @@ func (b *BigQueryDestination) executeBulkLoadJob(ctx context.Context, records []
 					zap.String("location", jobErr.Location))
 			}
 		}
-		
+
 		return errors.Wrap(status.Err(), errors.ErrorTypeConnection, "BigQuery load job failed")
 	}
 
@@ -524,7 +524,7 @@ func (b *BigQueryDestination) executeBulkLoadJob(ctx context.Context, records []
 	} else {
 		b.GetLogger().Info("BigQuery load job completed",
 			zap.String("job_id", job.ID()))
-		
+
 		// Update basic metrics without detailed stats
 		atomic.AddInt64(&b.recordsWritten, int64(len(records)))
 		atomic.AddInt64(&b.batchesProcessed, 1)
@@ -541,7 +541,7 @@ func (b *BigQueryDestination) createJSONSource(records []*models.Record) (bigque
 	// Start a goroutine to write JSON data
 	go func() {
 		defer writer.Close()
-		
+
 		for _, record := range records {
 			jsonData, err := jsonpool.Marshal(record.Data)
 			if err != nil {
@@ -549,13 +549,13 @@ func (b *BigQueryDestination) createJSONSource(records []*models.Record) (bigque
 				writer.CloseWithError(err)
 				return
 			}
-			
+
 			if _, err := writer.Write(jsonData); err != nil {
 				b.GetLogger().Error("Failed to write JSON data", zap.Error(err))
 				writer.CloseWithError(err)
 				return
 			}
-			
+
 			if _, err := writer.Write([]byte("\n")); err != nil {
 				b.GetLogger().Error("Failed to write newline", zap.Error(err))
 				writer.CloseWithError(err)
@@ -568,7 +568,7 @@ func (b *BigQueryDestination) createJSONSource(records []*models.Record) (bigque
 	source := bigquery.NewReaderSource(reader)
 	source.SourceFormat = bigquery.JSON
 	source.AutoDetect = true // Let BigQuery auto-detect schema
-	
+
 	return source, nil
 }
 
@@ -584,7 +584,7 @@ func (b *BigQueryDestination) createCSVSource(records []*models.Record) (bigquer
 	// Start a goroutine to write CSV data
 	go func() {
 		defer writer.Close()
-		
+
 		csvWriter := csv.NewWriter(writer)
 		defer csvWriter.Flush()
 
@@ -611,7 +611,7 @@ func (b *BigQueryDestination) createCSVSource(records []*models.Record) (bigquer
 				}
 				values = append(values, value)
 			}
-			
+
 			if err := csvWriter.Write(values); err != nil {
 				b.GetLogger().Error("Failed to write CSV row", zap.Error(err))
 				writer.CloseWithError(err)
@@ -625,14 +625,14 @@ func (b *BigQueryDestination) createCSVSource(records []*models.Record) (bigquer
 	source.SourceFormat = bigquery.CSV
 	source.SkipLeadingRows = 1 // Skip header row
 	source.AutoDetect = true   // Let BigQuery auto-detect schema
-	
+
 	return source, nil
 }
 
 // collectFromChannel collects all records from a channel
 func (b *BigQueryDestination) collectFromChannel(ctx context.Context, ch chan *models.Record) ([]*models.Record, error) {
 	var records []*models.Record
-	
+
 	for {
 		select {
 		case record, ok := <-ch:
@@ -649,7 +649,7 @@ func (b *BigQueryDestination) collectFromChannel(ctx context.Context, ch chan *m
 // collectFromStream collects all records from a stream
 func (b *BigQueryDestination) collectFromStream(ctx context.Context, stream *core.RecordStream) ([]*models.Record, error) {
 	var records []*models.Record
-	
+
 	for {
 		select {
 		case record, ok := <-stream.Records:
@@ -736,21 +736,21 @@ func (b *BigQueryDestination) extractBigQueryConfig(config *config.BaseConfig) {
 	b.datasetID = "default-dataset"
 	b.tableID = "default-table"
 	b.location = "US"
-	
+
 	// Use performance config from BaseConfig
 	if config.Performance.BatchSize > 0 {
 		b.batchSize = config.Performance.BatchSize
 		b.microBatch = pool.GetBatchSlice(config.Performance.BatchSize)
 	}
-	
+
 	if config.Performance.Workers > 0 {
 		b.workerCount = config.Performance.Workers
 	}
-	
+
 	if config.Performance.MaxConcurrency > 0 {
 		b.maxConcurrentBatches = config.Performance.MaxConcurrency
 	}
-	
+
 	b.enableStreaming = config.Performance.EnableStreaming
 }
 
@@ -1076,7 +1076,7 @@ func (b *BigQueryDestination) insertBatch(ctx context.Context, batch *RecordBatc
 	// Update metrics
 	atomic.AddInt64(&b.batchesProcessed, 1)
 	b.RecordMetric("batch_insert_latency", time.Since(startTime).Milliseconds(), core.MetricTypeGauge)
-	
+
 	// Calculate and update bytes written (approximate)
 	var totalBytes int64
 	for _, record := range batch.Records {

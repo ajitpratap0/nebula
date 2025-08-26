@@ -22,8 +22,8 @@ import (
 	_ "github.com/ajitpratap0/nebula/pkg/connector/destinations/iceberg"
 	_ "github.com/ajitpratap0/nebula/pkg/connector/destinations/json"
 	_ "github.com/ajitpratap0/nebula/pkg/connector/sources/csv"
-	_ "github.com/ajitpratap0/nebula/pkg/connector/sources/json"
 	_ "github.com/ajitpratap0/nebula/pkg/connector/sources/google_ads"
+	_ "github.com/ajitpratap0/nebula/pkg/connector/sources/json"
 )
 
 var (

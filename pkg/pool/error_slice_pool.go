@@ -46,10 +46,10 @@ func PutErrorSlice(errs []error) {
 	if errs == nil {
 		return
 	}
-	
+
 	// Clear the slice
 	errs = errs[:0]
-	
+
 	// Return to appropriate pool based on capacity
 	cap := cap(errs)
 	if cap <= 10 {

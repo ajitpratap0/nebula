@@ -5,12 +5,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/apache/arrow-go/v18/arrow"
-	"github.com/apache/arrow-go/v18/arrow/array"
-	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/pool"
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	icebergGo "github.com/shubham-tomar/iceberg-go"
 	"go.uber.org/zap"
 )
@@ -62,13 +62,13 @@ func (d *IcebergDestination) extractConfig(config *config.BaseConfig) error {
 
 func (d *IcebergDestination) icebergToArrowSchema(icebergSchema *icebergGo.Schema) (*arrow.Schema, error) {
 	fields := make([]arrow.Field, 0, len(icebergSchema.Fields()))
-	
+
 	for _, field := range icebergSchema.Fields() {
 		arrowType, err := d.icebergTypeToArrowType(field.Type)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert field %s: %w", field.Name, err)
 		}
-		
+
 		arrowField := arrow.Field{
 			Name:     field.Name,
 			Type:     arrowType,
@@ -76,7 +76,7 @@ func (d *IcebergDestination) icebergToArrowSchema(icebergSchema *icebergGo.Schem
 		}
 		fields = append(fields, arrowField)
 	}
-	
+
 	return arrow.NewSchema(fields, nil), nil
 }
 
@@ -123,14 +123,14 @@ func (d *IcebergDestination) batchToArrowRecord(schema *arrow.Schema, batch []*p
 	defer recBuilder.Release()
 
 	for i, field := range schema.Fields() {
-		d.logger.Debug("Processing field", 
+		d.logger.Debug("Processing field",
 			zap.String("field_name", field.Name),
 			zap.String("field_type", field.Type.String()))
-		
+
 		fieldBuilder := recBuilder.Field(i)
 		for recordIdx, record := range batch {
 			val, exists := record.GetData(field.Name)
-			d.logger.Debug("Field value", 
+			d.logger.Debug("Field value",
 				zap.String("field", field.Name),
 				zap.Int("record_idx", recordIdx),
 				zap.Bool("exists", exists),
@@ -141,11 +141,11 @@ func (d *IcebergDestination) batchToArrowRecord(schema *arrow.Schema, batch []*p
 
 	rec := recBuilder.NewRecord()
 	rec.Retain()
-	
+
 	d.logger.Debug("Arrow record built successfully",
 		zap.Int64("rows", rec.NumRows()),
 		zap.Int64("cols", rec.NumCols()))
-	
+
 	return rec, nil
 }
 
@@ -264,4 +264,3 @@ func convertIcebergFieldToCore(field icebergGo.NestedField) core.Field {
 		Nullable: !field.Required,
 	}
 }
-

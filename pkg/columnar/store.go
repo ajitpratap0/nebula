@@ -80,10 +80,10 @@ type FieldSchema struct {
 // type inference, dictionary encoding, and efficient batch operations.
 // All operations are thread-safe.
 type ColumnStore struct {
-	mu       sync.RWMutex          // Protects concurrent access
-	columns  map[string]Column     // Column storage by name
-	schema   *Schema               // Optional pre-defined schema
-	rowCount int                   // Number of rows stored
+	mu       sync.RWMutex      // Protects concurrent access
+	columns  map[string]Column // Column storage by name
+	schema   *Schema           // Optional pre-defined schema
+	rowCount int               // Number of rows stored
 }
 
 // NewColumnStore creates a new column store with automatic schema inference.
@@ -114,12 +114,12 @@ func NewColumnStoreWithSchema(schema *Schema) *ColumnStore {
 		columns: make(map[string]Column),
 		schema:  schema,
 	}
-	
+
 	// Pre-create columns based on schema
 	for _, field := range schema.Fields {
 		store.columns[field.Name] = createColumn(field.Type)
 	}
-	
+
 	return store
 }
 
@@ -145,20 +145,20 @@ func createColumn(colType ColumnType) Column {
 func (s *ColumnStore) AddColumn(name string, colType ColumnType) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	if _, exists := s.columns[name]; exists {
 		return fmt.Errorf("column %q already exists", name)
 	}
-	
+
 	col := createColumn(colType)
-	
+
 	// If we already have data, fill with nulls
 	if s.rowCount > 0 {
 		for i := 0; i < s.rowCount; i++ {
 			col.Append("")
 		}
 	}
-	
+
 	s.columns[name] = col
 	return nil
 }
@@ -178,21 +178,21 @@ func (s *ColumnStore) AddColumn(name string, colType ColumnType) error {
 func (s *ColumnStore) AppendRow(data map[string]interface{}) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	// Auto-create columns if they don't exist
 	for key, value := range data {
 		if _, exists := s.columns[key]; !exists {
 			// Infer type from value
 			colType := inferColumnType(value)
 			s.columns[key] = createColumn(colType)
-			
+
 			// Fill with nulls for existing rows
 			for i := 0; i < s.rowCount; i++ {
 				s.columns[key].Append("")
 			}
 		}
 	}
-	
+
 	// Append values to each column
 	for name, col := range s.columns {
 		if value, exists := data[name]; exists {
@@ -204,7 +204,7 @@ func (s *ColumnStore) AppendRow(data map[string]interface{}) error {
 			col.Append("")
 		}
 	}
-	
+
 	s.rowCount++
 	return nil
 }
@@ -226,7 +226,7 @@ func (s *ColumnStore) AppendRow(data map[string]interface{}) error {
 func (s *ColumnStore) AppendBatch(rows []map[string]interface{}) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	// First pass: ensure all columns exist
 	for _, row := range rows {
 		// Auto-create columns
@@ -234,7 +234,7 @@ func (s *ColumnStore) AppendBatch(rows []map[string]interface{}) error {
 			if _, exists := s.columns[key]; !exists {
 				colType := inferColumnType(value)
 				s.columns[key] = createColumn(colType)
-				
+
 				// Fill with nulls for existing rows
 				for i := 0; i < s.rowCount; i++ {
 					s.columns[key].Append("")
@@ -242,7 +242,7 @@ func (s *ColumnStore) AppendBatch(rows []map[string]interface{}) error {
 			}
 		}
 	}
-	
+
 	// Second pass: append all data
 	for _, row := range rows {
 		for name, col := range s.columns {
@@ -254,7 +254,7 @@ func (s *ColumnStore) AppendBatch(rows []map[string]interface{}) error {
 		}
 		s.rowCount++
 	}
-	
+
 	return nil
 }
 
@@ -262,16 +262,16 @@ func (s *ColumnStore) AppendBatch(rows []map[string]interface{}) error {
 func (s *ColumnStore) GetRow(index int) (map[string]interface{}, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	if index < 0 || index >= s.rowCount {
 		return nil, fmt.Errorf("index %d out of range [0, %d)", index, s.rowCount)
 	}
-	
+
 	row := make(map[string]interface{})
 	for name, col := range s.columns {
 		row[name] = col.Get(index)
 	}
-	
+
 	return row, nil
 }
 
@@ -279,7 +279,7 @@ func (s *ColumnStore) GetRow(index int) (map[string]interface{}, error) {
 func (s *ColumnStore) GetColumn(name string) (Column, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	col, exists := s.columns[name]
 	return col, exists
 }
@@ -302,7 +302,7 @@ func (s *ColumnStore) ColumnCount() int {
 func (s *ColumnStore) ColumnNames() []string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	names := make([]string, 0, len(s.columns))
 	for name := range s.columns {
 		names = append(names, name)
@@ -321,19 +321,19 @@ func (s *ColumnStore) ColumnNames() []string {
 func (s *ColumnStore) MemoryUsage() int64 {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	var total int64
-	
+
 	// Overhead for the store itself
-	total += 64 // Base struct overhead
+	total += 64                         // Base struct overhead
 	total += int64(len(s.columns) * 32) // Map overhead
-	
+
 	// Memory for each column
 	for name, col := range s.columns {
 		total += int64(len(name)) // Column name
 		total += col.MemoryUsage()
 	}
-	
+
 	return total
 }
 
@@ -361,7 +361,7 @@ func (s *ColumnStore) MemoryPerRecord() float64 {
 func (s *ColumnStore) Clear() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	for _, col := range s.columns {
 		col.Clear()
 	}
@@ -412,14 +412,14 @@ func (it *Iterator) Row() map[string]interface{} {
 	for k := range it.buffer {
 		delete(it.buffer, k)
 	}
-	
+
 	// Fill buffer with current row data
 	it.store.mu.RLock()
 	for name, col := range it.store.columns {
 		it.buffer[name] = col.Get(it.index)
 	}
 	it.store.mu.RUnlock()
-	
+
 	return it.buffer
 }
 
@@ -444,14 +444,14 @@ func (it *BatchIterator) NextBatch() ([]map[string]interface{}, bool) {
 	if it.index >= it.store.rowCount {
 		return nil, false
 	}
-	
+
 	endIndex := it.index + it.batchSize
 	if endIndex > it.store.rowCount {
 		endIndex = it.store.rowCount
 	}
-	
+
 	batch := make([]map[string]interface{}, 0, endIndex-it.index)
-	
+
 	it.store.mu.RLock()
 	for i := it.index; i < endIndex; i++ {
 		row := make(map[string]interface{})
@@ -461,7 +461,7 @@ func (it *BatchIterator) NextBatch() ([]map[string]interface{}, bool) {
 		batch = append(batch, row)
 	}
 	it.store.mu.RUnlock()
-	
+
 	it.index = endIndex
 	return batch, true
 }

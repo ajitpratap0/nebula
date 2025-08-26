@@ -49,7 +49,7 @@ package errors
 import (
 	"errors"
 	"runtime"
-	
+
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 )
 

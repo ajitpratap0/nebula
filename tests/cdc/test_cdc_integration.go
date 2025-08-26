@@ -35,11 +35,11 @@ func main() {
 func testPostgreSQLCDC(ctx context.Context) {
 	cfg := config.NewBaseConfig("postgresql-cdc-test", "source")
 	cfg.Version = "1.0.0"
-	
+
 	// Configure performance settings
 	cfg.Performance.BatchSize = 1000
 	cfg.Performance.BufferSize = 10000
-	
+
 	// Configure database connection in credentials
 	cfg.Security.Credentials = map[string]string{
 		// NOTE: These are example values - replace with your actual database
@@ -88,18 +88,18 @@ func testPostgreSQLCDC(ctx context.Context) {
 func testMySQLCDC(ctx context.Context) {
 	cfg := config.NewBaseConfig("mysql-cdc-test", "source")
 	cfg.Version = "1.0.0"
-	
+
 	// Configure performance settings
 	cfg.Performance.BatchSize = 1000
 	cfg.Performance.BufferSize = 10000
-	
+
 	// Configure database connection in credentials
 	cfg.Security.Credentials = map[string]string{
 		// NOTE: These are example values - replace with your actual database
 		"connection_string": "user:password@tcp(localhost:3306)/testdb",
 		"database":          "testdb",
 		"tables":            "users,orders", // Comma-separated string
-		"server_id":         "999", // Unique server ID for replication
+		"server_id":         "999",          // Unique server ID for replication
 	}
 
 	// Create MySQL CDC source
@@ -140,11 +140,11 @@ func testMySQLCDC(ctx context.Context) {
 func testMongoDBCDC(ctx context.Context) {
 	cfg := config.NewBaseConfig("mongodb-cdc-test", "source")
 	cfg.Version = "1.0.0"
-	
+
 	// Configure performance settings
 	cfg.Performance.BatchSize = 1000
 	cfg.Performance.BufferSize = 10000
-	
+
 	// Configure database connection in credentials
 	cfg.Security.Credentials = map[string]string{
 		// NOTE: These are example values - replace with your actual database

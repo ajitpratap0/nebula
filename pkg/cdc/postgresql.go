@@ -7,14 +7,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ajitpratap0/nebula/pkg/errors"
+	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
+	"github.com/ajitpratap0/nebula/pkg/pool"
+	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"github.com/jackc/pglogrepl"
 	"github.com/jackc/pgproto3/v2"
 	"github.com/jackc/pgx/v5"
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/ajitpratap0/nebula/pkg/errors"
-	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
-	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
 )
 
@@ -530,7 +530,7 @@ func (c *PostgreSQLConnector) loadTableSchemas() error {
 		}
 	}
 
-	c.logger.Info("loaded table schemas", 
+	c.logger.Info("loaded table schemas",
 		zap.Int("table_count", len(schemaMap)),
 		zap.Int("relation_mappings", func() int {
 			count := 0
@@ -563,7 +563,7 @@ func (c *PostgreSQLConnector) startReplication() {
 		"proto_version '1'",
 		stringpool.Sprintf("publication_names '%s'", c.publication),
 	}
-	
+
 	err := pglogrepl.StartReplication(context.Background(), c.replConn,
 		c.slotName, startLSN, pglogrepl.StartReplicationOptions{
 			PluginArgs: pluginArguments,
@@ -870,7 +870,6 @@ func (c *PostgreSQLConnector) tupleToMap(tuple *pglogrepl.TupleData, tableName s
 	}
 
 	result := pool.GetMap()
-
 
 	defer pool.PutMap(result)
 

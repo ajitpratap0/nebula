@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/linkedin/goavro/v2"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
+	"github.com/linkedin/goavro/v2"
 )
 
 // avroWriter implements Writer for Avro format
@@ -56,7 +56,7 @@ func newAvroWriter(w io.Writer, config *WriterConfig) (*avroWriter, error) {
 		config:    config,
 		codec:     codec,
 		ocfWriter: ocfWriter,
-		buffer: pool.GetBatchSlice(config.BatchSize),
+		buffer:    pool.GetBatchSlice(config.BatchSize),
 	}, nil
 }
 

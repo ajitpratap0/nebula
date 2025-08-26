@@ -16,7 +16,7 @@
 //	cfg := config.NewBaseConfig("my-connector", "source")
 //	cfg.Performance.BatchSize = 5000
 //	cfg.Security.EnableTLS = true
-//	
+//
 //	if err := cfg.Validate(); err != nil {
 //	    log.Fatal(err)
 //	}
@@ -33,11 +33,11 @@ import (
 // sections. Connectors should embed this structure with the yaml inline tag.
 type BaseConfig struct {
 	// Core identification fields
-	
+
 	// Name identifies the connector instance
-	Name    string `yaml:"name" json:"name"`
+	Name string `yaml:"name" json:"name"`
 	// Type specifies the connector type (e.g., "csv", "postgresql", "s3")
-	Type    string `yaml:"type" json:"type"`
+	Type string `yaml:"type" json:"type"`
 	// Version indicates the configuration version
 	Version string `yaml:"version" json:"version"`
 
@@ -67,141 +67,141 @@ type BaseConfig struct {
 // These settings control throughput, concurrency, and resource utilization.
 type PerformanceConfig struct {
 	// BatchSize controls the number of records processed together
-	BatchSize       int           `yaml:"batch_size" json:"batch_size"`
+	BatchSize int `yaml:"batch_size" json:"batch_size"`
 	// BufferSize sets the size of internal buffers
-	BufferSize      int           `yaml:"buffer_size" json:"buffer_size"`
+	BufferSize int `yaml:"buffer_size" json:"buffer_size"`
 	// Workers defines the number of concurrent workers
-	Workers         int           `yaml:"workers" json:"workers"`
+	Workers int `yaml:"workers" json:"workers"`
 	// MaxConcurrency limits total concurrent operations
-	MaxConcurrency  int           `yaml:"max_concurrency" json:"max_concurrency"`
+	MaxConcurrency int `yaml:"max_concurrency" json:"max_concurrency"`
 	// FlushInterval triggers periodic batch flushes
-	FlushInterval   time.Duration `yaml:"flush_interval" json:"flush_interval"`
+	FlushInterval time.Duration `yaml:"flush_interval" json:"flush_interval"`
 	// MemoryLimitMB sets the memory usage limit in megabytes
-	MemoryLimitMB   int           `yaml:"memory_limit_mb" json:"memory_limit_mb"`
+	MemoryLimitMB int `yaml:"memory_limit_mb" json:"memory_limit_mb"`
 	// EnableStreaming enables streaming mode if supported
-	EnableStreaming bool          `yaml:"enable_streaming" json:"enable_streaming"`
+	EnableStreaming bool `yaml:"enable_streaming" json:"enable_streaming"`
 	// StreamingMode forces pure streaming (no batching)
-	StreamingMode   bool          `yaml:"streaming_mode" json:"streaming_mode"`
+	StreamingMode bool `yaml:"streaming_mode" json:"streaming_mode"`
 	// AsyncOperations enables asynchronous processing
-	AsyncOperations bool          `yaml:"async_operations" json:"async_operations"`
+	AsyncOperations bool `yaml:"async_operations" json:"async_operations"`
 }
 
 // TimeoutConfig contains all timeout-related settings.
 // These prevent operations from hanging indefinitely.
 type TimeoutConfig struct {
 	// Request timeout for individual operations
-	Request      time.Duration `yaml:"request" json:"request"`
+	Request time.Duration `yaml:"request" json:"request"`
 	// Connection timeout for establishing connections
-	Connection   time.Duration `yaml:"connection" json:"connection"`
+	Connection time.Duration `yaml:"connection" json:"connection"`
 	// Idle timeout before closing inactive connections
-	Idle         time.Duration `yaml:"idle" json:"idle"`
+	Idle time.Duration `yaml:"idle" json:"idle"`
 	// ReadTimeout for read operations
-	ReadTimeout  time.Duration `yaml:"read_timeout" json:"read_timeout"`
+	ReadTimeout time.Duration `yaml:"read_timeout" json:"read_timeout"`
 	// WriteTimeout for write operations
 	WriteTimeout time.Duration `yaml:"write_timeout" json:"write_timeout"`
 	// KeepAlive interval for connection health checks
-	KeepAlive    time.Duration `yaml:"keep_alive" json:"keep_alive"`
+	KeepAlive time.Duration `yaml:"keep_alive" json:"keep_alive"`
 }
 
 // ReliabilityConfig contains reliability and error handling settings.
 // These ensure robust operation in the face of failures.
 type ReliabilityConfig struct {
 	// RetryAttempts sets maximum retry attempts for failed operations
-	RetryAttempts   int           `yaml:"retry_attempts" json:"retry_attempts"`
+	RetryAttempts int `yaml:"retry_attempts" json:"retry_attempts"`
 	// RetryDelay is the initial delay between retries
-	RetryDelay      time.Duration `yaml:"retry_delay" json:"retry_delay"`
+	RetryDelay time.Duration `yaml:"retry_delay" json:"retry_delay"`
 	// RetryMultiplier increases delay exponentially
-	RetryMultiplier float64       `yaml:"retry_multiplier" json:"retry_multiplier"`
+	RetryMultiplier float64 `yaml:"retry_multiplier" json:"retry_multiplier"`
 	// MaxRetryDelay caps the maximum retry delay
-	MaxRetryDelay   time.Duration `yaml:"max_retry_delay" json:"max_retry_delay"`
+	MaxRetryDelay time.Duration `yaml:"max_retry_delay" json:"max_retry_delay"`
 	// CircuitBreaker enables circuit breaker pattern
-	CircuitBreaker  bool          `yaml:"circuit_breaker" json:"circuit_breaker"`
+	CircuitBreaker bool `yaml:"circuit_breaker" json:"circuit_breaker"`
 	// RateLimitPerSec limits operations per second (0 = unlimited)
-	RateLimitPerSec int           `yaml:"rate_limit_per_sec" json:"rate_limit_per_sec"`
+	RateLimitPerSec int `yaml:"rate_limit_per_sec" json:"rate_limit_per_sec"`
 	// HealthCheck enables periodic health checks
-	HealthCheck     bool          `yaml:"health_check" json:"health_check"`
+	HealthCheck bool `yaml:"health_check" json:"health_check"`
 	// FailFast stops on first error instead of continuing
-	FailFast        bool          `yaml:"fail_fast" json:"fail_fast"`
+	FailFast bool `yaml:"fail_fast" json:"fail_fast"`
 }
 
 // SecurityConfig contains security and authentication settings.
 // These protect data in transit and at rest.
 type SecurityConfig struct {
 	// EnableTLS enables TLS/SSL encryption
-	EnableTLS       bool              `yaml:"enable_tls" json:"enable_tls"`
+	EnableTLS bool `yaml:"enable_tls" json:"enable_tls"`
 	// TLSSkipVerify disables certificate verification (insecure)
-	TLSSkipVerify   bool              `yaml:"tls_skip_verify" json:"tls_skip_verify"`
+	TLSSkipVerify bool `yaml:"tls_skip_verify" json:"tls_skip_verify"`
 	// AuthType specifies authentication method (basic, oauth2, api_key, etc.)
-	AuthType        string            `yaml:"auth_type" json:"auth_type"`
+	AuthType string `yaml:"auth_type" json:"auth_type"`
 	// Credentials stores authentication credentials (use env vars in production)
-	Credentials     map[string]string `yaml:"credentials" json:"credentials"`
+	Credentials map[string]string `yaml:"credentials" json:"credentials"`
 	// CertificatePath for client certificate
-	CertificatePath string            `yaml:"certificate_path" json:"certificate_path"`
+	CertificatePath string `yaml:"certificate_path" json:"certificate_path"`
 	// KeyPath for client private key
-	KeyPath         string            `yaml:"key_path" json:"key_path"`
+	KeyPath string `yaml:"key_path" json:"key_path"`
 	// CAPath for custom CA certificate
-	CAPath          string            `yaml:"ca_path" json:"ca_path"`
+	CAPath string `yaml:"ca_path" json:"ca_path"`
 }
 
 // ObservabilityConfig contains monitoring and observability settings.
 // These enable tracking of connector behavior and performance.
 type ObservabilityConfig struct {
 	// EnableMetrics activates metrics collection
-	EnableMetrics     bool          `yaml:"enable_metrics" json:"enable_metrics"`
+	EnableMetrics bool `yaml:"enable_metrics" json:"enable_metrics"`
 	// EnableTracing activates distributed tracing
-	EnableTracing     bool          `yaml:"enable_tracing" json:"enable_tracing"`
+	EnableTracing bool `yaml:"enable_tracing" json:"enable_tracing"`
 	// EnableLogging controls logging output
-	EnableLogging     bool          `yaml:"enable_logging" json:"enable_logging"`
+	EnableLogging bool `yaml:"enable_logging" json:"enable_logging"`
 	// MetricsInterval sets how often metrics are collected
-	MetricsInterval   time.Duration `yaml:"metrics_interval" json:"metrics_interval"`
+	MetricsInterval time.Duration `yaml:"metrics_interval" json:"metrics_interval"`
 	// LogLevel sets logging verbosity (debug, info, warn, error)
-	LogLevel          string        `yaml:"log_level" json:"log_level"`
+	LogLevel string `yaml:"log_level" json:"log_level"`
 	// TracingSampleRate controls trace sampling (0.0-1.0)
-	TracingSampleRate float64       `yaml:"tracing_sample_rate" json:"tracing_sample_rate"`
+	TracingSampleRate float64 `yaml:"tracing_sample_rate" json:"tracing_sample_rate"`
 }
 
 // MemoryConfig contains memory management settings.
 // These optimize memory usage through pooling and reuse.
 type MemoryConfig struct {
 	// EnablePools activates object pooling
-	EnablePools       bool          `yaml:"enable_pools" json:"enable_pools"`
+	EnablePools bool `yaml:"enable_pools" json:"enable_pools"`
 	// RecordPoolSize sets the record pool capacity
-	RecordPoolSize    int           `yaml:"record_pool_size" json:"record_pool_size"`
+	RecordPoolSize int `yaml:"record_pool_size" json:"record_pool_size"`
 	// BufferPoolSize sets the buffer pool capacity
-	BufferPoolSize    int           `yaml:"buffer_pool_size" json:"buffer_pool_size"`
+	BufferPoolSize int `yaml:"buffer_pool_size" json:"buffer_pool_size"`
 	// EnableBufferReuse allows buffer recycling
-	EnableBufferReuse bool          `yaml:"enable_buffer_reuse" json:"enable_buffer_reuse"`
+	EnableBufferReuse bool `yaml:"enable_buffer_reuse" json:"enable_buffer_reuse"`
 	// MinBufferSize sets minimum buffer allocation
-	MinBufferSize     int           `yaml:"min_buffer_size" json:"min_buffer_size"`
+	MinBufferSize int `yaml:"min_buffer_size" json:"min_buffer_size"`
 	// MaxBufferSize sets maximum buffer allocation
-	MaxBufferSize     int           `yaml:"max_buffer_size" json:"max_buffer_size"`
+	MaxBufferSize int `yaml:"max_buffer_size" json:"max_buffer_size"`
 	// GCInterval triggers periodic garbage collection
-	GCInterval        time.Duration `yaml:"gc_interval" json:"gc_interval"`
+	GCInterval time.Duration `yaml:"gc_interval" json:"gc_interval"`
 }
 
 // AdvancedConfig contains optional advanced features.
 // These provide additional optimizations and capabilities.
 type AdvancedConfig struct {
 	// EnableCompression activates data compression
-	EnableCompression     bool   `yaml:"enable_compression" json:"enable_compression"`
+	EnableCompression bool `yaml:"enable_compression" json:"enable_compression"`
 	// CompressionAlgorithm selects compression type (gzip, snappy, lz4, zstd)
-	CompressionAlgorithm  string `yaml:"compression_algorithm" json:"compression_algorithm"`
+	CompressionAlgorithm string `yaml:"compression_algorithm" json:"compression_algorithm"`
 	// CompressionLevel sets compression ratio vs speed (1-9)
-	CompressionLevel      int    `yaml:"compression_level" json:"compression_level"`
+	CompressionLevel int `yaml:"compression_level" json:"compression_level"`
 	// CompressionThreshold skips compression for small data
-	CompressionThreshold  int    `yaml:"compression_threshold" json:"compression_threshold"`
+	CompressionThreshold int `yaml:"compression_threshold" json:"compression_threshold"`
 	// EnableBulkOperations allows bulk loading
-	EnableBulkOperations  bool   `yaml:"enable_bulk_operations" json:"enable_bulk_operations"`
+	EnableBulkOperations bool `yaml:"enable_bulk_operations" json:"enable_bulk_operations"`
 	// EnableTransactions enables transactional operations
-	EnableTransactions    bool   `yaml:"enable_transactions" json:"enable_transactions"`
+	EnableTransactions bool `yaml:"enable_transactions" json:"enable_transactions"`
 	// EnableUpsert allows insert-or-update operations
-	EnableUpsert          bool   `yaml:"enable_upsert" json:"enable_upsert"`
+	EnableUpsert bool `yaml:"enable_upsert" json:"enable_upsert"`
 	// EnableSchemaEvolution allows automatic schema updates
-	EnableSchemaEvolution bool   `yaml:"enable_schema_evolution" json:"enable_schema_evolution"`
+	EnableSchemaEvolution bool `yaml:"enable_schema_evolution" json:"enable_schema_evolution"`
 	// StorageMode selects storage strategy (row, columnar, hybrid)
-	StorageMode           string `yaml:"storage_mode" json:"storage_mode"`
+	StorageMode string `yaml:"storage_mode" json:"storage_mode"`
 	// Debug enables detailed debug output
-	Debug                 bool   `yaml:"debug" json:"debug"`
+	Debug bool `yaml:"debug" json:"debug"`
 }
 
 // NewBaseConfig creates a new BaseConfig with sensible defaults.

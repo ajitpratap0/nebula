@@ -40,25 +40,25 @@
 //	cfg.Security.Credentials["publication_name"] = "nebula_pub"
 //	cfg.Security.Credentials["tables"] = "public.users,public.products"
 //	cfg.Advanced.StreamingMode = true
-//	
+//
 //	source, err := postgresql_cdc.NewPostgreSQLCDCSource(cfg)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-//	
+//
 //	ctx := context.Background()
 //	if err := source.Initialize(ctx, cfg); err != nil {
 //	    log.Fatal(err)
 //	}
 //	defer source.Close(ctx)
-//	
+//
 //	// Read CDC events
 //	for {
 //	    records, err := source.Read(ctx)
 //	    if err != nil {
 //	        log.Fatal(err)
 //	    }
-//	    
+//
 //	    for _, record := range records {
 //	        if record.IsCDC() {
 //	            fmt.Printf("Operation: %s, Table: %s\n",
@@ -100,23 +100,23 @@ type PostgreSQLCDCSource struct {
 	*base.BaseConnector
 
 	// CDC connector
-	cdcConnector *cdc.PostgreSQLConnector  // Underlying CDC implementation
+	cdcConnector *cdc.PostgreSQLConnector // Underlying CDC implementation
 
 	// Configuration
-	cdcConfig cdc.CDCConfig                 // CDC-specific configuration
+	cdcConfig cdc.CDCConfig // CDC-specific configuration
 
 	// Streaming state
-	recordStream chan *models.Record        // Channel for streaming records
-	errorStream  chan error                  // Channel for async errors
+	recordStream chan *models.Record // Channel for streaming records
+	errorStream  chan error          // Channel for async errors
 
 	// Position tracking
-	currentPosition core.Position            // Current replication position
+	currentPosition core.Position // Current replication position
 
 	// State management
-	state core.State                        // Connector state for persistence
+	state core.State // Connector state for persistence
 
 	// Statistics
-	eventsProcessed int64                   // Total CDC events processed
+	eventsProcessed int64 // Total CDC events processed
 }
 
 // NewPostgreSQLCDCSource creates a new PostgreSQL CDC source connector
@@ -457,7 +457,6 @@ func (s *PostgreSQLCDCSource) collectBatches(ctx context.Context, batchSize int,
 	defer close(errorChan)
 
 	batch := pool.GetBatchSlice(batchSize)
-
 
 	defer pool.PutBatchSlice(batch)
 

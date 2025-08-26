@@ -6,8 +6,8 @@ import (
 	"io"
 	"sync"
 
-	gojson "github.com/goccy/go-json"
 	"github.com/ajitpratap0/nebula/pkg/pool"
+	gojson "github.com/goccy/go-json"
 )
 
 // JSONPool manages pooled JSON encoders and decoders
@@ -53,13 +53,13 @@ type pooledDecoder struct {
 func GetEncoder(w io.Writer) *gojson.Encoder {
 	pe := globalPool.encoderPool.Get().(*pooledEncoder)
 	pe.buffer.Reset()
-	
+
 	// Always create a new encoder with the specified writer
 	pe.encoder = gojson.NewEncoder(w)
-	
+
 	// Configure for performance
 	pe.encoder.SetEscapeHTML(false)
-	
+
 	return pe.encoder
 }
 
@@ -76,13 +76,13 @@ func PutEncoder(enc *gojson.Encoder) {
 // GetDecoder gets a pooled JSON decoder
 func GetDecoder(r io.Reader) *gojson.Decoder {
 	pd := globalPool.decoderPool.Get().(*pooledDecoder)
-	
+
 	// Always create a new decoder with the specified reader
 	pd.decoder = gojson.NewDecoder(r)
-	
+
 	// Configure for performance
 	pd.decoder.UseNumber()
-	
+
 	return pd.decoder
 }
 
@@ -130,22 +130,22 @@ func MarshalIndent(v interface{}, prefix, indent string) ([]byte, error) {
 func MarshalToWriter(w io.Writer, v interface{}) error {
 	enc := GetEncoder(w)
 	defer PutEncoder(enc)
-	
+
 	return enc.Encode(v)
 }
 
 // MarshalToBuffer marshals v to a pooled buffer
 func MarshalToBuffer(v interface{}) (*bytes.Buffer, error) {
 	buf := GetBuffer()
-	
+
 	enc := GetEncoder(buf)
 	defer PutEncoder(enc)
-	
+
 	if err := enc.Encode(v); err != nil {
 		PutBuffer(buf)
 		return nil, err
 	}
-	
+
 	return buf, nil
 }
 
@@ -153,29 +153,29 @@ func MarshalToBuffer(v interface{}) (*bytes.Buffer, error) {
 func MarshalMultiple(values []interface{}, separator []byte) ([]byte, error) {
 	buf := GetBuffer()
 	defer PutBuffer(buf)
-	
+
 	enc := GetEncoder(buf)
 	defer PutEncoder(enc)
-	
+
 	for i, v := range values {
 		if i > 0 && separator != nil {
 			buf.Write(separator)
 		}
-		
+
 		if err := enc.Encode(v); err != nil {
 			return nil, err
 		}
-		
+
 		// Remove trailing newline added by Encode
 		if buf.Len() > 0 && buf.Bytes()[buf.Len()-1] == '\n' {
 			buf.Truncate(buf.Len() - 1)
 		}
 	}
-	
+
 	// Create a copy since we're returning the buffer to the pool
 	result := make([]byte, buf.Len())
 	copy(result, buf.Bytes())
-	
+
 	return result, nil
 }
 
@@ -184,33 +184,33 @@ func MarshalArray(values []interface{}) ([]byte, error) {
 	if len(values) == 0 {
 		return []byte("[]"), nil
 	}
-	
+
 	buf := GetBuffer()
 	defer PutBuffer(buf)
-	
+
 	buf.WriteByte('[')
-	
+
 	enc := GetEncoder(buf)
 	defer PutEncoder(enc)
-	
+
 	for i, v := range values {
 		if i > 0 {
 			buf.WriteByte(',')
 		}
-		
+
 		data, err := gojson.Marshal(v)
 		if err != nil {
 			return nil, err
 		}
 		buf.Write(data)
 	}
-	
+
 	buf.WriteByte(']')
-	
+
 	// Create a copy since we're returning the buffer to the pool
 	result := make([]byte, buf.Len())
 	copy(result, buf.Bytes())
-	
+
 	return result, nil
 }
 
@@ -227,18 +227,18 @@ type StreamingEncoder struct {
 // NewStreamingEncoder creates a new streaming encoder
 func NewStreamingEncoder(w io.Writer, isArray bool) *StreamingEncoder {
 	enc := GetEncoder(w)
-	
+
 	se := &StreamingEncoder{
 		writer:      w,
 		encoder:     enc,
 		firstRecord: true,
 		isArray:     isArray,
 	}
-	
+
 	if isArray {
 		w.Write([]byte{'['})
 	}
-	
+
 	return se
 }
 
@@ -262,14 +262,14 @@ func (se *StreamingEncoder) Encode(v interface{}) error {
 		}
 		se.firstRecord = false
 	}
-	
+
 	if err := se.encoder.Encode(v); err != nil {
 		return err
 	}
-	
+
 	// For line-delimited JSON, the encoder adds a newline automatically
 	// For array format, we handle separators manually above
-	
+
 	return nil
 }
 
@@ -281,7 +281,7 @@ func (se *StreamingEncoder) Close() error {
 		}
 		se.writer.Write([]byte{']'})
 	}
-	
+
 	PutEncoder(se.encoder)
 	return nil
 }
@@ -305,23 +305,23 @@ func NewOptimizedJSONWriter(initialSize int) *OptimizedJSONWriter {
 func (w *OptimizedJSONWriter) WriteField(key string, value interface{}) error {
 	// This is a simplified version - in production you'd implement
 	// full JSON serialization with proper escaping
-	
+
 	if len(w.buffer) > 0 {
 		w.buffer = append(w.buffer, ',')
 	}
-	
+
 	// Write key
 	w.buffer = append(w.buffer, '"')
 	w.buffer = append(w.buffer, key...)
 	w.buffer = append(w.buffer, '"', ':')
-	
+
 	// Write value (simplified - would need full type handling)
 	data, err := gojson.Marshal(value)
 	if err != nil {
 		return err
 	}
 	w.buffer = append(w.buffer, data...)
-	
+
 	return nil
 }
 
@@ -352,27 +352,27 @@ func MarshalRecordsArray(records []*pool.Record) ([]byte, error) {
 	if len(records) == 0 {
 		return []byte("[]"), nil
 	}
-	
+
 	// Pre-allocate buffer with estimated size
 	estimatedSize := len(records) * 200 // Estimate 200 bytes per record
 	buf := pool.GlobalBufferPool.Get(estimatedSize)
 	defer pool.GlobalBufferPool.Put(buf)
-	
+
 	buf[0] = '['
 	written := 1
-	
+
 	for i, record := range records {
 		if i > 0 {
 			buf[written] = ','
 			written++
 		}
-		
+
 		// Marshal record data
 		data, err := gojson.Marshal(record.Data)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		// Ensure buffer has space
 		if written+len(data) > len(buf) {
 			newBuf := make([]byte, written, (written+len(data))*2)
@@ -380,18 +380,18 @@ func MarshalRecordsArray(records []*pool.Record) ([]byte, error) {
 			pool.GlobalBufferPool.Put(buf)
 			buf = newBuf
 		}
-		
+
 		copy(buf[written:], data)
 		written += len(data)
 	}
-	
+
 	buf[written] = ']'
 	written++
-	
+
 	// Create result copy
 	result := make([]byte, written)
 	copy(result, buf[:written])
-	
+
 	return result, nil
 }
 
@@ -401,16 +401,16 @@ func MarshalRecordsLines(records []*pool.Record) ([]byte, error) {
 	estimatedSize := len(records) * 200 // Estimate 200 bytes per record
 	buf := pool.GlobalBufferPool.Get(estimatedSize)
 	defer pool.GlobalBufferPool.Put(buf)
-	
+
 	written := 0
-	
+
 	for _, record := range records {
 		// Marshal record data
 		data, err := gojson.Marshal(record.Data)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		// Ensure buffer has space
 		if written+len(data)+1 > len(buf) {
 			newBuf := make([]byte, written, (written+len(data)+1)*2)
@@ -418,17 +418,17 @@ func MarshalRecordsLines(records []*pool.Record) ([]byte, error) {
 			pool.GlobalBufferPool.Put(buf)
 			buf = newBuf
 		}
-		
+
 		copy(buf[written:], data)
 		written += len(data)
-		
+
 		buf[written] = '\n'
 		written++
 	}
-	
+
 	// Create result copy
 	result := make([]byte, written)
 	copy(result, buf[:written])
-	
+
 	return result, nil
 }

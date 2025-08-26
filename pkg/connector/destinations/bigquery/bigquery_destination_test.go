@@ -17,8 +17,8 @@ func TestBigQueryDestination_NewBigQueryDestination(t *testing.T) {
 		Name: "test-bigquery",
 		Type: "destination",
 		Performance: config.PerformanceConfig{
-			BatchSize:      10000,
-			MaxConcurrency: 10,
+			BatchSize:       10000,
+			MaxConcurrency:  10,
 			EnableStreaming: true,
 		},
 	}
@@ -72,9 +72,9 @@ func TestBigQueryDestination_ExtractConfig(t *testing.T) {
 	config := &config.BaseConfig{
 		Name: "test-bigquery",
 		Performance: config.PerformanceConfig{
-			BatchSize:      5000,
-			Workers:        8,
-			MaxConcurrency: 20,
+			BatchSize:       5000,
+			Workers:         8,
+			MaxConcurrency:  20,
 			EnableStreaming: false,
 		},
 	}
@@ -162,7 +162,7 @@ func TestBigQueryDestination_MicroBatching(t *testing.T) {
 	dest := &BigQueryDestination{
 		batchSize:    3,
 		batchTimeout: 100 * time.Millisecond,
-		microBatch: pool.GetBatchSlice(3),
+		microBatch:   pool.GetBatchSlice(3),
 		batchChan:    make(chan *RecordBatch, 10),
 	}
 

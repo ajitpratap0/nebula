@@ -16,10 +16,10 @@
 //	config := clients.DefaultHTTPConfig()
 //	config.RateLimit = 100 // 100 requests per second
 //	config.CircuitBreakerEnabled = true
-//	
+//
 //	client := clients.NewHTTPClient(config, logger)
 //	defer client.Close()
-//	
+//
 //	resp, err := client.Get(ctx, "https://api.example.com/data", headers)
 //	if err != nil {
 //	    return err
@@ -79,14 +79,14 @@ type HTTPClient struct {
 type HTTPConfig struct {
 	// Connection settings
 	// MaxIdleConns controls the maximum number of idle (keep-alive) connections across all hosts
-	MaxIdleConns        int           `json:"max_idle_conns"`
+	MaxIdleConns int `json:"max_idle_conns"`
 	// MaxIdleConnsPerHost controls the maximum idle connections to keep per-host
-	MaxIdleConnsPerHost int           `json:"max_idle_conns_per_host"`
+	MaxIdleConnsPerHost int `json:"max_idle_conns_per_host"`
 	// MaxConnsPerHost limits the total number of connections per host
-	MaxConnsPerHost     int           `json:"max_conns_per_host"`
-	IdleConnTimeout     time.Duration `json:"idle_conn_timeout"`
-	DisableKeepAlives   bool          `json:"disable_keep_alives"`
-	DisableCompression  bool          `json:"disable_compression"`
+	MaxConnsPerHost    int           `json:"max_conns_per_host"`
+	IdleConnTimeout    time.Duration `json:"idle_conn_timeout"`
+	DisableKeepAlives  bool          `json:"disable_keep_alives"`
+	DisableCompression bool          `json:"disable_compression"`
 
 	// HTTP/2 settings
 	// EnableHTTP2 enables HTTP/2 support for better multiplexing and performance
@@ -113,16 +113,16 @@ type HTTPConfig struct {
 	// RateLimit sets the maximum requests per second (0 = unlimited)
 	RateLimit float64 `json:"rate_limit"`
 	// RateBurst sets the maximum burst size for rate limiting
-	RateBurst int     `json:"rate_burst"`
+	RateBurst int `json:"rate_burst"`
 
 	// Circuit breaker
 	// CircuitBreakerEnabled enables automatic circuit breaking on failures
-	CircuitBreakerEnabled bool          `json:"circuit_breaker_enabled"`
+	CircuitBreakerEnabled bool `json:"circuit_breaker_enabled"`
 	// FailureThreshold sets the number of failures before opening circuit
-	FailureThreshold      int           `json:"failure_threshold"`
+	FailureThreshold int `json:"failure_threshold"`
 	// SuccessThreshold sets the number of successes before closing circuit
-	SuccessThreshold      int           `json:"success_threshold"`
-	Timeout               time.Duration `json:"timeout"`
+	SuccessThreshold int           `json:"success_threshold"`
+	Timeout          time.Duration `json:"timeout"`
 }
 
 // DefaultHTTPConfig returns an optimized default configuration suitable for

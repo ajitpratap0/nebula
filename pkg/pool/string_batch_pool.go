@@ -12,7 +12,7 @@ var (
 			return make([][]string, 0, 5000)
 		},
 	}
-	
+
 	// Pool for []string slices (individual CSV rows)
 	csvRowPool = &sync.Pool{
 		New: func() interface{} {

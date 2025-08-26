@@ -380,7 +380,7 @@ func BenchmarkSnowflakeParallelism(b *testing.B) {
 
 				for w := 0; w < parallel; w++ {
 					wg.Add(1)
-					go func(workerID int) {
+					go func(_ int) {
 						defer wg.Done()
 
 						// Simulate worker processing

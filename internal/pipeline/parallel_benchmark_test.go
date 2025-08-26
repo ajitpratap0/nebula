@@ -22,17 +22,17 @@ type MockSource struct {
 }
 
 func (m *MockSource) Initialize(ctx context.Context, config *config.BaseConfig) error { return nil }
-func (m *MockSource) Discover(ctx context.Context) (*core.Schema, error)       { return nil, nil }
-func (m *MockSource) GetState() core.State                                    { return nil }
-func (m *MockSource) SetState(state core.State) error                         { return nil }
-func (m *MockSource) Close(ctx context.Context) error                         { return nil }
-func (m *MockSource) Health(ctx context.Context) error                        { return nil }
-func (m *MockSource) Metrics() map[string]interface{}                          { return nil }
-func (m *MockSource) GetPosition() core.Position                              { return nil }
-func (m *MockSource) SetPosition(position core.Position) error                { return nil }
-func (m *MockSource) SupportsIncremental() bool                               { return false }
-func (m *MockSource) SupportsRealtime() bool                                  { return false }
-func (m *MockSource) SupportsBatch() bool                                     { return true }
+func (m *MockSource) Discover(ctx context.Context) (*core.Schema, error)              { return nil, nil }
+func (m *MockSource) GetState() core.State                                            { return nil }
+func (m *MockSource) SetState(state core.State) error                                 { return nil }
+func (m *MockSource) Close(ctx context.Context) error                                 { return nil }
+func (m *MockSource) Health(ctx context.Context) error                                { return nil }
+func (m *MockSource) Metrics() map[string]interface{}                                 { return nil }
+func (m *MockSource) GetPosition() core.Position                                      { return nil }
+func (m *MockSource) SetPosition(position core.Position) error                        { return nil }
+func (m *MockSource) SupportsIncremental() bool                                       { return false }
+func (m *MockSource) SupportsRealtime() bool                                          { return false }
+func (m *MockSource) SupportsBatch() bool                                             { return true }
 func (m *MockSource) Subscribe(ctx context.Context, tables []string) (*core.ChangeStream, error) {
 	return nil, nil
 }
@@ -43,7 +43,7 @@ func (m *MockSource) ReadBatch(ctx context.Context, batchSize int) (*core.BatchS
 func (m *MockSource) Read(ctx context.Context) (*core.RecordStream, error) {
 	recordChan := make(chan *models.Record, 1000)
 	errorChan := make(chan error, 1)
-	
+
 	stream := &core.RecordStream{
 		Records: recordChan,
 		Errors:  errorChan,
@@ -63,7 +63,7 @@ func (m *MockSource) Read(ctx context.Context) (*core.RecordStream, error) {
 			}
 			record.Metadata.Source = "mock"
 			record.Metadata.Timestamp = time.Now()
-			
+
 			select {
 			case recordChan <- record:
 				atomic.AddInt32(&m.generated, 1)
@@ -81,18 +81,20 @@ type MockDestination struct {
 	received int64
 }
 
-func (m *MockDestination) Initialize(ctx context.Context, config *config.BaseConfig) error     { return nil }
+func (m *MockDestination) Initialize(ctx context.Context, config *config.BaseConfig) error {
+	return nil
+}
 func (m *MockDestination) CreateSchema(ctx context.Context, schema *core.Schema) error  { return nil }
 func (m *MockDestination) AlterSchema(ctx context.Context, old, new *core.Schema) error { return nil }
 func (m *MockDestination) DropSchema(ctx context.Context, schema *core.Schema) error    { return nil }
-func (m *MockDestination) Close(ctx context.Context) error                             { return nil }
-func (m *MockDestination) Health(ctx context.Context) error                            { return nil }
+func (m *MockDestination) Close(ctx context.Context) error                              { return nil }
+func (m *MockDestination) Health(ctx context.Context) error                             { return nil }
 func (m *MockDestination) Metrics() map[string]interface{}                              { return nil }
-func (m *MockDestination) SupportsBulkLoad() bool                                      { return true }
-func (m *MockDestination) SupportsTransactions() bool                                  { return false }
-func (m *MockDestination) SupportsUpsert() bool                                        { return false }
-func (m *MockDestination) SupportsBatch() bool                                         { return true }
-func (m *MockDestination) SupportsStreaming() bool                                     { return true }
+func (m *MockDestination) SupportsBulkLoad() bool                                       { return true }
+func (m *MockDestination) SupportsTransactions() bool                                   { return false }
+func (m *MockDestination) SupportsUpsert() bool                                         { return false }
+func (m *MockDestination) SupportsBatch() bool                                          { return true }
+func (m *MockDestination) SupportsStreaming() bool                                      { return true }
 func (m *MockDestination) BulkLoad(ctx context.Context, reader interface{}, format string) error {
 	return nil
 }
@@ -150,22 +152,22 @@ func BenchmarkParallelProcessing(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				source := &MockSource{recordCount: recordCount}
 				dest := &MockDestination{}
-				
+
 				config := &PipelineConfig{
 					BatchSize:   1000,
 					WorkerCount: 1, // Sequential
 				}
-				
+
 				pipeline := NewSimplePipeline(source, dest, config, logger)
 				pipeline.AddTransform(cpuIntensiveTransform)
-				
+
 				ctx := context.Background()
 				start := time.Now()
 				if err := pipeline.Run(ctx); err != nil {
 					b.Fatal(err)
 				}
 				duration := time.Since(start)
-				
+
 				b.ReportMetric(float64(recordCount)/duration.Seconds(), "records/sec")
 			}
 		})
@@ -177,7 +179,7 @@ func BenchmarkParallelProcessing(b *testing.B) {
 				for i := 0; i < b.N; i++ {
 					source := &MockSource{recordCount: recordCount}
 					dest := &MockDestination{}
-					
+
 					config := &ParallelPipelineConfig{
 						BatchSize:       1000,
 						WorkerCount:     workers,
@@ -185,17 +187,17 @@ func BenchmarkParallelProcessing(b *testing.B) {
 						VectorBatchSize: 100,
 						EnableAffinity:  true,
 					}
-					
+
 					pipeline := NewParallelPipeline(source, dest, config, logger)
 					pipeline.AddTransform(cpuIntensiveTransform)
-					
+
 					ctx := context.Background()
 					start := time.Now()
 					if err := pipeline.Run(ctx); err != nil {
 						b.Fatal(err)
 					}
 					duration := time.Since(start)
-					
+
 					b.ReportMetric(float64(recordCount)/duration.Seconds(), "records/sec")
 				}
 			})
@@ -206,7 +208,7 @@ func BenchmarkParallelProcessing(b *testing.B) {
 // Benchmark vectorized transform operations
 func BenchmarkVectorizedTransforms(b *testing.B) {
 	logger := zap.NewNop()
-	
+
 	// Field mapping transform
 	fieldMapper := func(ctx context.Context, record *models.Record) (*models.Record, error) {
 		newData := pool.GetMap()
@@ -218,7 +220,7 @@ func BenchmarkVectorizedTransforms(b *testing.B) {
 			"category":  "type",
 			"status":    "state",
 		}
-		
+
 		for k, v := range record.Data {
 			if newKey, ok := mappings[k]; ok {
 				newData[newKey] = v
@@ -226,43 +228,43 @@ func BenchmarkVectorizedTransforms(b *testing.B) {
 				newData[k] = v
 			}
 		}
-		
+
 		pool.PutMap(record.Data)
 		record.Data = newData
 		return record, nil
 	}
-	
+
 	recordCount := 100000
-	
+
 	b.Run("Sequential_FieldMapping", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			source := &MockSource{recordCount: recordCount}
 			dest := &MockDestination{}
-			
+
 			config := &PipelineConfig{
 				BatchSize:   1000,
 				WorkerCount: 1,
 			}
-			
+
 			pipeline := NewSimplePipeline(source, dest, config, logger)
 			pipeline.AddTransform(fieldMapper)
-			
+
 			ctx := context.Background()
 			start := time.Now()
 			if err := pipeline.Run(ctx); err != nil {
 				b.Fatal(err)
 			}
 			duration := time.Since(start)
-			
+
 			b.ReportMetric(float64(recordCount)/duration.Seconds(), "records/sec")
 		}
 	})
-	
+
 	b.Run("Parallel_FieldMapping", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			source := &MockSource{recordCount: recordCount}
 			dest := &MockDestination{}
-			
+
 			config := &ParallelPipelineConfig{
 				BatchSize:       1000,
 				WorkerCount:     runtime.NumCPU() * 2,
@@ -270,17 +272,17 @@ func BenchmarkVectorizedTransforms(b *testing.B) {
 				VectorBatchSize: 100,
 				EnableAffinity:  true,
 			}
-			
+
 			pipeline := NewParallelPipeline(source, dest, config, logger)
 			pipeline.AddTransform(fieldMapper)
-			
+
 			ctx := context.Background()
 			start := time.Now()
 			if err := pipeline.Run(ctx); err != nil {
 				b.Fatal(err)
 			}
 			duration := time.Since(start)
-			
+
 			b.ReportMetric(float64(recordCount)/duration.Seconds(), "records/sec")
 		}
 	})
@@ -291,13 +293,13 @@ func BenchmarkBatchSizes(b *testing.B) {
 	logger := zap.NewNop()
 	recordCount := 50000
 	batchSizes := []int{100, 500, 1000, 5000, 10000}
-	
+
 	for _, batchSize := range batchSizes {
 		b.Run(fmt.Sprintf("BatchSize_%d", batchSize), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				source := &MockSource{recordCount: recordCount}
 				dest := &MockDestination{}
-				
+
 				config := &ParallelPipelineConfig{
 					BatchSize:       batchSize,
 					WorkerCount:     runtime.NumCPU() * 2,
@@ -305,17 +307,17 @@ func BenchmarkBatchSizes(b *testing.B) {
 					VectorBatchSize: batchSize / 10,
 					EnableAffinity:  true,
 				}
-				
+
 				pipeline := NewParallelPipeline(source, dest, config, logger)
 				pipeline.AddTransform(cpuIntensiveTransform)
-				
+
 				ctx := context.Background()
 				start := time.Now()
 				if err := pipeline.Run(ctx); err != nil {
 					b.Fatal(err)
 				}
 				duration := time.Since(start)
-				
+
 				b.ReportMetric(float64(recordCount)/duration.Seconds(), "records/sec")
 			}
 		})

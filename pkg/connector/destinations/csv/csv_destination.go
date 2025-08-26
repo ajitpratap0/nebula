@@ -29,18 +29,18 @@
 //	cfg.Security.Credentials["path"] = "output.csv"
 //	cfg.Performance.BatchSize = 10000
 //	cfg.Advanced.CompressionType = "snappy"
-//	
+//
 //	dest, err := csv.NewCSVDestination(cfg)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-//	
+//
 //	ctx := context.Background()
 //	if err := dest.Initialize(ctx, cfg); err != nil {
 //	    log.Fatal(err)
 //	}
 //	defer dest.Close(ctx)
-//	
+//
 //	// Write records
 //	records := []*pool.Record{
 //	    pool.NewRecord("source", map[string]interface{}{
@@ -48,11 +48,11 @@
 //	        "age": 30,
 //	    }),
 //	}
-//	
+//
 //	if err := dest.Write(ctx, records); err != nil {
 //	    log.Fatal(err)
 //	}
-//	
+//
 //	// Records are automatically released after writing
 package csv
 
@@ -91,27 +91,27 @@ type CSVDestination struct {
 	*base.BaseConnector
 
 	// CSV-specific fields
-	file              *os.File         // Open file handle
-	writer            *csv.Writer      // CSV writer instance
-	headers           []string         // Column headers (ordered)
-	headersMutex      sync.Mutex       // Protects header modifications
-	hasWrittenHeaders bool             // Whether headers have been written
+	file              *os.File    // Open file handle
+	writer            *csv.Writer // CSV writer instance
+	headers           []string    // Column headers (ordered)
+	headersMutex      sync.Mutex  // Protects header modifications
+	hasWrittenHeaders bool        // Whether headers have been written
 
 	// Schema and state
-	schema         *core.Schema        // Current schema information
-	recordsWritten int64               // Total records written
+	schema         *core.Schema // Current schema information
+	recordsWritten int64        // Total records written
 
 	// Configuration
-	overwrite     bool                 // Overwrite existing file
-	bufferSize    int                  // Internal buffer size
-	flushInterval int                  // Records between flushes
-	filePath      string               // Store the file path
+	overwrite     bool   // Overwrite existing file
+	bufferSize    int    // Internal buffer size
+	flushInterval int    // Records between flushes
+	filePath      string // Store the file path
 
 	// Compression configuration
-	compressionEnabled   bool          // Whether compression is enabled
+	compressionEnabled   bool                   // Whether compression is enabled
 	compressionAlgorithm compression.Algorithm  // Algorithm to use
 	compressionLevel     compression.Level      // Compression level
-	compressor           compression.Compressor  // Compressor instance
+	compressor           compression.Compressor // Compressor instance
 	compressionWriter    io.WriteCloser         // Compression writer
 }
 
@@ -461,7 +461,7 @@ func (d *CSVDestination) extractCSVConfig(config *config.BaseConfig) {
 			d.filePath = path
 		}
 	}
-	
+
 	// Extract configuration from structured BaseConfig
 	d.bufferSize = config.Performance.BufferSize
 	if d.bufferSize <= 0 {

@@ -8,27 +8,27 @@ import (
 // TypedRecord provides specialized record types to avoid interface{} boxing
 type TypedRecord struct {
 	*Record
-	
+
 	// Typed fields for common data types
-	StringFields  map[string]string
-	IntFields     map[string]int64
-	FloatFields   map[string]float64
-	BoolFields    map[string]bool
-	TimeFields    map[string]time.Time
-	BytesFields   map[string][]byte
+	StringFields map[string]string
+	IntFields    map[string]int64
+	FloatFields  map[string]float64
+	BoolFields   map[string]bool
+	TimeFields   map[string]time.Time
+	BytesFields  map[string][]byte
 }
 
 // Global typed record pool
 var typedRecordPool = &sync.Pool{
 	New: func() interface{} {
 		return &TypedRecord{
-			Record:        &Record{},
-			StringFields:  make(map[string]string, 16),
-			IntFields:     make(map[string]int64, 8),
-			FloatFields:   make(map[string]float64, 8),
-			BoolFields:    make(map[string]bool, 4),
-			TimeFields:    make(map[string]time.Time, 4),
-			BytesFields:   make(map[string][]byte, 4),
+			Record:       &Record{},
+			StringFields: make(map[string]string, 16),
+			IntFields:    make(map[string]int64, 8),
+			FloatFields:  make(map[string]float64, 8),
+			BoolFields:   make(map[string]bool, 4),
+			TimeFields:   make(map[string]time.Time, 4),
+			BytesFields:  make(map[string][]byte, 4),
 		}
 	},
 }
@@ -46,7 +46,7 @@ func PutTypedRecord(tr *TypedRecord) {
 	if tr == nil {
 		return
 	}
-	
+
 	// Clear typed fields
 	for k := range tr.StringFields {
 		delete(tr.StringFields, k)
@@ -66,13 +66,13 @@ func PutTypedRecord(tr *TypedRecord) {
 	for k := range tr.BytesFields {
 		delete(tr.BytesFields, k)
 	}
-	
+
 	// Release base record
 	if tr.Record != nil {
 		tr.Record.Release()
 		tr.Record = nil
 	}
-	
+
 	typedRecordPool.Put(tr)
 }
 

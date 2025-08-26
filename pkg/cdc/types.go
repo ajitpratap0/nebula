@@ -55,11 +55,11 @@ const (
 	// ConnectorPostgreSQL represents PostgreSQL CDC connector using logical replication
 	ConnectorPostgreSQL ConnectorType = "postgresql"
 	// ConnectorMySQL represents MySQL CDC connector using binlog replication
-	ConnectorMySQL      ConnectorType = "mysql"
+	ConnectorMySQL ConnectorType = "mysql"
 	// ConnectorMongoDB represents MongoDB CDC connector using change streams
-	ConnectorMongoDB    ConnectorType = "mongodb"
+	ConnectorMongoDB ConnectorType = "mongodb"
 	// ConnectorKafka represents Kafka CDC connector for streaming events
-	ConnectorKafka      ConnectorType = "kafka"
+	ConnectorKafka ConnectorType = "kafka"
 )
 
 // OperationType represents the type of database operation captured by CDC.
@@ -74,7 +74,7 @@ const (
 	// OperationDelete represents a DELETE operation
 	OperationDelete OperationType = "DELETE"
 	// OperationDDL represents a Data Definition Language operation (schema changes)
-	OperationDDL    OperationType = "DDL"
+	OperationDDL OperationType = "DDL"
 	// OperationCommit represents a transaction commit operation
 	OperationCommit OperationType = "COMMIT"
 )
@@ -228,7 +228,7 @@ func (ce *ChangeEvent) ConvertToRecord() (*models.Record, error) {
 
 	// Create unified record using the new CDC constructor
 	record := models.NewCDCRecord(ce.Database, ce.Table, string(ce.Operation), ce.Before, data)
-	
+
 	// Set additional CDC metadata
 	record.ID = ce.ID
 	record.SetCDCPosition(ce.Position.String())

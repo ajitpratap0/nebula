@@ -9,12 +9,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	gojson "github.com/goccy/go-json"
 	nebulaConfig "github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	"github.com/ajitpratap0/nebula/pkg/pool"
+	gojson "github.com/goccy/go-json"
 )
 
 // JSONFormat represents the JSON file format
@@ -315,13 +315,13 @@ func (s *JSONSource) Close(ctx context.Context) error {
 		jsonpool.PutDecoder(s.decoder)
 		s.decoder = nil
 	}
-	
+
 	// Return buffer to pool if allocated
 	if s.scanBuffer != nil {
 		pool.GlobalBufferPool.Put(s.scanBuffer)
 		s.scanBuffer = nil
 	}
-	
+
 	if s.file != nil {
 		if err := s.file.Close(); err != nil {
 			return err
@@ -371,7 +371,6 @@ func (s *JSONSource) readArrayBatch(ctx context.Context, batchSize int, batchCha
 	}
 
 	batch := pool.GetBatchSlice(batchSize)
-
 
 	defer pool.PutBatchSlice(batch)
 

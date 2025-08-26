@@ -82,11 +82,11 @@ type SimplePipeline struct {
 	startTime        time.Time // Pipeline start time
 
 	// State management
-	logger *zap.Logger         // Structured logger
-	ctx    context.Context     // Pipeline context
-	cancel context.CancelFunc  // Cancellation function
-	wg     sync.WaitGroup      // Tracks goroutines
-	mu     sync.Mutex          // Protects metrics
+	logger *zap.Logger        // Structured logger
+	ctx    context.Context    // Pipeline context
+	cancel context.CancelFunc // Cancellation function
+	wg     sync.WaitGroup     // Tracks goroutines
+	mu     sync.Mutex         // Protects metrics
 }
 
 // Transform represents a data transformation function that modifies records

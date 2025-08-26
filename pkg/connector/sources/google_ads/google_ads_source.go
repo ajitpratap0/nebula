@@ -31,8 +31,6 @@ type GoogleAdsSource struct {
 	accessToken  string
 	refreshToken string
 
-
-
 	// API state management
 	customerIDs      []string
 	query            string
@@ -59,7 +57,7 @@ type GoogleAdsConfig struct {
 	ClientID        string `json:"client_id"`
 	ClientSecret    string `json:"client_secret"`
 	RefreshToken    string `json:"refresh_token"`
-	AccessToken     string `json:"access_token,omitempty"`     // Optional, will be refreshed if not provided
+	AccessToken     string `json:"access_token,omitempty"` // Optional, will be refreshed if not provided
 	LoginCustomerID string `json:"login_customer_id,omitempty"`
 
 	// Query and performance settings
@@ -258,16 +256,14 @@ func (s *GoogleAdsSource) initializeAuthentication(ctx context.Context) error {
 	if err := s.initializeOAuth2Client(); err != nil {
 		return err
 	}
-	
+
 	// If no access token provided, refresh using refresh token
 	if s.accessToken == "" {
 		return s.refreshAccessToken(ctx)
 	}
-	
+
 	return nil
 }
-
-
 
 // initializeOAuth2Client initializes the OAuth2 configuration
 func (s *GoogleAdsSource) initializeOAuth2Client() error {

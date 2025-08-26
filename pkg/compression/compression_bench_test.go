@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 )
 
 // Test data generators
@@ -35,7 +35,7 @@ func generateJSONData(size int) []byte {
 func generateCSVData(size int) []byte {
 	buf := pool.GlobalBufferPool.Get(size * 2) // Estimate buffer size
 	defer pool.GlobalBufferPool.Put(buf)
-	
+
 	// Use bytes.Buffer for writer operations
 	var writer bytes.Buffer
 	writer.WriteString("id,name,email,age,score,active\n")
@@ -48,7 +48,7 @@ func generateCSVData(size int) []byte {
 
 func generateTextData(size int) []byte {
 	words := []string{"the", "quick", "brown", "fox", "jumps", "over", "lazy", "dog"}
-	
+
 	// Use bytes.Buffer for writer operations
 	var writer bytes.Buffer
 	for writer.Len() < size {
@@ -279,7 +279,7 @@ func BenchmarkStreamingCompression(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				buf := pool.GlobalBufferPool.Get(len(testData) * 2) // Estimate compressed size
 				defer pool.GlobalBufferPool.Put(buf)
-				
+
 				// Use bytes.Buffer for writer operations
 				var writer bytes.Buffer
 				err := compressor.CompressStream(&writer, bytes.NewReader(testData))

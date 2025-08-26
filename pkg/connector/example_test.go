@@ -11,10 +11,10 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/connector/registry"
 	"github.com/ajitpratap0/nebula/pkg/pool"
-	
+
 	// Import connectors to register them
-	_ "github.com/ajitpratap0/nebula/pkg/connector/sources/csv"
 	_ "github.com/ajitpratap0/nebula/pkg/connector/destinations/json"
+	_ "github.com/ajitpratap0/nebula/pkg/connector/sources/csv"
 )
 
 // Example demonstrates creating and using connectors via the registry.
@@ -63,7 +63,7 @@ func Example() {
 done:
 
 	fmt.Printf("Read %d records from CSV\n", recordCount)
-	
+
 	// Output:
 	// Read 0 records from CSV
 }
@@ -89,7 +89,7 @@ func Example_pipeline() {
 	// Initialize connectors
 	source.Initialize(ctx, sourceConfig)
 	defer source.Close(ctx)
-	
+
 	dest.Initialize(ctx, destConfig)
 	defer dest.Close(ctx)
 
@@ -106,17 +106,17 @@ func Example_pipeline() {
 			if !ok {
 				goto pipelineDone
 			}
-			
+
 			// Create channels for the stream
 			recordsChan := make(chan *pool.Record, len(batch))
 			errorsChan := make(chan error, 1)
-			
+
 			// Create the stream
 			tempStream := &core.RecordStream{
 				Records: recordsChan,
 				Errors:  errorsChan,
 			}
-			
+
 			// Send batch to stream
 			go func() {
 				for _, record := range batch {
@@ -124,7 +124,7 @@ func Example_pipeline() {
 				}
 				close(recordsChan)
 			}()
-			
+
 			if err := dest.Write(ctx, tempStream); err != nil {
 				log.Printf("Write error: %v", err)
 				goto pipelineDone
@@ -134,7 +134,7 @@ func Example_pipeline() {
 			for _, record := range batch {
 				record.Release()
 			}
-			
+
 		case err := <-batchStream.Errors:
 			if err != nil {
 				log.Printf("Batch error: %v", err)
@@ -145,7 +145,7 @@ func Example_pipeline() {
 pipelineDone:
 
 	fmt.Println("Pipeline completed")
-	
+
 	// Output:
 	// Pipeline completed
 }
@@ -213,11 +213,11 @@ func Example_cdcConnector() {
 
 	// Read CDC events stream
 	stream, _ := source.Read(ctx)
-	
+
 	// Process a few events for example
 	eventCount := 0
 	timeout := time.After(100 * time.Millisecond)
-	
+
 eventLoop:
 	for {
 		select {
@@ -226,8 +226,8 @@ eventLoop:
 				break eventLoop
 			}
 			if record.IsCDCRecord() {
-				fmt.Printf("CDC Event: %s on table %s\n", 
-					record.GetCDCOperation(), 
+				fmt.Printf("CDC Event: %s on table %s\n",
+					record.GetCDCOperation(),
 					record.GetCDCTable())
 			}
 			record.Release()
@@ -247,12 +247,12 @@ eventLoop:
 func Example_s3Destination() {
 	// Configure S3 destination with Parquet format
 	cfg := config.NewBaseConfig("s3", "columnar")
-	
+
 	// S3 settings
 	cfg.Security.Credentials["bucket"] = "my-data-bucket"
 	cfg.Security.Credentials["prefix"] = "data/events/"
 	cfg.Security.Credentials["region"] = "us-west-2"
-	
+
 	// Columnar format settings (stored in credentials for S3)
 	cfg.Security.Credentials["format"] = "parquet"
 	cfg.Advanced.EnableCompression = true
@@ -280,14 +280,14 @@ func Example_connectorMetrics() {
 	// Create and initialize a connector
 	cfg := config.NewBaseConfig("csv", "row")
 	cfg.Security.Credentials["path"] = "test.csv"
-	
+
 	source, _ := registry.CreateSource("csv", cfg)
 	source.Initialize(ctx, cfg)
 	defer source.Close(ctx)
 
 	// Process some records
 	stream, _ := source.Read(ctx)
-	
+
 	// Read a few records for metrics
 	timeout := time.After(100 * time.Millisecond)
 	recordCount := 0
@@ -310,7 +310,7 @@ metricsLoop:
 
 	// Get metrics
 	metrics := source.Metrics()
-	
+
 	// Common metrics available
 	if recordsRead, ok := metrics["records_read"]; ok {
 		fmt.Printf("Records read: %v\n", recordsRead)

@@ -28,18 +28,18 @@
 //	cfg := config.NewBaseConfig("csv_source", "row")
 //	cfg.Security.Credentials["path"] = "data.csv"
 //	cfg.Performance.BatchSize = 10000
-//	
+//
 //	source, err := csv.NewCSVSource(cfg)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-//	
+//
 //	ctx := context.Background()
 //	if err := source.Initialize(ctx, cfg); err != nil {
 //	    log.Fatal(err)
 //	}
 //	defer source.Close(ctx)
-//	
+//
 //	// Read records in batches
 //	for {
 //	    records, err := source.Read(ctx)
@@ -49,7 +49,7 @@
 //	    if len(records) == 0 {
 //	        break
 //	    }
-//	    
+//
 //	    // Process records...
 //	    for _, record := range records {
 //	        // Use record.Data map
@@ -90,20 +90,20 @@ type CSVSource struct {
 	*base.BaseConnector
 
 	// CSV-specific fields
-	file           *os.File           // Open file handle
-	reader         *csv.Reader        // CSV reader instance
-	headers        []string           // Column headers from first row or generated
-	currentRow     int                // Current row being processed
-	totalRows      int                // Total rows in file (-1 if unknown)
-	hasHeader      bool               // Whether first row contains headers
-	enableParallel bool               // Enable parallel CSV parsing
-	filePath       string             // Store the file path for reopening
+	file           *os.File    // Open file handle
+	reader         *csv.Reader // CSV reader instance
+	headers        []string    // Column headers from first row or generated
+	currentRow     int         // Current row being processed
+	totalRows      int         // Total rows in file (-1 if unknown)
+	hasHeader      bool        // Whether first row contains headers
+	enableParallel bool        // Enable parallel CSV parsing
+	filePath       string      // Store the file path for reopening
 
 	// Schema and state
-	schema       *core.Schema         // Discovered schema information
-	lastPosition int64                // Last read position for resumability
-	eof          bool                 // End of file reached
-	
+	schema       *core.Schema // Discovered schema information
+	lastPosition int64        // Last read position for resumability
+	eof          bool         // End of file reached
+
 	// Parallel parser (when enabled)
 	parallelParser *ParallelCSVParser // Parallel processing engine
 }
@@ -196,7 +196,7 @@ func (s *CSVSource) Read(ctx context.Context) (*core.RecordStream, error) {
 	if s.enableParallel {
 		return s.readParallel(ctx)
 	}
-	
+
 	recordChan := pool.GetRecordChannel(s.GetConfig().Performance.BufferSize)
 	defer pool.PutRecordChannel(recordChan)
 	errorChan := make(chan error, 1)
@@ -295,10 +295,10 @@ func (s *CSVSource) extractCSVConfig(config *config.BaseConfig) {
 			s.filePath = path
 		}
 	}
-	
+
 	// CSV-specific configuration defaults
 	s.hasHeader = true // default
-	
+
 	// Enable parallel parsing for better performance on large files
 	// This could be configured via credentials or advanced settings
 	if config.Performance.Workers > 1 && config.Performance.BatchSize > 100 {
@@ -679,46 +679,46 @@ func (s *CSVSource) readParallel(ctx context.Context) (*core.RecordStream, error
 			return s.rowToRecord(fields), nil
 		},
 	}
-	
+
 	// Create parallel parser
 	s.parallelParser = NewParallelCSVParser(config, s.GetLogger())
-	
+
 	// Parse file in parallel
 	recordChan, errorChan := s.parallelParser.ParseFile(s.file)
-	
+
 	// Create stream wrapper that tracks metrics
 	wrappedRecordChan := pool.GetRecordChannel(s.GetConfig().Performance.BufferSize)
 	defer pool.PutRecordChannel(wrappedRecordChan)
 	wrappedErrorChan := make(chan error, 1)
-	
+
 	go func() {
 		defer close(wrappedRecordChan)
 		defer close(wrappedErrorChan)
 		defer s.parallelParser.Stop()
-		
+
 		for {
 			select {
 			case record, ok := <-recordChan:
 				if !ok {
 					return
 				}
-				
+
 				// Update metrics
 				s.currentRow++
 				s.lastPosition = int64(s.currentRow)
 				s.RecordMetric("records_read", 1, core.MetricTypeCounter)
-				
+
 				// Report progress
 				if s.totalRows > 0 {
 					s.ReportProgress(s.lastPosition, int64(s.totalRows))
 				}
-				
+
 				select {
 				case wrappedRecordChan <- record:
 				case <-ctx.Done():
 					return
 				}
-				
+
 			case err, ok := <-errorChan:
 				if !ok {
 					continue
@@ -728,13 +728,13 @@ func (s *CSVSource) readParallel(ctx context.Context) (*core.RecordStream, error
 				case <-ctx.Done():
 					return
 				}
-				
+
 			case <-ctx.Done():
 				return
 			}
 		}
 	}()
-	
+
 	return &core.RecordStream{
 		Records: wrappedRecordChan,
 		Errors:  wrappedErrorChan,

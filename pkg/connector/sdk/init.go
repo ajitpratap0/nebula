@@ -55,8 +55,8 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/compression"
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/ajitpratap0/nebula/pkg/logger"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 	"go.uber.org/zap"
 )
 
@@ -65,12 +65,12 @@ const Version = "2.0.0"
 
 // SDK provides the main entry point for the connector SDK
 type SDK struct {
-	logger            *zap.Logger
+	logger *zap.Logger
 	// OptimizationLayer removed - using unified pool system
-	registry          *ConnectorRegistry
-	validator         *ConfigValidator
-	typeConverter     *TypeConverter
-	reflectionHelper  *ReflectionHelper
+	registry         *ConnectorRegistry
+	validator        *ConfigValidator
+	typeConverter    *TypeConverter
+	reflectionHelper *ReflectionHelper
 }
 
 // NewSDK creates a new SDK instance

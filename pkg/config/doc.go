@@ -25,7 +25,7 @@
 //
 //	type MyConnectorConfig struct {
 //		config.BaseConfig `yaml:",inline" json:",inline"`
-//		
+//
 //		// Connector-specific fields
 //		DatabaseURL string `yaml:"database_url" json:"database_url"`
 //	}
@@ -33,7 +33,7 @@
 //	func NewMyConnector() *MyConnector {
 //		cfg := config.NewBaseConfig("my-connector", "source")
 //		// cfg now has all sensible defaults
-//		
+//
 //		return &MyConnector{config: cfg}
 //	}
 //
@@ -55,7 +55,7 @@
 //		Name    string `yaml:"name" json:"name"`
 //		Type    string `yaml:"type" json:"type"`
 //		Version string `yaml:"version" json:"version"`
-//		
+//
 //		Performance   PerformanceConfig   `yaml:"performance" json:"performance"`
 //		Timeouts      TimeoutConfig       `yaml:"timeouts" json:"timeouts"`
 //		Reliability   ReliabilityConfig   `yaml:"reliability" json:"reliability"`
@@ -68,7 +68,7 @@
 // Each section provides structured, validated configuration:
 //
 // - Performance: Batch sizes, concurrency, memory limits
-// - Timeouts: Request, connection, read/write timeouts  
+// - Timeouts: Request, connection, read/write timeouts
 // - Reliability: Retry policies, circuit breakers, rate limiting
 // - Security: TLS, authentication, certificates
 // - Observability: Metrics, logging, tracing
@@ -92,6 +92,6 @@
 // 4. Environment variables are substituted automatically
 // 5. Validation is performed on load
 //
-// This clean implementation eliminates the configuration proliferation that was 
+// This clean implementation eliminates the configuration proliferation that was
 // blocking Nebula from achieving its 1M records/sec performance target.
 package config

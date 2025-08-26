@@ -55,13 +55,13 @@ func BenchmarkHybridStorageComparison(b *testing.B) {
 				// Connection handled during Read()
 
 				stream, err := source.Read(ctx)
-			if err != nil {
-				b.Fatal(err)
-			}
-				
+				if err != nil {
+					b.Fatal(err)
+				}
+
 				count := 0
 				start := time.Now()
-				
+
 				for {
 					select {
 					case record, ok := <-stream.Records:
@@ -79,10 +79,10 @@ func BenchmarkHybridStorageComparison(b *testing.B) {
 
 			done:
 				duration := time.Since(start)
-				
+
 				runtime.GC()
 				runtime.ReadMemStats(&m2)
-				
+
 				memUsed := m2.TotalAlloc - m1.TotalAlloc
 				bytesPerRecord := float64(memUsed) / float64(count)
 				recordsPerSec := float64(count) / duration.Seconds()
@@ -128,13 +128,13 @@ func BenchmarkColumnarMemoryEfficiency(b *testing.B) {
 				// Connection handled during Read()
 
 				stream, err := source.Read(ctx)
-			if err != nil {
-				b.Fatal(err)
-			}
-				
+				if err != nil {
+					b.Fatal(err)
+				}
+
 				processedCount := 0
 				start := time.Now()
-				
+
 				for {
 					select {
 					case record, ok := <-stream.Records:
@@ -152,10 +152,10 @@ func BenchmarkColumnarMemoryEfficiency(b *testing.B) {
 
 			done:
 				duration := time.Since(start)
-				
+
 				runtime.GC()
 				runtime.ReadMemStats(&m2)
-				
+
 				memUsed := m2.TotalAlloc - m1.TotalAlloc
 				bytesPerRecord := float64(memUsed) / float64(processedCount)
 				recordsPerSec := float64(processedCount) / duration.Seconds()
@@ -172,13 +172,13 @@ func BenchmarkColumnarMemoryEfficiency(b *testing.B) {
 // BenchmarkStorageModeAutoSelection tests hybrid mode intelligence
 func BenchmarkStorageModeAutoSelection(b *testing.B) {
 	testFile := "/tmp/auto_selection_test.csv"
-	
+
 	scenarios := []struct {
 		name        string
 		recordCount int
 		expectMode  string
 	}{
-		{"Small_Dataset", 1000, "row"},      // Should use row-based
+		{"Small_Dataset", 1000, "row"},        // Should use row-based
 		{"Large_Dataset", 100000, "columnar"}, // Should use columnar
 	}
 
@@ -200,15 +200,15 @@ func BenchmarkStorageModeAutoSelection(b *testing.B) {
 				}
 
 				// adapter := source.GetStorageAdapter() // Not available in base interface
-				
+
 				ctx := context.Background()
 				// Connection handled during Read()
-				
+
 				stream, err := source.Read(ctx)
-			if err != nil {
-				b.Fatal(err)
-			}
-				
+				if err != nil {
+					b.Fatal(err)
+				}
+
 				count := 0
 				for {
 					select {
@@ -227,7 +227,7 @@ func BenchmarkStorageModeAutoSelection(b *testing.B) {
 
 			done:
 				memPerRecord := float64(0) // adapter.GetMemoryPerRecord() // Not available
-				
+
 				b.ReportMetric(memPerRecord, "bytes/record")
 				b.ReportMetric(float64(count), "total_records")
 
@@ -256,15 +256,15 @@ func createBenchmarkTestData(b *testing.B, filename string, records int) {
 
 	for i := 0; i < records; i++ {
 		line := fmt.Sprintf("%d,%d,SKU-%05d,%d,%.2f,%s,%s,%s,%s\n",
-			1000000+i,                           // order_id
-			10000+i/5,                          // customer_id (creates repeats)
-			i%5000,                             // product_sku (high cardinality)
-			1+i%10,                             // quantity (low cardinality integers)
-			10.99+float64(i%100),               // price (floats)
-			statuses[i%len(statuses)],          // status (categorical)
-			categories[i%len(categories)],      // category (categorical)
-			regions[i%len(regions)],            // region (categorical)
-			time.Now().Format(time.RFC3339),    // timestamp
+			1000000+i,                       // order_id
+			10000+i/5,                       // customer_id (creates repeats)
+			i%5000,                          // product_sku (high cardinality)
+			1+i%10,                          // quantity (low cardinality integers)
+			10.99+float64(i%100),            // price (floats)
+			statuses[i%len(statuses)],       // status (categorical)
+			categories[i%len(categories)],   // category (categorical)
+			regions[i%len(regions)],         // region (categorical)
+			time.Now().Format(time.RFC3339), // timestamp
 		)
 		file.WriteString(line)
 	}
@@ -282,7 +282,7 @@ func BenchmarkDirectStorageAdapter(b *testing.B) {
 		b.Run(string(mode), func(b *testing.B) {
 			cfg := config.NewBaseConfig("test", "benchmark")
 			cfg.Performance.BatchSize = 10000
-			
+
 			adapter := pipeline.NewStorageAdapter(mode, cfg)
 			defer adapter.Close()
 
@@ -301,19 +301,19 @@ func BenchmarkDirectStorageAdapter(b *testing.B) {
 					record.SetData("value", fmt.Sprintf("value_%d", j))
 					record.SetData("category", fmt.Sprintf("cat_%d", j%10))
 					record.SetData("amount", float64(j)*1.5)
-					
+
 					adapter.AddRecord(record)
 					record.Release()
 				}
 
 				adapter.Flush()
-				
+
 				runtime.GC()
 				runtime.ReadMemStats(&m2)
-				
+
 				memUsed := m2.TotalAlloc - m1.TotalAlloc
 				bytesPerRecord := float64(memUsed) / 50000.0
-				
+
 				b.ReportMetric(bytesPerRecord, "bytes/record")
 				b.ReportMetric(float64(adapter.GetRecordCount()), "total_records")
 			}

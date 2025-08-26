@@ -1,10 +1,10 @@
 package csv
 
 import (
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"context"
 	"encoding/csv"
 	"fmt"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 	"os"
 	"time"
 

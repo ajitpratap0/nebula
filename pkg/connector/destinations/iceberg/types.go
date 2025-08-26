@@ -9,22 +9,22 @@ import (
 // IcebergDestination is a minimal Iceberg destination connector
 type IcebergDestination struct {
 	catalogProvider CatalogProvider
-	
+
 	// Configuration
-	catalogURI   string
-	catalogName  string
-	warehouse    string
-	branch       string
-	database     string
-	tableName    string
-	
+	catalogURI  string
+	catalogName string
+	warehouse   string
+	branch      string
+	database    string
+	tableName   string
+
 	// S3/MinIO configuration
-	region       string
-	s3Endpoint   string
-	accessKey    string
-	secretKey    string
-	properties   map[string]string
-	
+	region     string
+	s3Endpoint string
+	accessKey  string
+	secretKey  string
+	properties map[string]string
+
 	logger *zap.Logger
 }
 
@@ -45,7 +45,7 @@ type TableResponse struct {
 
 func NewIcebergDestination(config *config.BaseConfig) (core.Destination, error) {
 	logger, _ := zap.NewProduction()
-	
+
 	return &IcebergDestination{
 		properties: make(map[string]string),
 		logger:     logger,

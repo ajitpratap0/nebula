@@ -179,7 +179,6 @@ func (eh *ErrorHandler) GetErrorStats() map[string]interface{} {
 
 	stats := pool.GetMap()
 
-
 	defer pool.PutMap(stats)
 	stats["total_errors"] = atomic.LoadInt64(&eh.totalErrors)
 	stats["retried_errors"] = atomic.LoadInt64(&eh.retriedErrors)
