@@ -1,4 +1,4 @@
-package mysql_cdc
+package mysqlcdc
 
 import (
 	"context"
@@ -10,9 +10,9 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
 )
@@ -103,11 +103,11 @@ func (s *MySQLCDCSource) Initialize(ctx context.Context, config *config.BaseConf
 	}
 
 	// Extract MySQL-specific options
-	if serverIdStr, ok := config.Security.Credentials["server_id"]; ok && serverIdStr != "" {
+	if serverIDStr, ok := config.Security.Credentials["server_id"]; ok && serverIDStr != "" {
 		if s.cdcConfig.Options == nil {
 			s.cdcConfig.Options = pool.GetMap()
 		}
-		s.cdcConfig.Options["server_id"] = serverIdStr
+		s.cdcConfig.Options["server_id"] = serverIDStr
 	}
 
 	// Create CDC connector
@@ -271,7 +271,6 @@ func (s *MySQLCDCSource) ReadBatch(ctx context.Context, batchSize int) (*core.Ba
 		}()
 
 		batch := pool.GetBatchSlice(batchSize)
-
 
 		defer pool.PutBatchSlice(batch)
 		timeout := time.NewTimer(5 * time.Second)

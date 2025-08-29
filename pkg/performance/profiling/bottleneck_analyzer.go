@@ -15,11 +15,11 @@ import (
 type BottleneckType string
 
 const (
-	CPUBottleneck        BottleneckType = "cpu"
-	MemoryBottleneck     BottleneckType = "memory"
-	IOBottleneck         BottleneckType = "io"
+	CPUBottleneck         BottleneckType = "cpu"
+	MemoryBottleneck      BottleneckType = "memory"
+	IOBottleneck          BottleneckType = "io"
 	ConcurrencyBottleneck BottleneckType = "concurrency"
-	GCBottleneck         BottleneckType = "gc"
+	GCBottleneck          BottleneckType = "gc"
 )
 
 // Bottleneck represents a detected performance bottleneck
@@ -42,10 +42,10 @@ type BottleneckAnalyzer struct {
 
 // AnalysisResult contains the complete analysis results
 type AnalysisResult struct {
-	Timestamp    time.Time
-	Bottlenecks  []Bottleneck
-	Summary      string
-	Metrics      *RuntimeMetrics
+	Timestamp       time.Time
+	Bottlenecks     []Bottleneck
+	Summary         string
+	Metrics         *RuntimeMetrics
 	Recommendations []string
 }
 
@@ -54,7 +54,7 @@ func NewBottleneckAnalyzer(profileDir string, logger *zap.Logger) *BottleneckAna
 	if logger == nil {
 		logger = zap.NewNop()
 	}
-	
+
 	return &BottleneckAnalyzer{
 		logger:      logger,
 		profileDir:  profileDir,
@@ -65,27 +65,27 @@ func NewBottleneckAnalyzer(profileDir string, logger *zap.Logger) *BottleneckAna
 // Analyze performs comprehensive bottleneck analysis
 func (b *BottleneckAnalyzer) Analyze(metrics *RuntimeMetrics) (*AnalysisResult, error) {
 	b.bottlenecks = make([]Bottleneck, 0)
-	
+
 	// Analyze CPU usage
 	if err := b.analyzeCPU(); err != nil {
 		b.logger.Error("failed to analyze CPU profile", zap.Error(err))
 	}
-	
+
 	// Analyze memory usage
 	b.analyzeMemory(metrics)
-	
+
 	// Analyze GC pressure
 	b.analyzeGC(metrics)
-	
+
 	// Analyze concurrency
 	b.analyzeConcurrency(metrics)
-	
+
 	// Sort bottlenecks by severity
 	b.sortBottlenecks()
-	
+
 	// Generate recommendations
 	recommendations := b.generateRecommendations()
-	
+
 	result := &AnalysisResult{
 		Timestamp:       time.Now(),
 		Bottlenecks:     b.bottlenecks,
@@ -93,12 +93,12 @@ func (b *BottleneckAnalyzer) Analyze(metrics *RuntimeMetrics) (*AnalysisResult, 
 		Metrics:         metrics,
 		Recommendations: recommendations,
 	}
-	
+
 	// Save analysis report
 	if err := b.saveAnalysisReport(result); err != nil {
 		b.logger.Error("failed to save analysis report", zap.Error(err))
 	}
-	
+
 	return result, nil
 }
 
@@ -109,17 +109,17 @@ func (b *BottleneckAnalyzer) analyzeCPU() error {
 	if cpuProfile == "" {
 		return nil // No CPU profile available
 	}
-	
+
 	file, err := os.Open(cpuProfile)
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to open CPU profile")
 	}
 	defer file.Close()
-	
+
 	// Parse is from the profile package, not pprof
 	// For now, we'll skip detailed CPU analysis
 	// In a real implementation, you'd parse the profile file properly
-	
+
 	// For now, return early as we need proper profile parsing
 	// This is a simplified implementation
 	// In production, you would parse the profile file properly
@@ -131,16 +131,16 @@ func (b *BottleneckAnalyzer) analyzeMemory(metrics *RuntimeMetrics) {
 	if metrics == nil || len(metrics.Samples) < 2 {
 		return
 	}
-	
+
 	// Calculate memory growth rate
 	firstSample := metrics.Samples[0]
 	lastSample := metrics.Samples[len(metrics.Samples)-1]
 	duration := lastSample.Timestamp.Sub(firstSample.Timestamp)
-	
+
 	if duration > 0 {
 		memGrowthMB := float64(lastSample.AllocBytes-firstSample.AllocBytes) / (1024 * 1024)
 		memGrowthRate := memGrowthMB / duration.Seconds() // MB/s
-		
+
 		// Check for memory leak
 		if memGrowthRate > 1.0 { // Growing more than 1MB/s
 			severity := "medium"
@@ -149,7 +149,7 @@ func (b *BottleneckAnalyzer) analyzeMemory(metrics *RuntimeMetrics) {
 			} else if memGrowthRate > 5.0 {
 				severity = "high"
 			}
-			
+
 			bottleneck := Bottleneck{
 				Type:        MemoryBottleneck,
 				Severity:    severity,
@@ -168,14 +168,14 @@ func (b *BottleneckAnalyzer) analyzeMemory(metrics *RuntimeMetrics) {
 					"duration":             duration.String(),
 				},
 			}
-			
+
 			b.bottlenecks = append(b.bottlenecks, bottleneck)
 		}
-		
+
 		// Check for high memory usage
 		currentMemMB := float64(metrics.AllocBytes) / (1024 * 1024)
 		systemMemMB := float64(metrics.SysBytes) / (1024 * 1024)
-		
+
 		if currentMemMB > 1000 { // Using more than 1GB
 			severity := "medium"
 			if currentMemMB > 5000 {
@@ -183,7 +183,7 @@ func (b *BottleneckAnalyzer) analyzeMemory(metrics *RuntimeMetrics) {
 			} else if currentMemMB > 2000 {
 				severity = "high"
 			}
-			
+
 			bottleneck := Bottleneck{
 				Type:        MemoryBottleneck,
 				Severity:    severity,
@@ -197,12 +197,12 @@ func (b *BottleneckAnalyzer) analyzeMemory(metrics *RuntimeMetrics) {
 					"Consider using memory-mapped files",
 				},
 				Details: map[string]interface{}{
-					"alloc_mb":  currentMemMB,
-					"sys_mb":    systemMemMB,
+					"alloc_mb":       currentMemMB,
+					"sys_mb":         systemMemMB,
 					"total_alloc_mb": float64(metrics.TotalAllocBytes) / (1024 * 1024),
 				},
 			}
-			
+
 			b.bottlenecks = append(b.bottlenecks, bottleneck)
 		}
 	}
@@ -213,13 +213,13 @@ func (b *BottleneckAnalyzer) analyzeGC(metrics *RuntimeMetrics) {
 	if metrics == nil {
 		return
 	}
-	
+
 	// Calculate GC overhead
 	if metrics.NumGC > 0 && len(metrics.Samples) > 0 {
 		totalTime := metrics.Samples[len(metrics.Samples)-1].Timestamp.Sub(metrics.Samples[0].Timestamp)
 		if totalTime > 0 {
 			gcOverhead := float64(metrics.GCPauseTotal) / float64(totalTime) * 100
-			
+
 			if gcOverhead > 5.0 { // GC taking more than 5% of time
 				severity := "medium"
 				if gcOverhead > 20.0 {
@@ -227,7 +227,7 @@ func (b *BottleneckAnalyzer) analyzeGC(metrics *RuntimeMetrics) {
 				} else if gcOverhead > 10.0 {
 					severity = "high"
 				}
-				
+
 				bottleneck := Bottleneck{
 					Type:        GCBottleneck,
 					Severity:    severity,
@@ -243,12 +243,12 @@ func (b *BottleneckAnalyzer) analyzeGC(metrics *RuntimeMetrics) {
 					},
 					Details: map[string]interface{}{
 						"gc_overhead_percent": gcOverhead,
-						"num_gc":             metrics.NumGC,
-						"gc_pause_total_ms":  metrics.GCPauseTotal.Milliseconds(),
-						"gc_pause_last_ms":   metrics.GCPauseLast.Milliseconds(),
+						"num_gc":              metrics.NumGC,
+						"gc_pause_total_ms":   metrics.GCPauseTotal.Milliseconds(),
+						"gc_pause_last_ms":    metrics.GCPauseLast.Milliseconds(),
 					},
 				}
-				
+
 				b.bottlenecks = append(b.bottlenecks, bottleneck)
 			}
 		}
@@ -260,14 +260,14 @@ func (b *BottleneckAnalyzer) analyzeConcurrency(metrics *RuntimeMetrics) {
 	if metrics == nil {
 		return
 	}
-	
+
 	// Check for goroutine leaks
 	if len(metrics.Samples) > 10 {
 		// Calculate goroutine growth rate
 		firstSample := metrics.Samples[0]
 		lastSample := metrics.Samples[len(metrics.Samples)-1]
 		goroutineGrowth := lastSample.NumGoroutines - firstSample.NumGoroutines
-		
+
 		if goroutineGrowth > 100 {
 			severity := "medium"
 			if goroutineGrowth > 1000 {
@@ -275,7 +275,7 @@ func (b *BottleneckAnalyzer) analyzeConcurrency(metrics *RuntimeMetrics) {
 			} else if goroutineGrowth > 500 {
 				severity = "high"
 			}
-			
+
 			bottleneck := Bottleneck{
 				Type:        ConcurrencyBottleneck,
 				Severity:    severity,
@@ -289,15 +289,15 @@ func (b *BottleneckAnalyzer) analyzeConcurrency(metrics *RuntimeMetrics) {
 					"Add timeouts to blocking operations",
 				},
 				Details: map[string]interface{}{
-					"goroutine_growth":  goroutineGrowth,
+					"goroutine_growth":   goroutineGrowth,
 					"current_goroutines": lastSample.NumGoroutines,
 				},
 			}
-			
+
 			b.bottlenecks = append(b.bottlenecks, bottleneck)
 		}
 	}
-	
+
 	// Check for CPU underutilization
 	if metrics.NumCPU > 1 && metrics.NumGoroutines < metrics.NumCPU {
 		bottleneck := Bottleneck{
@@ -317,7 +317,7 @@ func (b *BottleneckAnalyzer) analyzeConcurrency(metrics *RuntimeMetrics) {
 				"gomaxprocs":     metrics.GOMAXPROCS,
 			},
 		}
-		
+
 		b.bottlenecks = append(b.bottlenecks, bottleneck)
 	}
 }
@@ -329,33 +329,33 @@ func (b *BottleneckAnalyzer) getCPUSuggestions(function string, cpuPercent float
 		"Consider algorithmic improvements",
 		"Check for unnecessary computations in loops",
 	}
-	
+
 	// Function-specific suggestions
 	if strings.Contains(function, "json") || strings.Contains(function, "Marshal") {
-		suggestions = append(suggestions, 
+		suggestions = append(suggestions,
 			"Consider using a faster JSON library (sonic, jsoniter)",
 			"Use streaming JSON processing for large data")
 	}
-	
+
 	if strings.Contains(function, "sort") {
 		suggestions = append(suggestions,
 			"Check if sorting is necessary for all operations",
 			"Consider using a more efficient sorting algorithm",
 			"Pre-sort data where possible")
 	}
-	
+
 	if strings.Contains(function, "regex") || strings.Contains(function, "Regexp") {
 		suggestions = append(suggestions,
 			"Cache compiled regular expressions",
 			"Consider simpler string operations if regex is overkill")
 	}
-	
+
 	if cpuPercent > 30.0 {
 		suggestions = append(suggestions,
 			"Consider parallelizing this operation",
 			"Implement caching for expensive computations")
 	}
-	
+
 	return suggestions
 }
 
@@ -367,7 +367,7 @@ func (b *BottleneckAnalyzer) sortBottlenecks() {
 		"medium":   2,
 		"low":      3,
 	}
-	
+
 	sort.Slice(b.bottlenecks, func(i, j int) bool {
 		if severityOrder[b.bottlenecks[i].Severity] != severityOrder[b.bottlenecks[j].Severity] {
 			return severityOrder[b.bottlenecks[i].Severity] < severityOrder[b.bottlenecks[j].Severity]
@@ -381,7 +381,7 @@ func (b *BottleneckAnalyzer) generateSummary() string {
 	if len(b.bottlenecks) == 0 {
 		return "No significant bottlenecks detected. System is performing well."
 	}
-	
+
 	criticalCount := 0
 	highCount := 0
 	for _, bottleneck := range b.bottlenecks {
@@ -392,7 +392,7 @@ func (b *BottleneckAnalyzer) generateSummary() string {
 			highCount++
 		}
 	}
-	
+
 	summary := fmt.Sprintf("Found %d bottlenecks: ", len(b.bottlenecks))
 	if criticalCount > 0 {
 		summary += fmt.Sprintf("%d critical, ", criticalCount)
@@ -400,13 +400,13 @@ func (b *BottleneckAnalyzer) generateSummary() string {
 	if highCount > 0 {
 		summary += fmt.Sprintf("%d high severity, ", highCount)
 	}
-	
+
 	// Add primary bottleneck
 	if len(b.bottlenecks) > 0 {
 		primary := b.bottlenecks[0]
 		summary += fmt.Sprintf("\nPrimary bottleneck: %s (%s)", primary.Description, primary.Type)
 	}
-	
+
 	return summary
 }
 
@@ -414,7 +414,7 @@ func (b *BottleneckAnalyzer) generateSummary() string {
 func (b *BottleneckAnalyzer) generateRecommendations() []string {
 	recommendations := make([]string, 0)
 	seen := make(map[string]bool)
-	
+
 	// Add unique recommendations from critical and high severity bottlenecks
 	for _, bottleneck := range b.bottlenecks {
 		if bottleneck.Severity == "critical" || bottleneck.Severity == "high" {
@@ -426,7 +426,7 @@ func (b *BottleneckAnalyzer) generateRecommendations() []string {
 			}
 		}
 	}
-	
+
 	// Add general recommendations if needed
 	if len(recommendations) == 0 {
 		recommendations = append(recommendations,
@@ -435,7 +435,7 @@ func (b *BottleneckAnalyzer) generateRecommendations() []string {
 			"Set up continuous profiling",
 		)
 	}
-	
+
 	return recommendations
 }
 
@@ -444,10 +444,10 @@ func (b *BottleneckAnalyzer) findLatestProfile(profileType string) string {
 	// This is a simplified implementation
 	// In production, you'd scan the directory for matching files
 	matches, _ := os.ReadDir(b.profileDir)
-	
+
 	var latestFile string
 	var latestTime time.Time
-	
+
 	for _, entry := range matches {
 		if strings.HasPrefix(entry.Name(), profileType+"_") && strings.HasSuffix(entry.Name(), ".prof") {
 			info, err := entry.Info()
@@ -457,7 +457,7 @@ func (b *BottleneckAnalyzer) findLatestProfile(profileType string) string {
 			}
 		}
 	}
-	
+
 	return latestFile
 }
 
@@ -469,29 +469,29 @@ func (b *BottleneckAnalyzer) saveAnalysisReport(result *AnalysisResult) error {
 		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create analysis report")
 	}
 	defer file.Close()
-	
+
 	fmt.Fprintf(file, "Nebula Performance Bottleneck Analysis\n")
 	fmt.Fprintf(file, "=====================================\n\n")
 	fmt.Fprintf(file, "Timestamp: %s\n", result.Timestamp.Format(time.RFC3339))
 	fmt.Fprintf(file, "Summary: %s\n\n", result.Summary)
-	
+
 	if len(result.Bottlenecks) > 0 {
 		fmt.Fprintf(file, "Bottlenecks:\n")
 		fmt.Fprintf(file, "-----------\n\n")
-		
+
 		for i, bottleneck := range result.Bottlenecks {
 			fmt.Fprintf(file, "%d. [%s] %s\n", i+1, strings.ToUpper(bottleneck.Severity), bottleneck.Description)
 			fmt.Fprintf(file, "   Type: %s\n", bottleneck.Type)
 			fmt.Fprintf(file, "   Component: %s\n", bottleneck.Component)
 			fmt.Fprintf(file, "   Impact: %.1f%%\n", bottleneck.Impact)
-			
+
 			if len(bottleneck.Suggestions) > 0 {
 				fmt.Fprintf(file, "   Suggestions:\n")
 				for _, suggestion := range bottleneck.Suggestions {
 					fmt.Fprintf(file, "   - %s\n", suggestion)
 				}
 			}
-			
+
 			if len(bottleneck.Details) > 0 {
 				fmt.Fprintf(file, "   Details:\n")
 				for key, value := range bottleneck.Details {
@@ -501,7 +501,7 @@ func (b *BottleneckAnalyzer) saveAnalysisReport(result *AnalysisResult) error {
 			fmt.Fprintf(file, "\n")
 		}
 	}
-	
+
 	if len(result.Recommendations) > 0 {
 		fmt.Fprintf(file, "Prioritized Recommendations:\n")
 		fmt.Fprintf(file, "---------------------------\n")
@@ -509,7 +509,7 @@ func (b *BottleneckAnalyzer) saveAnalysisReport(result *AnalysisResult) error {
 			fmt.Fprintf(file, "%d. %s\n", i+1, rec)
 		}
 	}
-	
+
 	b.logger.Info("bottleneck analysis report saved", zap.String("file", filename))
 	return nil
 }

@@ -3,7 +3,7 @@
 // enterprise features including circuit breakers, rate limiting, health monitoring,
 // and automatic retries.
 //
-// Architecture Overview
+// # Architecture Overview
 //
 // The connector package is organized into several sub-packages:
 //
@@ -29,7 +29,7 @@
 //   - sdk: Provides utilities and helpers for building custom connectors, including
 //     retry logic, rate limiting, and common patterns.
 //
-// Core Concepts
+// # Core Concepts
 //
 // Unified Configuration: All connectors use config.BaseConfig which provides
 // standardized configuration sections for performance, timeouts, reliability,
@@ -47,7 +47,7 @@
 //   - Exactly-once semantics for supported destinations
 //   - Comprehensive error handling with structured errors
 //
-// Example Usage
+// # Example Usage
 //
 // Creating a source connector:
 //
@@ -57,17 +57,17 @@
 //			Workers:   4,
 //		},
 //	}
-//	
+//
 //	source, err := registry.GetSourceFactory("postgresql")
 //	if err != nil {
 //		log.Fatal(err)
 //	}
-//	
+//
 //	conn, err := source(config)
 //	if err != nil {
 //		log.Fatal(err)
 //	}
-//	
+//
 //	// Use the connector
 //	records, err := conn.Read(ctx)
 //
@@ -77,16 +77,16 @@
 //	if err != nil {
 //		log.Fatal(err)
 //	}
-//	
+//
 //	conn, err := dest(config)
 //	if err != nil {
 //		log.Fatal(err)
 //	}
-//	
+//
 //	// Write records with automatic bulk loading
 //	err = conn.Write(ctx, records)
 //
-// Performance Considerations
+// # Performance Considerations
 //
 // Connectors are designed for extreme performance:
 //   - Zero-copy architecture throughout the pipeline
@@ -95,7 +95,7 @@
 //   - Parallel processing with work stealing
 //   - Backpressure handling to prevent OOMs
 //
-// Best Practices
+// # Best Practices
 //
 // 1. Always use BaseConnector as the foundation for new connectors
 // 2. Implement comprehensive health checks for production readiness

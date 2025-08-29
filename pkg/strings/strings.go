@@ -3,7 +3,6 @@ package strings
 
 import (
 	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -17,7 +16,7 @@ func BytesToString(b []byte) string {
 	if len(b) == 0 {
 		return ""
 	}
-	return *(*string)(unsafe.Pointer(&b))
+	return unsafe.String(&b[0], len(b))
 }
 
 // StringToBytes converts string to byte slice without allocation
@@ -27,13 +26,7 @@ func StringToBytes(s string) []byte {
 	if len(s) == 0 {
 		return nil
 	}
-	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
-	bh := reflect.SliceHeader{
-		Data: sh.Data,
-		Len:  sh.Len,
-		Cap:  sh.Len,
-	}
-	return *(*[]byte)(unsafe.Pointer(&bh))
+	return unsafe.Slice(unsafe.StringData(s), len(s))
 }
 
 // Builder provides efficient string building with zero-copy operations
@@ -322,14 +315,14 @@ var (
 			return NewBuilder(1024) // 1KB
 		},
 	}
-	
+
 	// Medium strings (1KB - 16KB) - API responses, CSV rows
 	mediumBuilderPool = &sync.Pool{
 		New: func() interface{} {
 			return NewBuilder(16 * 1024) // 16KB
 		},
 	}
-	
+
 	// Large strings (16KB+) - bulk operations, large CSV files
 	largeBuilderPool = &sync.Pool{
 		New: func() interface{} {
@@ -343,7 +336,7 @@ type BuilderSize int
 
 const (
 	Small  BuilderSize = iota // < 1KB
-	Medium                    // 1KB - 16KB  
+	Medium                    // 1KB - 16KB
 	Large                     // 16KB+
 )
 
@@ -360,7 +353,7 @@ func GetBuilder(size BuilderSize) *Builder {
 	default:
 		pool = smallBuilderPool
 	}
-	
+
 	builder := pool.Get().(*Builder)
 	builder.Reset()
 	return builder
@@ -371,7 +364,7 @@ func PutBuilder(builder *Builder, size BuilderSize) {
 	if builder == nil {
 		return
 	}
-	
+
 	var pool *sync.Pool
 	switch size {
 	case Small:
@@ -383,7 +376,7 @@ func PutBuilder(builder *Builder, size BuilderSize) {
 	default:
 		pool = smallBuilderPool
 	}
-	
+
 	builder.Reset()
 	pool.Put(builder)
 }
@@ -396,27 +389,27 @@ func Concat(strings ...string) string {
 	if len(strings) == 1 {
 		return strings[0]
 	}
-	
+
 	// Calculate total length to choose appropriate pool
 	totalLen := 0
 	for _, s := range strings {
 		totalLen += len(s)
 	}
-	
+
 	size := Small
 	if totalLen > 16*1024 {
 		size = Large
 	} else if totalLen > 1024 {
 		size = Medium
 	}
-	
+
 	builder := GetBuilder(size)
 	defer PutBuilder(builder, size)
-	
+
 	for _, s := range strings {
 		builder.WriteString(s)
 	}
-	
+
 	return Clone(builder.String())
 }
 
@@ -426,23 +419,23 @@ func Sprintf(format string, args ...interface{}) string {
 	if len(args) == 0 {
 		return format
 	}
-	
+
 	// Estimate size based on format string and args
 	estimatedSize := len(format) + len(args)*16 // rough estimate
-	
+
 	size := Small
 	if estimatedSize > 16*1024 {
 		size = Large
 	} else if estimatedSize > 1024 {
 		size = Medium
 	}
-	
+
 	builder := GetBuilder(size)
 	defer PutBuilder(builder, size)
-	
+
 	// Use fmt to write to our builder
 	fmt.Fprintf(builder, format, args...)
-	
+
 	return Clone(builder.String())
 }
 
@@ -454,30 +447,30 @@ func JoinPooled(strings []string, delimiter string) string {
 	if len(strings) == 1 {
 		return strings[0]
 	}
-	
+
 	// Calculate total length to choose appropriate pool
 	totalLen := 0
 	for _, s := range strings {
 		totalLen += len(s)
 	}
 	totalLen += (len(strings) - 1) * len(delimiter)
-	
+
 	size := Small
 	if totalLen > 16*1024 {
 		size = Large
 	} else if totalLen > 1024 {
 		size = Medium
 	}
-	
+
 	builder := GetBuilder(size)
 	defer PutBuilder(builder, size)
-	
+
 	builder.WriteString(strings[0])
 	for i := 1; i < len(strings); i++ {
 		builder.WriteString(delimiter)
 		builder.WriteString(strings[i])
 	}
-	
+
 	return Clone(builder.String())
 }
 
@@ -485,8 +478,8 @@ func JoinPooled(strings []string, delimiter string) string {
 
 // CSVBuilder provides optimized CSV string building
 type CSVBuilder struct {
-	builder *Builder
-	size    BuilderSize
+	builder  *Builder
+	size     BuilderSize
 	rowCount int
 }
 
@@ -494,17 +487,17 @@ type CSVBuilder struct {
 func NewCSVBuilder(estimatedRows, estimatedCols int) *CSVBuilder {
 	// Estimate size based on expected data
 	estimatedSize := estimatedRows * estimatedCols * 20 // rough 20 chars per cell
-	
+
 	size := Small
 	if estimatedSize > 16*1024 {
 		size = Large
 	} else if estimatedSize > 1024 {
 		size = Medium
 	}
-	
+
 	return &CSVBuilder{
-		builder: GetBuilder(size),
-		size:    size,
+		builder:  GetBuilder(size),
+		size:     size,
 		rowCount: 0,
 	}
 }
@@ -514,7 +507,7 @@ func (cb *CSVBuilder) WriteHeader(headers []string) {
 	if len(headers) == 0 {
 		return
 	}
-	
+
 	cb.builder.WriteString(headers[0])
 	for i := 1; i < len(headers); i++ {
 		cb.builder.WriteByte(',')
@@ -528,7 +521,7 @@ func (cb *CSVBuilder) WriteRow(fields []string) {
 	if len(fields) == 0 {
 		return
 	}
-	
+
 	cb.writeCSVField(fields[0])
 	for i := 1; i < len(fields); i++ {
 		cb.builder.WriteByte(',')
@@ -541,7 +534,7 @@ func (cb *CSVBuilder) WriteRow(fields []string) {
 // writeCSVField writes a single CSV field with proper escaping
 func (cb *CSVBuilder) writeCSVField(field string) {
 	needsQuoting := Contains(field, ",") || Contains(field, "\"") || Contains(field, "\n")
-	
+
 	if needsQuoting {
 		cb.builder.WriteByte('"')
 		for i := 0; i < len(field); i++ {
@@ -572,8 +565,8 @@ func (cb *CSVBuilder) Close() {
 
 // URLBuilder provides optimized URL building
 type URLBuilder struct {
-	builder *Builder
-	size    BuilderSize
+	builder   *Builder
+	size      BuilderSize
 	hasParams bool
 }
 
@@ -583,13 +576,13 @@ func NewURLBuilder(baseURL string) *URLBuilder {
 	if len(baseURL) > 1024 {
 		size = Medium
 	}
-	
+
 	builder := GetBuilder(size)
 	builder.WriteString(baseURL)
-	
+
 	return &URLBuilder{
-		builder: builder,
-		size:    size,
+		builder:   builder,
+		size:      size,
 		hasParams: Contains(baseURL, "?"),
 	}
 }
@@ -614,11 +607,11 @@ func (ub *URLBuilder) AddParam(key, value string) *URLBuilder {
 		ub.builder.WriteByte('?')
 		ub.hasParams = true
 	}
-	
+
 	ub.builder.WriteString(urlQueryEscape(key))
 	ub.builder.WriteByte('=')
 	ub.builder.WriteString(urlQueryEscape(value))
-	
+
 	return ub
 }
 
@@ -651,7 +644,7 @@ func (ub *URLBuilder) Query() string {
 	if !ub.hasParams {
 		return ""
 	}
-	
+
 	// Find the start of query parameters
 	s := ub.builder.String()
 	idx := strings.IndexByte(s, '?')
@@ -674,10 +667,10 @@ func (ub *URLBuilder) Close() {
 func NewFormBuilder() *URLBuilder {
 	size := Small
 	builder := GetBuilder(size)
-	
+
 	return &URLBuilder{
-		builder: builder,
-		size:    size,
+		builder:   builder,
+		size:      size,
 		hasParams: false,
 	}
 }
@@ -693,15 +686,15 @@ func urlQueryEscape(s string) string {
 			break
 		}
 	}
-	
+
 	if !needEscape {
 		return s
 	}
-	
+
 	// Slow path with escaping
 	builder := GetBuilder(Small)
 	defer PutBuilder(builder, Small)
-	
+
 	for i := 0; i < len(s); i++ {
 		c := s[i]
 		if isURLSafe(c) {
@@ -714,7 +707,7 @@ func urlQueryEscape(s string) string {
 			builder.WriteByte("0123456789ABCDEF"[c&15])
 		}
 	}
-	
+
 	return Clone(builder.String())
 }
 
@@ -729,15 +722,15 @@ func urlPathEscape(s string) string {
 			break
 		}
 	}
-	
+
 	if !needEscape {
 		return s
 	}
-	
+
 	// Slow path with escaping
 	builder := GetBuilder(Small)
 	defer PutBuilder(builder, Small)
-	
+
 	for i := 0; i < len(s); i++ {
 		c := s[i]
 		if isURLPathSafe(c) {
@@ -748,7 +741,7 @@ func urlPathEscape(s string) string {
 			builder.WriteByte("0123456789ABCDEF"[c&15])
 		}
 	}
-	
+
 	return Clone(builder.String())
 }
 
@@ -786,7 +779,7 @@ func NewSQLBuilder(estimatedLength int) *SQLBuilder {
 	} else if estimatedLength > 1024 {
 		size = Medium
 	}
-	
+
 	return &SQLBuilder{
 		builder: GetBuilder(size),
 		size:    size,
@@ -808,7 +801,7 @@ func (sb *SQLBuilder) WriteSpace() *SQLBuilder {
 // WriteStringLiteral writes a quoted string literal
 func (sb *SQLBuilder) WriteStringLiteral(value string) *SQLBuilder {
 	sb.builder.WriteByte('\'')
-	
+
 	// Escape single quotes
 	for i := 0; i < len(value); i++ {
 		if value[i] == '\'' {
@@ -817,7 +810,7 @@ func (sb *SQLBuilder) WriteStringLiteral(value string) *SQLBuilder {
 			sb.builder.WriteByte(value[i])
 		}
 	}
-	
+
 	sb.builder.WriteByte('\'')
 	return sb
 }
@@ -855,7 +848,7 @@ func (sb *SQLBuilder) Close() {
 func BuildWith(size BuilderSize, fn func(*Builder)) string {
 	builder := GetBuilder(size)
 	defer PutBuilder(builder, size)
-	
+
 	fn(builder)
 	return Clone(builder.String())
 }
@@ -881,7 +874,7 @@ func ValueToString(value interface{}) string {
 	if value == nil {
 		return ""
 	}
-	
+
 	// Fast path for common types - avoid reflection and fmt overhead
 	switch v := value.(type) {
 	case string:

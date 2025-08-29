@@ -238,12 +238,12 @@ type tokenReservation struct {
 	delay     time.Duration
 	at        time.Time
 	limiter   *TokenBucketRateLimiter
-	cancelled bool
+	canceled bool
 	mu        sync.Mutex
 }
 
 func (r *tokenReservation) OK() bool {
-	return r.ok && !r.cancelled
+	return r.ok && !r.canceled
 }
 
 func (r *tokenReservation) Delay() time.Duration {
@@ -254,8 +254,8 @@ func (r *tokenReservation) Cancel() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if !r.cancelled && r.delay > 0 {
-		r.cancelled = true
+	if !r.canceled && r.delay > 0 {
+		r.canceled = true
 		// Return the reserved token
 		if r.limiter != nil {
 			r.limiter.mu.Lock()

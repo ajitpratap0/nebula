@@ -22,8 +22,8 @@ import (
 	_ "github.com/ajitpratap0/nebula/pkg/connector/destinations/iceberg"
 	_ "github.com/ajitpratap0/nebula/pkg/connector/destinations/json"
 	_ "github.com/ajitpratap0/nebula/pkg/connector/sources/csv"
-	_ "github.com/ajitpratap0/nebula/pkg/connector/sources/json"
 	_ "github.com/ajitpratap0/nebula/pkg/connector/sources/google_ads"
+	_ "github.com/ajitpratap0/nebula/pkg/connector/sources/json"
 )
 
 var (
@@ -56,10 +56,7 @@ func DefaultSystemFlags() *SystemFlags {
 
 func main() {
 	// Load .env file if it exists
-	if err := godotenv.Load(); err != nil {
-		// Silently ignore if .env file doesn't exist
-		// This allows the app to work with or without .env file
-	}
+	_ = godotenv.Load() // Ignore error if .env doesn't exist
 
 	root := &cobra.Command{
 		Use:   "nebula",
@@ -127,8 +124,8 @@ Example:
 	// Required flags
 	runCmd.Flags().StringVarP(&sourceConfigFile, "source", "s", "", "Path to source configuration JSON file (required)")
 	runCmd.Flags().StringVarP(&destConfigFile, "destination", "d", "", "Path to destination configuration JSON file (required)")
-	runCmd.MarkFlagRequired("source")
-	runCmd.MarkFlagRequired("destination")
+	_ = runCmd.MarkFlagRequired("source")
+	_ = runCmd.MarkFlagRequired("destination")
 
 	// Optional system flags
 	runCmd.Flags().StringVar(&systemFlagsFile, "system-flags", "", "Path to system configuration JSON file (optional)")

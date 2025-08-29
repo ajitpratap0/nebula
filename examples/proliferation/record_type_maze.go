@@ -11,11 +11,11 @@ import (
 // SimulateDataFlow shows how unified Record eliminates all conversions
 func SimulateDataFlowAfter() {
 	fmt.Println("=== AFTER: Unified Record Type ===")
-	
+
 	// Step 1: Create a simple record using the unified constructor
 	originalData := map[string]interface{}{
 		"id":   1,
-		"name": "John Doe", 
+		"name": "John Doe",
 		"age":  30,
 	}
 
@@ -55,9 +55,9 @@ func ShowMemoryPoolSolution() {
 	// ONE pool implementation for all record types
 	record1 := models.NewRecordFromPool("source1")
 	record1.SetData("key", "value")
-	
+
 	record2 := models.NewStreamingRecord("stream-1", 100, map[string]interface{}{"data": "test"})
-	
+
 	record3 := models.NewCDCRecord("db", "table", "INSERT", nil, map[string]interface{}{"id": 1})
 
 	fmt.Println("1. All constructors use the same underlying pool")
@@ -73,7 +73,7 @@ func ShowMemoryPoolSolution() {
 // ShowConfigurationSolution shows unified configuration approach
 func ShowConfigurationSolution() {
 	fmt.Println("\n=== Configuration Solution (Preview) ===")
-	
+
 	fmt.Println("Coming in Phase 3: BaseConfig embedded in all connector configs")
 	fmt.Println("- One source of truth for common settings")
 	fmt.Println("- Consistent naming across all connectors")
@@ -84,15 +84,15 @@ func ShowConfigurationSolution() {
 // ComparePerformance shows the performance impact
 func ComparePerformance() {
 	fmt.Println("\n=== Performance Impact ===")
-	
+
 	fmt.Println("BEFORE (Proliferation):")
 	fmt.Println("- models.Record -> StreamingRecord: ~50ns + allocation")
-	fmt.Println("- StreamingRecord -> IRecord: ~30ns + allocation") 
+	fmt.Println("- StreamingRecord -> IRecord: ~30ns + allocation")
 	fmt.Println("- IRecord -> ChangeEvent: ~100ns + allocation")
 	fmt.Println("- ChangeEvent -> models.Record: ~80ns + allocation")
 	fmt.Println("- Total per record: ~260ns + 4 allocations")
 	fmt.Println("- At 1M records/sec: 260ms CPU just for conversions!")
-	
+
 	fmt.Println("\nAFTER (Unified):")
 	fmt.Println("- Zero conversions: 0ns")
 	fmt.Println("- Zero allocation overhead: 0 allocations")
@@ -103,17 +103,17 @@ func ComparePerformance() {
 // ShowBeforeAndAfter demonstrates the transformation
 func ShowBeforeAndAfter() {
 	fmt.Println("=== BEFORE vs AFTER ===\n")
-	
+
 	fmt.Println("BEFORE (8 different types for same data):")
 	fmt.Println("- models.Record")
-	fmt.Println("- pipeline.StreamingRecord") 
+	fmt.Println("- pipeline.StreamingRecord")
 	fmt.Println("- models.IRecord (interface)")
 	fmt.Println("- cdc.ChangeEvent")
 	fmt.Println("- core.ChangeEvent")
 	fmt.Println("- models.RecordZeroCopy")
 	fmt.Println("- models.UnifiedRecord")
 	fmt.Println("- 15+ adapter/converter types")
-	
+
 	fmt.Println("\nAFTER (1 unified type):")
 	fmt.Println("- models.Record (handles ALL use cases)")
 	fmt.Println("  * Structured metadata for CDC, streaming, etc.")
@@ -125,7 +125,7 @@ func ShowBeforeAndAfter() {
 
 func main() {
 	fmt.Println("=== Nebula Feature Proliferation: SOLVED! ===\n")
-	
+
 	ShowBeforeAndAfter()
 	SimulateDataFlowAfter()
 	ShowMemoryPoolSolution()
@@ -139,6 +139,6 @@ func main() {
 	fmt.Println("✅ Developer experience: One way to do things")
 	fmt.Println("✅ Type safety: Structured metadata prevents errors")
 	fmt.Println("✅ Zero-copy: Built into the unified type")
-	
+
 	fmt.Println("\nNext: Phase 2 - Memory Pool Unification")
 }

@@ -10,9 +10,9 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/compression"
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/ajitpratap0/nebula/pkg/formats/columnar"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 )
 
 // ConnectorOptimizer provides connector-specific optimizations

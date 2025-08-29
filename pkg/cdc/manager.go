@@ -414,7 +414,7 @@ func (m *Manager) readAvailableEvents(eventCh <-chan ChangeEvent, maxEvents int)
 func (m *Manager) createKafkaHandler() BatchEventHandler {
 	return func(ctx context.Context, events []ChangeEvent) error {
 		if m.kafkaProducer == nil {
-			return fmt.Errorf("Kafka producer not available")
+			return fmt.Errorf("kafka producer not available")
 		}
 
 		return m.kafkaProducer.ProduceEvents(ctx, events)

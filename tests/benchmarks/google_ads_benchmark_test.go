@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/connector/sources"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 )
@@ -28,20 +27,20 @@ func createGoogleAdsConfig(name string, customerIDs []string, pageSize, maxConcu
 		"refresh_token":   "test_refresh",
 		"query":           "SELECT * FROM campaign",
 	}
-	
+
 	// Store customer IDs as JSON array
 	if len(customerIDs) > 0 {
 		customerIDsJSON, _ := jsonpool.Marshal(customerIDs)
 		cfg.Security.Credentials["customer_ids"] = string(customerIDsJSON)
 	}
-	
+
 	cfg.Performance.BatchSize = pageSize
 	cfg.Performance.MaxConcurrency = maxConcurrency
-	
+
 	if streamingEnabled {
 		cfg.Security.Credentials["streaming_enabled"] = "true"
 	}
-	
+
 	return cfg
 }
 
@@ -149,7 +148,7 @@ func (m *MockGoogleAdsServer) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		PageSize  int    `json:"page_size"`
 		PageToken string `json:"page_token"`
 	}
-	jsonpool.Unmarshal(body, &request)
+	_ = jsonpool.Unmarshal(body, &request)
 
 	// Extract customer ID from URL
 	customerID := "customer_0" // Simplified for benchmark
@@ -195,7 +194,7 @@ func (m *MockGoogleAdsServer) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	atomic.AddInt64(&m.bytesServed, int64(len(respBytes)))
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(respBytes)
+	_, _ = w.Write(respBytes)
 }
 
 // BenchmarkGoogleAdsStreamingRead benchmarks streaming read performance

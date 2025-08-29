@@ -56,15 +56,15 @@ import (
 // It wraps Prometheus metrics and provides convenience methods for recording
 // various performance indicators. Each component should create its own collector.
 type Collector struct {
-	name              string                     // Component name for labeling
-	recordsProcessed  *prometheus.CounterVec     // Total records processed
-	processingLatency *prometheus.HistogramVec   // Processing latency distribution
-	memoryAllocated   *prometheus.GaugeVec       // Current memory allocation
-	activeConnections *prometheus.GaugeVec       // Active connection count
-	queueDepth        *prometheus.GaugeVec       // Queue depth gauge
-	throughput        *prometheus.GaugeVec       // Current throughput
-	startTime         time.Time                  // Collector creation time
-	mu                sync.RWMutex               // Protects internal state
+	name              string                   // Component name for labeling
+	recordsProcessed  *prometheus.CounterVec   // Total records processed
+	processingLatency *prometheus.HistogramVec // Processing latency distribution
+	memoryAllocated   *prometheus.GaugeVec     // Current memory allocation
+	activeConnections *prometheus.GaugeVec     // Active connection count
+	queueDepth        *prometheus.GaugeVec     // Queue depth gauge
+	throughput        *prometheus.GaugeVec     // Current throughput
+	startTime         time.Time                // Collector creation time
+	mu                sync.RWMutex             // Protects internal state
 }
 
 // NewCollector creates a new metrics collector for a component.
@@ -74,7 +74,7 @@ type Collector struct {
 //
 //	collector := metrics.NewCollector("csv_source")
 //	defer collector.Record("shutdown_time", time.Since(start))
-//	
+//
 //	// Use throughout component lifecycle
 //	collector.RecordCounter("records_read", float64(count))
 //	collector.RecordGauge("queue_depth", float64(len(queue)))
@@ -281,10 +281,10 @@ func (t *Timer) Stop() time.Duration {
 // Thread-safe for concurrent use.
 type ThroughputTracker struct {
 	mu          sync.Mutex
-	count       int64      // Records processed since last reset
-	lastReset   time.Time  // Time of last reset
-	source      string     // Source connector name
-	destination string     // Destination connector name
+	count       int64     // Records processed since last reset
+	lastReset   time.Time // Time of last reset
+	source      string    // Source connector name
+	destination string    // Destination connector name
 }
 
 // NewThroughputTracker creates a new throughput tracker for a pipeline.

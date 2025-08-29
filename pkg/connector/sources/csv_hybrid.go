@@ -8,7 +8,7 @@ import (
 	"io"
 	"os"
 	"time"
-	
+
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/pipeline"
@@ -17,11 +17,11 @@ import (
 
 // CSVHybridSource demonstrates hybrid storage mode support
 type CSVHybridSource struct {
-	config  *config.BaseConfig
-	file    *os.File
-	reader  *csv.Reader
-	storage *pipeline.StorageAdapter
-	headers []string
+	config   *config.BaseConfig
+	file     *os.File
+	reader   *csv.Reader
+	storage  *pipeline.StorageAdapter
+	headers  []string
 	filePath string
 }
 
@@ -31,7 +31,7 @@ func NewCSVHybridSource(cfg *config.BaseConfig, filePath string) (core.Source, e
 	if filePath == "" {
 		return nil, fmt.Errorf("file path is required")
 	}
-	
+
 	// Determine storage mode from configuration
 	var storageMode pipeline.StorageMode
 	switch cfg.Advanced.StorageMode {
@@ -44,10 +44,10 @@ func NewCSVHybridSource(cfg *config.BaseConfig, filePath string) (core.Source, e
 	default:
 		storageMode = pipeline.StorageModeHybrid
 	}
-	
+
 	// Create storage adapter
 	storage := pipeline.NewStorageAdapter(storageMode, cfg)
-	
+
 	return &CSVHybridSource{
 		config:   cfg,
 		filePath: filePath,
@@ -61,18 +61,18 @@ func (s *CSVHybridSource) Connect(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
-	
+
 	s.file = file
 	s.reader = csv.NewReader(file)
 	s.reader.ReuseRecord = true // Memory optimization
-	
+
 	// Read headers
 	headers, err := s.reader.Read()
 	if err != nil {
 		return fmt.Errorf("failed to read headers: %w", err)
 	}
 	s.headers = headers
-	
+
 	return nil
 }
 
@@ -87,7 +87,7 @@ func (s *CSVHybridSource) Discover(ctx context.Context) (*core.Schema, error) {
 	if s.headers == nil {
 		return nil, fmt.Errorf("headers not available, call Connect first")
 	}
-	
+
 	fields := make([]core.Field, len(s.headers))
 	for i, header := range s.headers {
 		fields[i] = core.Field{
@@ -96,7 +96,7 @@ func (s *CSVHybridSource) Discover(ctx context.Context) (*core.Schema, error) {
 			Nullable: true,
 		}
 	}
-	
+
 	return &core.Schema{
 		Name:      "csv_schema",
 		Fields:    fields,
@@ -110,24 +110,24 @@ func (s *CSVHybridSource) Read(ctx context.Context) (*core.RecordStream, error) 
 	if err := s.Connect(ctx); err != nil {
 		return nil, err
 	}
-	
+
 	recordCh := make(chan *pool.Record, s.config.Performance.BufferSize)
 	errorCh := make(chan error, 1)
-	
+
 	go func() {
 		defer close(recordCh)
 		defer close(errorCh)
-		
+
 		// For columnar mode, we can use direct CSV conversion
 		if s.storage.GetStorageMode() == pipeline.StorageModeColumnar {
 			s.readColumnar(ctx, recordCh, errorCh)
 			return
 		}
-		
+
 		// For row or hybrid mode, use traditional record-by-record
 		s.readRow(ctx, recordCh, errorCh)
 	}()
-	
+
 	return &core.RecordStream{
 		Records: (<-chan *pool.Record)(recordCh),
 		Errors:  (<-chan error)(errorCh),
@@ -140,16 +140,16 @@ func (s *CSVHybridSource) ReadBatch(ctx context.Context, batchSize int) (*core.B
 	if err != nil {
 		return nil, err
 	}
-	
+
 	batchCh := make(chan []*pool.Record, 10)
 	errorCh := make(chan error, 1)
-	
+
 	go func() {
 		defer close(batchCh)
 		defer close(errorCh)
-		
+
 		batch := make([]*pool.Record, 0, batchSize)
-		
+
 		for {
 			select {
 			case record, ok := <-stream.Records:
@@ -172,7 +172,7 @@ func (s *CSVHybridSource) ReadBatch(ctx context.Context, batchSize int) (*core.B
 			}
 		}
 	}()
-	
+
 	return &core.BatchStream{
 		Batches: (<-chan []*pool.Record)(batchCh),
 		Errors:  (<-chan error)(errorCh),
@@ -180,15 +180,15 @@ func (s *CSVHybridSource) ReadBatch(ctx context.Context, batchSize int) (*core.B
 }
 
 // Position management
-func (s *CSVHybridSource) GetPosition() core.Position { return nil }
+func (s *CSVHybridSource) GetPosition() core.Position               { return nil }
 func (s *CSVHybridSource) SetPosition(position core.Position) error { return nil }
-func (s *CSVHybridSource) GetState() core.State { return nil }
-func (s *CSVHybridSource) SetState(state core.State) error { return nil }
+func (s *CSVHybridSource) GetState() core.State                     { return nil }
+func (s *CSVHybridSource) SetState(state core.State) error          { return nil }
 
 // Capabilities
 func (s *CSVHybridSource) SupportsIncremental() bool { return false }
-func (s *CSVHybridSource) SupportsRealtime() bool { return false }
-func (s *CSVHybridSource) SupportsBatch() bool { return true }
+func (s *CSVHybridSource) SupportsRealtime() bool    { return false }
+func (s *CSVHybridSource) SupportsBatch() bool       { return true }
 
 // Subscribe for CDC (not supported)
 func (s *CSVHybridSource) Subscribe(ctx context.Context, tables []string) (*core.ChangeStream, error) {
@@ -231,25 +231,25 @@ func (s *CSVHybridSource) readRow(ctx context.Context, recordCh chan<- *pool.Rec
 				errorCh <- fmt.Errorf("failed to read row: %w", err)
 				return
 			}
-			
+
 			// Create record using pool
 			record := pool.GetRecord()
 			record.Metadata.Source = "csv"
-			
+
 			// Populate data
 			for i, value := range row {
 				if i < len(s.headers) {
 					record.Data[s.headers[i]] = value
 				}
 			}
-			
+
 			// Add to storage adapter
 			if err := s.storage.AddRecord(record); err != nil {
 				errorCh <- fmt.Errorf("failed to add record: %w", err)
 				record.Release()
 				return
 			}
-			
+
 			// Send to channel for downstream processing
 			select {
 			case recordCh <- record:
@@ -266,7 +266,7 @@ func (s *CSVHybridSource) readColumnar(ctx context.Context, recordCh chan<- *poo
 	// In columnar mode, we batch process for efficiency
 	batchSize := s.config.Performance.BatchSize
 	rowCount := 0
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -282,27 +282,27 @@ func (s *CSVHybridSource) readColumnar(ctx context.Context, recordCh chan<- *poo
 				errorCh <- fmt.Errorf("failed to read row: %w", err)
 				return
 			}
-			
+
 			// Create temporary record for columnar storage
 			record := pool.GetRecord()
 			record.Metadata.Source = "csv"
-			
+
 			for i, value := range row {
 				if i < len(s.headers) {
 					record.Data[s.headers[i]] = value
 				}
 			}
-			
+
 			// Add to columnar storage
 			if err := s.storage.AddRecord(record); err != nil {
 				errorCh <- fmt.Errorf("failed to add to columnar: %w", err)
 				record.Release()
 				return
 			}
-			
+
 			record.Release()
 			rowCount++
-			
+
 			// Periodically optimize columnar storage
 			if rowCount%batchSize == 0 {
 				s.storage.OptimizeStorage()

@@ -179,7 +179,6 @@ func (eh *ErrorHandler) GetErrorStats() map[string]interface{} {
 
 	stats := pool.GetMap()
 
-
 	defer pool.PutMap(stats)
 	stats["total_errors"] = atomic.LoadInt64(&eh.totalErrors)
 	stats["retried_errors"] = atomic.LoadInt64(&eh.retriedErrors)
@@ -288,7 +287,7 @@ func (eh *ErrorHandler) ExecuteWithRetry(ctx context.Context, fn RetryFunc) erro
 
 			select {
 			case <-ctx.Done():
-				return fmt.Errorf("context cancelled during retry: %w", ctx.Err())
+				return fmt.Errorf("context canceled during retry: %w", ctx.Err())
 			case <-time.After(delay):
 			}
 		}

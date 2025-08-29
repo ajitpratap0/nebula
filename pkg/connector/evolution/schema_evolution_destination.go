@@ -10,8 +10,8 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/logger"
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/ajitpratap0/nebula/pkg/schema"
 	"go.uber.org/zap"
 )
@@ -86,10 +86,10 @@ func NewSchemaEvolutionDestination(dest core.Destination, config *EvolutionConfi
 	}
 
 	log := logger.Get()
-	
+
 	// Create schema registry
 	registry := schema.NewRegistry(log)
-	
+
 	// Get evolution manager from registry
 	evolutionManager := registry.GetEvolutionManager()
 
@@ -129,7 +129,7 @@ func (sed *SchemaEvolutionDestination) CreateSchema(ctx context.Context, schema 
 
 	// Convert to models.Schema for registry
 	modelsSchema := convertCoreToModelsSchema(schema)
-	
+
 	// Register schema in registry
 	version, err := sed.schemaRegistry.RegisterSchema(ctx, modelsSchema.Name, modelsSchema)
 	if err != nil {
@@ -211,7 +211,7 @@ func (sed *SchemaEvolutionDestination) Write(ctx context.Context, stream *core.R
 	// Create channels for evolved stream
 	recordsChan := make(chan *models.Record, 1000)
 	errorsChan := make(chan error, 1)
-	
+
 	// Create evolved stream
 	evolvedStream := &core.RecordStream{
 		Records: recordsChan,
@@ -221,7 +221,7 @@ func (sed *SchemaEvolutionDestination) Write(ctx context.Context, stream *core.R
 	// Start evolution worker
 	go func() {
 		defer close(recordsChan)
-		
+
 		batch := make([]map[string]interface{}, 0, sed.config.BatchSizeForInference)
 		batchRecords := pool.GetBatchSlice(sed.config.BatchSizeForInference)
 
@@ -291,7 +291,7 @@ func (sed *SchemaEvolutionDestination) WriteBatch(ctx context.Context, stream *c
 	// Create channels for evolved stream
 	batchesChan := make(chan []*models.Record, 10)
 	errorsChan := make(chan error, 1)
-	
+
 	// Create evolved stream
 	evolvedStream := &core.BatchStream{
 		Batches: batchesChan,
@@ -432,7 +432,7 @@ func (sed *SchemaEvolutionDestination) checkSchemaEvolution(ctx context.Context,
 	if err != nil {
 		return false, nil
 	}
-	
+
 	// If version increased, schema has changed
 	return evolved.Version > currentSchema.Version, nil
 }
@@ -533,13 +533,13 @@ func (sed *SchemaEvolutionDestination) Health(ctx context.Context) error {
 
 func (sed *SchemaEvolutionDestination) Metrics() map[string]interface{} {
 	metrics := sed.destination.Metrics()
-	
+
 	// Add evolution metrics
 	metrics["schema_changes"] = sed.schemaChanges
 	metrics["evolution_failures"] = sed.evolutionFailures
 	metrics["records_processed"] = sed.recordsProcessed
 	metrics["current_schema_version"] = 0
-	
+
 	if sed.currentSchema != nil {
 		version := 1
 		if v, err := strconv.Atoi(sed.currentSchema.Version); err == nil {
@@ -548,6 +548,6 @@ func (sed *SchemaEvolutionDestination) Metrics() map[string]interface{} {
 		metrics["current_schema_version"] = version
 		metrics["current_schema_fields"] = len(sed.currentSchema.Fields)
 	}
-	
+
 	return metrics
 }

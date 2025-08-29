@@ -12,7 +12,7 @@ import (
 func Example() {
 	// Create a new error with type
 	err := errors.New(errors.ErrorTypeConnection, "failed to connect to database")
-	
+
 	// Add context details
 	err = err.WithDetail("host", "localhost").
 		WithDetail("port", 5432).
@@ -20,7 +20,7 @@ func Example() {
 
 	// Print the error
 	fmt.Println(err.Error())
-	
+
 	// Output:
 	// connection: failed to connect to database
 }
@@ -118,7 +118,7 @@ func Example_errorChain() {
 		// Wrap with additional context at each level
 		err = errors.Wrap(err, errors.ErrorTypeData, "failed to fetch user data").
 			WithDetail("operation", "user_fetch")
-		
+
 		err = errors.Wrap(err, errors.ErrorTypeInternal, "request handler failed").
 			WithDetail("endpoint", "/api/users").
 			WithDetail("method", "GET")
@@ -141,7 +141,7 @@ func connectToDatabase() error {
 func Example_errorHandling() {
 	// Simulate processing records with error handling
 	records := []string{"record1", "record2", "invalid", "record4"}
-	
+
 	for i, record := range records {
 		err := processRecord(record)
 		if err != nil {
@@ -178,14 +178,14 @@ func ExampleIsType() {
 	// Create errors of different types
 	connErr := errors.New(errors.ErrorTypeConnection, "connection failed")
 	valErr := errors.New(errors.ErrorTypeValidation, "invalid input")
-	
+
 	// Wrap an error
 	wrappedErr := errors.Wrap(connErr, errors.ErrorTypeData, "processing failed")
 
 	// Check error types
 	fmt.Printf("Is connection error: %v\n", errors.IsType(connErr, errors.ErrorTypeConnection))
 	fmt.Printf("Is validation error: %v\n", errors.IsType(valErr, errors.ErrorTypeValidation))
-	
+
 	// IsType works through wrapped errors
 	fmt.Printf("Wrapped error is data type: %v\n", errors.IsType(wrappedErr, errors.ErrorTypeData))
 	fmt.Printf("Wrapped error contains connection type: %v\n", errors.IsType(wrappedErr, errors.ErrorTypeConnection))
@@ -209,7 +209,7 @@ func Example_customErrorHandling() {
 		if nebulaErr, ok := err.(*errors.Error); ok {
 			fmt.Printf("Error Type: %s\n", nebulaErr.Type)
 			fmt.Printf("Message: %s\n", nebulaErr.Message)
-			
+
 			if len(nebulaErr.Details) > 0 {
 				fmt.Println("Details:")
 				// Print details in a deterministic order

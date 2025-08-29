@@ -1,4 +1,4 @@
-package mongodb_cdc
+package mongodbcdc
 
 import (
 	"github.com/ajitpratap0/nebula/pkg/config"

@@ -6,10 +6,10 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/apache/arrow-go/v18/arrow"
-	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/pool"
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
 	icebergGo "github.com/shubham-tomar/iceberg-go"
 	"github.com/shubham-tomar/iceberg-go/catalog"
 	"github.com/shubham-tomar/iceberg-go/catalog/rest"
@@ -164,7 +164,7 @@ func (n *NessieCatalog) WriteData(ctx context.Context, database, table string, b
 	identifier := catalog.ToIdentifier(fmt.Sprintf("%s.%s", database, table))
 	tbl, err := n.catalog.LoadTable(ctx, identifier, nil)
 	if err != nil {
-		n.logger.Error("Failed to load table for data writing", 
+		n.logger.Error("Failed to load table for data writing",
 			zap.String("identifier", fmt.Sprintf("%s.%s", database, table)),
 			zap.Error(err))
 		return fmt.Errorf("failed to load table: %w", err)
@@ -184,13 +184,13 @@ func (n *NessieCatalog) WriteData(ctx context.Context, database, table string, b
 	n.logger.Debug("Converting batch to Arrow record",
 		zap.Int("batch_size", len(batch)),
 		zap.Int("schema_fields", len(arrowSchema.Fields())))
-	
+
 	arrowRecord, err := tempDest.batchToArrowRecord(arrowSchema, batch)
 	if err != nil {
 		return fmt.Errorf("failed to convert batch to Arrow: %w", err)
 	}
 	defer arrowRecord.Release()
-	
+
 	n.logger.Debug("Arrow record created",
 		zap.Int64("num_rows", arrowRecord.NumRows()),
 		zap.Int64("num_cols", arrowRecord.NumCols()))
@@ -200,11 +200,11 @@ func (n *NessieCatalog) WriteData(ctx context.Context, database, table string, b
 		return fmt.Errorf("failed to create record reader: %w", err)
 	}
 	defer reader.Release()
-	
+
 	n.logger.Debug("Starting table append operation",
 		zap.String("table", table),
 		zap.Int64("records", arrowRecord.NumRows()))
-	
+
 	newTable, err := tbl.Append(ctx, reader, nil)
 	if err != nil {
 		n.logger.Error("Failed to append data to table",
@@ -256,4 +256,3 @@ func (n *NessieCatalog) MergeBranch(ctx context.Context, branchName, targetBranc
 func (n *NessieCatalog) ListBranches(ctx context.Context) ([]string, error) {
 	return nil, fmt.Errorf("ListBranches not implemented yet")
 }
-

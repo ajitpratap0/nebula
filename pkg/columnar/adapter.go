@@ -75,20 +75,20 @@ func NewBatchProcessor(store *ColumnStore, batchSize int) *BatchProcessor {
 // Process applies a function to all records in batches
 func (bp *BatchProcessor) Process(fn func(records []*pool.Record) error) error {
 	totalRows := bp.store.RowCount()
-	
+
 	for start := 0; start < totalRows; start += bp.batchSize {
 		end := start + bp.batchSize
 		if end > totalRows {
 			end = totalRows
 		}
-		
+
 		// Create batch of record adapters
 		batch := make([]*pool.Record, 0, end-start)
-		
+
 		for i := start; i < end; i++ {
 			// Get record from pool
 			rec := pool.GetRecord()
-			
+
 			// Fill with columnar data
 			bp.store.mu.RLock()
 			for name, col := range bp.store.columns {
@@ -97,10 +97,10 @@ func (bp *BatchProcessor) Process(fn func(records []*pool.Record) error) error {
 				}
 			}
 			bp.store.mu.RUnlock()
-			
+
 			batch = append(batch, rec)
 		}
-		
+
 		// Process batch
 		if err := fn(batch); err != nil {
 			// Clean up
@@ -109,13 +109,13 @@ func (bp *BatchProcessor) Process(fn func(records []*pool.Record) error) error {
 			}
 			return err
 		}
-		
+
 		// Release records back to pool
 		for _, rec := range batch {
 			rec.Release()
 		}
 	}
-	
+
 	return nil
 }
 
@@ -153,19 +153,19 @@ func (p *ColumnarPipeline) GetStore() *ColumnStore {
 // Stats returns memory and performance statistics
 func (p *ColumnarPipeline) Stats() map[string]interface{} {
 	return map[string]interface{}{
-		"row_count":         p.store.RowCount(),
-		"column_count":      p.store.ColumnCount(),
-		"total_memory":      p.store.MemoryUsage(),
-		"bytes_per_record":  p.store.MemoryPerRecord(),
-		"columns":           p.store.ColumnNames(),
+		"row_count":        p.store.RowCount(),
+		"column_count":     p.store.ColumnCount(),
+		"total_memory":     p.store.MemoryUsage(),
+		"bytes_per_record": p.store.MemoryPerRecord(),
+		"columns":          p.store.ColumnNames(),
 	}
 }
 
 // CSVToColumnar provides optimized CSV to columnar conversion
 type CSVToColumnar struct {
-	store        *ColumnStore
-	headers      []string
-	headerMap    map[string]int
+	store         *ColumnStore
+	headers       []string
+	headerMap     map[string]int
 	inferredTypes map[string]ColumnType
 }
 
@@ -181,7 +181,7 @@ func NewCSVToColumnar() *CSVToColumnar {
 func (c *CSVToColumnar) SetHeaders(headers []string) {
 	c.headers = headers
 	c.headerMap = make(map[string]int)
-	
+
 	// Create header map for fast lookup
 	for i, h := range headers {
 		c.headerMap[h] = i
@@ -193,20 +193,20 @@ func (c *CSVToColumnar) SetHeaders(headers []string) {
 // AddRow adds a CSV row to columnar storage
 func (c *CSVToColumnar) AddRow(row []string) error {
 	data := make(map[string]interface{})
-	
+
 	for i, value := range row {
 		if i < len(c.headers) {
 			data[c.headers[i]] = value
 		}
 	}
-	
+
 	return c.store.AppendRow(data)
 }
 
 // AddBatch adds multiple CSV rows efficiently
 func (c *CSVToColumnar) AddBatch(rows [][]string) error {
 	dataRows := make([]map[string]interface{}, len(rows))
-	
+
 	for i, row := range rows {
 		data := make(map[string]interface{})
 		for j, value := range row {
@@ -216,7 +216,7 @@ func (c *CSVToColumnar) AddBatch(rows [][]string) error {
 		}
 		dataRows[i] = data
 	}
-	
+
 	return c.store.AppendBatch(dataRows)
 }
 
@@ -251,11 +251,11 @@ func NewStreamingColumnarWriter(bufferSize int) *StreamingColumnarWriter {
 // Write adds a record to the buffer
 func (w *StreamingColumnarWriter) Write(record *pool.Record) error {
 	w.buffer = append(w.buffer, record.Data)
-	
+
 	if len(w.buffer) >= w.bufferSize {
 		return w.Flush()
 	}
-	
+
 	return nil
 }
 
@@ -264,7 +264,7 @@ func (w *StreamingColumnarWriter) Flush() error {
 	if len(w.buffer) == 0 {
 		return nil
 	}
-	
+
 	err := w.store.AppendBatch(w.buffer)
 	w.buffer = w.buffer[:0]
 	return err
@@ -278,10 +278,10 @@ func (w *StreamingColumnarWriter) GetStore() *ColumnStore {
 // Stats returns writer statistics
 func (w *StreamingColumnarWriter) Stats() map[string]interface{} {
 	return map[string]interface{}{
-		"buffered_records":  len(w.buffer),
-		"store_rows":        w.store.RowCount(),
-		"store_columns":     w.store.ColumnCount(),
-		"memory_usage":      w.store.MemoryUsage(),
-		"bytes_per_record":  w.store.MemoryPerRecord(),
+		"buffered_records": len(w.buffer),
+		"store_rows":       w.store.RowCount(),
+		"store_columns":    w.store.ColumnCount(),
+		"memory_usage":     w.store.MemoryUsage(),
+		"bytes_per_record": w.store.MemoryPerRecord(),
 	}
 }

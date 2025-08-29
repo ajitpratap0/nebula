@@ -37,16 +37,16 @@ func Example() {
 func ExampleGetRecord() {
 	// Get a record from the pool
 	record := pool.GetRecord()
-	
+
 	// Always use defer to ensure the record is released
 	defer record.Release()
 
 	// Use the record
 	record.SetData("product", "Nebula")
 	record.SetData("version", "v0.3.0")
-	
+
 	fmt.Printf("Product: %v\n", record.Data["product"])
-	
+
 	// Output:
 	// Product: Nebula
 }
@@ -207,7 +207,7 @@ func ExampleGetMap() {
 	// Use the map
 	m["key1"] = "value1"
 	m["key2"] = "value2"
-	
+
 	fmt.Printf("Map size: %d\n", len(m))
 
 	// Output:
@@ -222,7 +222,7 @@ func ExampleGetStringSlice() {
 
 	// Append strings
 	slice = append(slice, "apple", "banana", "cherry")
-	
+
 	fmt.Printf("Fruits: %v\n", slice)
 
 	// Output:

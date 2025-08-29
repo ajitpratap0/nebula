@@ -14,7 +14,7 @@ import (
 // SDKSourceConnector implements the core.Source interface using the SDK builder pattern
 type SDKSourceConnector struct {
 	*base.BaseConnector
-	builder           *SourceBuilder
+	builder *SourceBuilder
 	// OptimizationLayer removed - using unified pool system
 }
 
@@ -179,7 +179,7 @@ func (sc *SDKSourceConnector) Health(ctx context.Context) error {
 // SDKDestinationConnector implements the core.Destination interface using the SDK builder pattern
 type SDKDestinationConnector struct {
 	*base.BaseConnector
-	builder           *DestinationBuilder
+	builder *DestinationBuilder
 	// OptimizationLayer removed - using unified pool system
 }
 

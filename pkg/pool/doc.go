@@ -3,7 +3,7 @@
 // memory management for all reusable objects, significantly reducing garbage
 // collection pressure and improving throughput.
 //
-// Architecture
+// # Architecture
 //
 // The pool package uses Go generics to provide type-safe pooling for any object
 // type. It builds on sync.Pool but adds additional features like metrics,
@@ -15,7 +15,7 @@
 //   - Record: The unified record type used throughout Nebula
 //   - Global pools: Pre-configured pools for common types
 //
-// Memory Efficiency
+// # Memory Efficiency
 //
 // The pool system is crucial for achieving Nebula's memory targets:
 //   - Reduces allocations by 99%+ in hot paths
@@ -23,7 +23,7 @@
 //   - Supports the hybrid storage engine's 84 bytes/record efficiency
 //   - Provides automatic cleanup via Release() methods
 //
-// Global Pools
+// # Global Pools
 //
 // Pre-configured pools are available for common types:
 //
@@ -34,14 +34,14 @@
 //		ByteSlicePool   = NewPool[[]byte](...)      // Byte buffers
 //	)
 //
-// Usage Patterns
+// # Usage Patterns
 //
 // Basic pool usage:
 //
 //	// Get a record from the pool
 //	record := pool.GetRecord()
 //	defer record.Release() // Always release back to pool
-//	
+//
 //	// Use the record
 //	record.SetData("key", "value")
 //	record.Metadata.Source = "postgresql"
@@ -52,7 +52,7 @@
 //		data []byte
 //		buffer *bytes.Buffer
 //	}
-//	
+//
 //	myPool := pool.NewPool[MyObject](
 //		pool.WithNew(func() *MyObject {
 //			return &MyObject{
@@ -67,7 +67,7 @@
 //		pool.WithCapacity(10000),
 //	)
 //
-// Record Management
+// # Record Management
 //
 // The Record type is the primary data structure in Nebula:
 //
@@ -75,11 +75,11 @@
 //	record := pool.NewRecord("source", data)
 //	cdcRecord := pool.NewCDCRecord("db", "table", "INSERT", before, after)
 //	streamRecord := pool.NewStreamingRecord("stream", offset, data)
-//	
+//
 //	// Always release records
 //	defer record.Release()
 //
-// Performance Guidelines
+// # Performance Guidelines
 //
 // 1. Always release objects back to pools
 // 2. Pre-warm pools for predictable performance
@@ -88,14 +88,14 @@
 // 5. Use pool metrics to monitor efficiency
 // 6. Avoid holding pool objects across goroutines
 //
-// Integration with Storage
+// # Integration with Storage
 //
 // The pool system integrates seamlessly with the hybrid storage engine:
 //   - Row mode: Records are pooled individually
 //   - Columnar mode: Column buffers are pooled
 //   - Automatic mode switching preserves pool efficiency
 //
-// Best Practices
+// # Best Practices
 //
 // DO:
 //   - Use GetRecord() and Release() consistently
@@ -109,7 +109,7 @@
 //   - Share pool objects between goroutines without sync
 //   - Forget to release objects back to pools
 //
-// Metrics
+// # Metrics
 //
 // Pool metrics are exposed for monitoring:
 //   - gets: Total objects retrieved

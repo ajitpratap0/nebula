@@ -8,15 +8,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ajitpratap0/nebula/pkg/errors"
+	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
+	"github.com/ajitpratap0/nebula/pkg/pool"
+	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"github.com/go-mysql-org/go-mysql/canal"
 	"github.com/go-mysql-org/go-mysql/mysql"
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/go-mysql-org/go-mysql/replication"
 	"github.com/go-mysql-org/go-mysql/schema"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/ajitpratap0/nebula/pkg/errors"
-	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
-	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
 )
 
@@ -110,8 +110,8 @@ func (c *MySQLConnector) Connect(config CDCConfig) error {
 	if opts, ok := config.Options["mysql"]; ok {
 		if optsMap, ok := opts.(map[string]interface{}); ok {
 			if val, ok := optsMap["server_id"]; ok {
-				if serverId, ok := val.(float64); ok {
-					mysqlConfig.ServerID = uint32(serverId)
+				if serverID, ok := val.(float64); ok {
+					mysqlConfig.ServerID = uint32(serverID)
 				}
 			}
 			if val, ok := optsMap["start_position"]; ok {
@@ -619,7 +619,6 @@ func (c *MySQLConnector) rowToMap(row []interface{}, table *schema.Table) (map[s
 	}
 
 	result := pool.GetMap()
-
 
 	defer pool.PutMap(result)
 

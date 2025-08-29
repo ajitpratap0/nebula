@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	
+
 	"github.com/ajitpratap0/nebula/pkg/compression"
 )
 
@@ -26,7 +26,7 @@ func NewCompressedColumnStore(algorithm compression.Algorithm) (*CompressedColum
 	if err != nil {
 		return nil, fmt.Errorf("failed to create compressor: %w", err)
 	}
-	
+
 	return &CompressedColumnStore{
 		store:      NewColumnStore(),
 		compressor: compressor,
@@ -40,19 +40,19 @@ func (c *CompressedColumnStore) CompressColumn(name string) error {
 	if !exists {
 		return fmt.Errorf("column %q not found", name)
 	}
-	
+
 	// Serialize column data based on type
 	data, err := c.serializeColumn(col)
 	if err != nil {
 		return fmt.Errorf("failed to serialize column %q: %w", name, err)
 	}
-	
+
 	// Compress the serialized data
 	compressed, err := c.compressor.Compress(data)
 	if err != nil {
 		return fmt.Errorf("failed to compress column %q: %w", name, err)
 	}
-	
+
 	c.compressed[name] = compressed
 	return nil
 }
@@ -70,17 +70,17 @@ func (c *CompressedColumnStore) CompressAll() error {
 // serializeColumn converts column data to bytes for compression
 func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 	var buf bytes.Buffer
-	
+
 	// Write column type
 	if err := binary.Write(&buf, binary.LittleEndian, uint8(col.Type())); err != nil {
 		return nil, err
 	}
-	
+
 	// Write column length
 	if err := binary.Write(&buf, binary.LittleEndian, uint32(col.Len())); err != nil {
 		return nil, err
 	}
-	
+
 	switch col.Type() {
 	case ColumnTypeInt:
 		intCol := col.(*IntColumn)
@@ -91,14 +91,14 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 		if err := binary.Write(&buf, binary.LittleEndian, intCol.max); err != nil {
 			return nil, err
 		}
-		
+
 		// Delta encode integers
 		if intCol.Len() > 0 {
 			prev := intCol.values[0]
 			if err := binary.Write(&buf, binary.LittleEndian, prev); err != nil {
 				return nil, err
 			}
-			
+
 			for i := 1; i < intCol.Len(); i++ {
 				delta := intCol.values[i] - prev
 				if err := writeVarint(&buf, delta); err != nil {
@@ -107,7 +107,7 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 				prev = intCol.values[i]
 			}
 		}
-		
+
 	case ColumnTypeFloat:
 		floatCol := col.(*FloatColumn)
 		// Write all floats directly (compression will handle redundancy)
@@ -116,7 +116,7 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 				return nil, err
 			}
 		}
-		
+
 	case ColumnTypeBool:
 		boolCol := col.(*BoolColumn)
 		// Already bit-packed, write directly
@@ -128,7 +128,7 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 				return nil, err
 			}
 		}
-		
+
 	case ColumnTypeString:
 		strCol := col.(*StringColumn)
 		if strCol.dictMode {
@@ -136,12 +136,12 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 			if err := binary.Write(&buf, binary.LittleEndian, true); err != nil {
 				return nil, err
 			}
-			
+
 			// Write dictionary size
 			if err := binary.Write(&buf, binary.LittleEndian, uint32(len(strCol.dict))); err != nil {
 				return nil, err
 			}
-			
+
 			// Write dictionary entries
 			for str, code := range strCol.dict {
 				// Write string length and data
@@ -155,7 +155,7 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 					return nil, err
 				}
 			}
-			
+
 			// Write codes
 			for _, code := range strCol.codes {
 				if err := binary.Write(&buf, binary.LittleEndian, code); err != nil {
@@ -167,7 +167,7 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 			if err := binary.Write(&buf, binary.LittleEndian, false); err != nil {
 				return nil, err
 			}
-			
+
 			// Write each string
 			for _, str := range strCol.values {
 				if err := binary.Write(&buf, binary.LittleEndian, uint32(len(str))); err != nil {
@@ -178,11 +178,11 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 				}
 			}
 		}
-		
+
 	default:
 		return nil, fmt.Errorf("unsupported column type: %v", col.Type())
 	}
-	
+
 	return buf.Bytes(), nil
 }
 
@@ -218,7 +218,7 @@ func (c *CompressedColumnStore) GetCompressionRatio() float64 {
 
 // ColumnarCompressionConfig configures columnar compression
 type ColumnarCompressionConfig struct {
-	Algorithm        compression.Algorithm
+	Algorithm       compression.Algorithm
 	Level           compression.Level
 	CompressStrings bool
 	CompressNumbers bool
@@ -228,7 +228,7 @@ type ColumnarCompressionConfig struct {
 // DefaultColumnarCompressionConfig returns default compression settings
 func DefaultColumnarCompressionConfig() ColumnarCompressionConfig {
 	return ColumnarCompressionConfig{
-		Algorithm:        compression.Zstd,
+		Algorithm:       compression.Zstd,
 		Level:           compression.Default,
 		CompressStrings: true,
 		CompressNumbers: true,

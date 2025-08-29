@@ -74,7 +74,7 @@ func (c *StringColumn) Append(value interface{}) error {
 	if !ok {
 		return fmt.Errorf("expected string, got %T", value)
 	}
-	
+
 	if c.dictMode {
 		// Dictionary mode
 		if code, exists := c.dict[str]; exists {
@@ -87,13 +87,13 @@ func (c *StringColumn) Append(value interface{}) error {
 	} else {
 		// Regular mode
 		c.values = append(c.values, str)
-		
+
 		// Check if we should switch to dictionary mode
 		if len(c.values) > 100 && c.shouldUseDictionary() {
 			c.convertToDictionary()
 		}
 	}
-	
+
 	return nil
 }
 
@@ -110,7 +110,7 @@ func (c *StringColumn) convertToDictionary() {
 	c.dictMode = true
 	c.dict = make(map[string]uint32)
 	c.codes = make([]uint32, 0, len(c.values))
-	
+
 	for _, v := range c.values {
 		if code, exists := c.dict[v]; exists {
 			c.codes = append(c.codes, code)
@@ -120,7 +120,7 @@ func (c *StringColumn) convertToDictionary() {
 			c.codes = append(c.codes, newCode)
 		}
 	}
-	
+
 	// Clear values to free memory
 	c.values = nil
 }
@@ -134,12 +134,12 @@ func (c *StringColumn) Clear() {
 
 func (c *StringColumn) MemoryUsage() int64 {
 	var total int64
-	
+
 	if c.dictMode {
 		// Dictionary storage
 		for k := range c.dict {
 			total += int64(len(k)) // String bytes
-			total += 4              // uint32 code
+			total += 4             // uint32 code
 		}
 		total += int64(len(c.codes) * 4) // codes array
 	} else {
@@ -149,7 +149,7 @@ func (c *StringColumn) MemoryUsage() int64 {
 			total += 16 // string header overhead
 		}
 	}
-	
+
 	return total
 }
 
@@ -169,7 +169,7 @@ func NewIntColumn() *IntColumn {
 }
 
 func (c *IntColumn) Type() ColumnType { return ColumnTypeInt }
-func (c *IntColumn) Len() int          { return len(c.values) }
+func (c *IntColumn) Len() int         { return len(c.values) }
 
 func (c *IntColumn) Get(i int) interface{} {
 	return c.values[i]
@@ -193,7 +193,7 @@ func (c *IntColumn) Append(value interface{}) error {
 	default:
 		return fmt.Errorf("expected int, got %T", value)
 	}
-	
+
 	if len(c.values) == 0 {
 		c.min = intVal
 		c.max = intVal
@@ -205,7 +205,7 @@ func (c *IntColumn) Append(value interface{}) error {
 			c.max = intVal
 		}
 	}
-	
+
 	c.values = append(c.values, intVal)
 	return nil
 }
@@ -254,7 +254,7 @@ func (c *FloatColumn) Append(value interface{}) error {
 	default:
 		return fmt.Errorf("expected float, got %T", value)
 	}
-	
+
 	c.values = append(c.values, floatVal)
 	return nil
 }
@@ -281,7 +281,7 @@ func NewBoolColumn() *BoolColumn {
 }
 
 func (c *BoolColumn) Type() ColumnType { return ColumnTypeBool }
-func (c *BoolColumn) Len() int          { return c.count }
+func (c *BoolColumn) Len() int         { return c.count }
 
 func (c *BoolColumn) Get(i int) interface{} {
 	wordIndex := i / 64
@@ -299,19 +299,19 @@ func (c *BoolColumn) Append(value interface{}) error {
 	default:
 		return fmt.Errorf("expected bool, got %T", value)
 	}
-	
+
 	wordIndex := c.count / 64
 	bitIndex := c.count % 64
-	
+
 	// Grow if needed
 	if wordIndex >= len(c.values) {
 		c.values = append(c.values, 0)
 	}
-	
+
 	if boolVal {
 		c.values[wordIndex] |= (1 << bitIndex)
 	}
-	
+
 	c.count++
 	return nil
 }
@@ -360,7 +360,7 @@ func (c *TimestampColumn) Append(value interface{}) error {
 	default:
 		return fmt.Errorf("expected timestamp, got %T", value)
 	}
-	
+
 	c.values = append(c.values, timestamp)
 	return nil
 }

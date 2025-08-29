@@ -10,32 +10,30 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 )
 
 // Benchmark data generators
-func generateTestRecords(count int) []*models.Record {
-	records := make([]*models.Record, count)
+func generateTestRecords(count int) []*pool.Record {
+	records := make([]*pool.Record, count)
 	for i := 0; i < count; i++ {
-		records[i] = &models.Record{
-			Data: map[string]interface{}{
-				"id":          i,
-				"user_id":     rand.Intn(10000),
-				"product_id":  rand.Intn(1000),
-				"timestamp":   time.Now().Add(-time.Duration(rand.Intn(86400)) * time.Second),
-				"amount":      rand.Float64() * 1000,
-				"currency":    []string{"USD", "EUR", "GBP"}[rand.Intn(3)],
-				"description": fmt.Sprintf("Transaction %d with some text data that might be compressed", i),
-				"metadata":    fmt.Sprintf(`{"key1": "value1", "key2": %d, "key3": %f}`, i, rand.Float64()),
-			},
-		}
+		record := pool.GetRecord()
+		record.SetData("id", i)
+		record.SetData("user_id", rand.Intn(10000))
+		record.SetData("product_id", rand.Intn(1000))
+		record.SetData("timestamp", time.Now().Add(-time.Duration(rand.Intn(86400))*time.Second))
+		record.SetData("amount", rand.Float64()*1000)
+		record.SetData("currency", []string{"USD", "EUR", "GBP"}[rand.Intn(3)])
+		record.SetData("description", fmt.Sprintf("Transaction %d with some text data that might be compressed", i))
+		record.SetData("metadata", fmt.Sprintf(`{"key1": "value1", "key2": %d, "key3": %f}`, i, rand.Float64()))
+		records[i] = record
 	}
 	return records
 }
 
 // Benchmark profiler
 func BenchmarkProfiler(b *testing.B) {
-	records := generateTestRecords(10000)
+	_ = generateTestRecords(10000) // Just for API consistency
 
 	b.Run("WithProfiling", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
@@ -112,10 +110,9 @@ func BenchmarkObjectPooling(b *testing.B) {
 		b.ReportAllocs()
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				record := &models.Record{
-					Data: make(map[string]interface{}),
-				}
-				record.Data["test"] = "value"
+				record := pool.GetRecord()
+				record.SetData("test", "value")
+				record.Release()
 			}
 		})
 	})
@@ -336,6 +333,7 @@ func BenchmarkMemoryAllocationPatterns(b *testing.B) {
 					for j := 0; j < size; j++ {
 						s = append(s, j)
 					}
+					_ = s // Use the slice to avoid linter warning
 				}
 			})
 
@@ -361,7 +359,8 @@ func BenchmarkConcurrentOperations(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for _, record := range records {
 				// Simulate processing
-				_ = record.Data["id"]
+				val, _ := record.GetData("id")
+				_ = val
 			}
 		}
 	})
@@ -380,11 +379,12 @@ func BenchmarkConcurrentOperations(b *testing.B) {
 					end = len(records)
 				}
 
-				go func(batch []*models.Record) {
+				go func(batch []*pool.Record) {
 					defer wg.Done()
 					for _, record := range batch {
 						// Simulate processing
-						_ = record.Data["id"]
+						val, _ := record.GetData("id")
+						_ = val
 					}
 				}(records[start:end])
 			}
@@ -402,9 +402,10 @@ func BenchmarkConcurrentOperations(b *testing.B) {
 
 		for i := 0; i < b.N; i++ {
 			err := optimizer.ExecuteParallel(ctx, items, func(item interface{}) error {
-				record := item.(*models.Record)
+				record := item.(*pool.Record)
 				// Simulate processing
-				_ = record.Data["id"]
+				val, _ := record.GetData("id")
+				_ = val
 				return nil
 			})
 			if err != nil {

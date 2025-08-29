@@ -1,53 +1,49 @@
 // Package columnar provides columnar format benchmarks
 package columnar
 
-import "github.com/ajitpratap0/nebula/pkg/pool"
-
 import (
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"bytes"
 	"fmt"
 	"math/rand"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 )
 
 // Generate test schema
 func generateTestSchema() *core.Schema {
 	return &core.Schema{
 		Name: "benchmark_schema",
-		Fields: []*core.Field{
-			{Name: "id", Type: core.FieldTypeInteger, Required: true},
-			{Name: "name", Type: core.FieldTypeString, Required: true},
-			{Name: "email", Type: core.FieldTypeString, Required: true},
-			{Name: "age", Type: core.FieldTypeInteger, Required: true},
-			{Name: "score", Type: core.FieldTypeFloat, Required: true},
-			{Name: "active", Type: core.FieldTypeBoolean, Required: true},
-			{Name: "created_at", Type: core.FieldTypeTimestamp, Required: true},
-			{Name: "metadata", Type: core.FieldTypeJSON, Required: false},
+		Fields: []core.Field{
+			{Name: "id", Type: core.FieldTypeInt},
+			{Name: "name", Type: core.FieldTypeString},
+			{Name: "email", Type: core.FieldTypeString},
+			{Name: "age", Type: core.FieldTypeInt},
+			{Name: "score", Type: core.FieldTypeFloat},
+			{Name: "active", Type: core.FieldTypeBool},
+			{Name: "created_at", Type: core.FieldTypeTimestamp},
+			{Name: "metadata", Type: core.FieldTypeJSON},
 		},
 	}
 }
 
 // Generate test records
-func generateTestRecords(count int) []*models.Record {
-	records := make([]*models.Record, count)
+func generateTestRecords(count int) []*pool.Record {
+	records := make([]*pool.Record, count)
 	for i := 0; i < count; i++ {
-		records[i] = &models.Record{
-			Data: map[string]interface{}{
-				"id":         i,
-				"name":       fmt.Sprintf("User %d", i),
-				"email":      fmt.Sprintf("user%d@example.com", i),
-				"age":        rand.Intn(80) + 20,
-				"score":      rand.Float64() * 100,
-				"active":     rand.Intn(2) == 1,
-				"created_at": time.Now().Add(-time.Duration(rand.Intn(365*24)) * time.Hour),
-				"metadata":   `{"key1": "value1", "key2": "value2"}`,
-			},
-		}
+		record := pool.GetRecord()
+		record.SetData("id", i)
+		record.SetData("name", fmt.Sprintf("User %d", i))
+		record.SetData("email", fmt.Sprintf("user%d@example.com", i))
+		record.SetData("age", rand.Intn(80)+20)
+		record.SetData("score", rand.Float64()*100)
+		record.SetData("active", rand.Intn(2) == 1)
+		record.SetData("created_at", time.Now().Add(-time.Duration(rand.Intn(365*24))*time.Hour))
+		record.SetData("metadata", `{"key1": "value1", "key2": "value2"}`)
+		records[i] = record
 	}
 	return records
 }
@@ -90,9 +86,7 @@ func BenchmarkColumnarWrite(b *testing.B) {
 					b.ResetTimer()
 
 					for i := 0; i < b.N; i++ {
-						buf := pool.GlobalBufferPool.Get()
-
-						defer pool.GlobalBufferPool.Put(buf)
+						var buf bytes.Buffer
 						config := &WriterConfig{
 							Format:      format,
 							Schema:      schema,
@@ -140,9 +134,7 @@ func BenchmarkColumnarRead(b *testing.B) {
 	// Pre-generate files for each format
 	files := make(map[Format][]byte)
 	for _, format := range formats {
-		buf := pool.GlobalBufferPool.Get()
-
-		defer pool.GlobalBufferPool.Put(buf)
+		var buf bytes.Buffer
 		config := &WriterConfig{
 			Format:      format,
 			Schema:      schema,
@@ -221,9 +213,7 @@ func BenchmarkColumnarStreamingRead(b *testing.B) {
 	// Pre-generate files
 	files := make(map[Format][]byte)
 	for _, format := range formats {
-		buf := pool.GlobalBufferPool.Get()
-
-		defer pool.GlobalBufferPool.Put(buf)
+		var buf bytes.Buffer
 		config := &WriterConfig{
 			Format:      format,
 			Schema:      schema,
@@ -333,7 +323,7 @@ func BenchmarkColumnarFileSizes(b *testing.B) {
 
 	b.Logf("\nFile sizes for %d records (raw size: %s):", recordCount, formatBytes(rawSize))
 	b.Logf("%-10s %-10s %-15s %-10s", "Format", "Compression", "Size", "Ratio")
-	b.Logf("%s", "-"*50)
+	b.Logf("%s", strings.Repeat("-", 50))
 
 	for _, format := range formats {
 		for _, compression := range compressions {
@@ -342,10 +332,7 @@ func BenchmarkColumnarFileSizes(b *testing.B) {
 				continue
 			}
 
-			buf := pool.GlobalBufferPool.Get()
-
-
-			defer pool.GlobalBufferPool.Put(buf)
+			var buf bytes.Buffer
 			config := &WriterConfig{
 				Format:      format,
 				Schema:      schema,

@@ -1,16 +1,13 @@
 package bigquery
 
-import "github.com/ajitpratap0/nebula/pkg/pool"
-
 import (
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"context"
 	"testing"
 	"time"
 
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,8 +17,8 @@ func TestBigQueryDestination_NewBigQueryDestination(t *testing.T) {
 		Name: "test-bigquery",
 		Type: "destination",
 		Performance: config.PerformanceConfig{
-			BatchSize:      10000,
-			MaxConcurrency: 10,
+			BatchSize:       10000,
+			MaxConcurrency:  10,
 			EnableStreaming: true,
 		},
 	}
@@ -75,9 +72,9 @@ func TestBigQueryDestination_ExtractConfig(t *testing.T) {
 	config := &config.BaseConfig{
 		Name: "test-bigquery",
 		Performance: config.PerformanceConfig{
-			BatchSize:      5000,
-			Workers:        8,
-			MaxConcurrency: 20,
+			BatchSize:       5000,
+			Workers:         8,
+			MaxConcurrency:  20,
 			EnableStreaming: false,
 		},
 	}
@@ -165,16 +162,16 @@ func TestBigQueryDestination_MicroBatching(t *testing.T) {
 	dest := &BigQueryDestination{
 		batchSize:    3,
 		batchTimeout: 100 * time.Millisecond,
-		microBatch: pool.GetBatchSlice(3),
+		microBatch:   pool.GetBatchSlice(3),
 		batchChan:    make(chan *RecordBatch, 10),
 	}
 
 	// Add records that don't fill the batch
 	for i := 0; i < 2; i++ {
-		record := &models.Record{
-			ID:   string(rune('a' + i)),
-			Data: map[string]interface{}{"value": i},
-		}
+		record := pool.GetRecord()
+		defer record.Release()
+		record.ID = string(rune('a' + i))
+		record.SetData("value", i)
 		err := dest.addToMicroBatch(ctx, record)
 		assert.NoError(t, err)
 	}
@@ -183,10 +180,10 @@ func TestBigQueryDestination_MicroBatching(t *testing.T) {
 	assert.Equal(t, 2, len(dest.microBatch))
 
 	// Add one more to trigger flush
-	record := &models.Record{
-		ID:   "c",
-		Data: map[string]interface{}{"value": 2},
-	}
+	record := pool.GetRecord()
+	defer record.Release()
+	record.ID = "c"
+	record.SetData("value", 2)
 	err := dest.addToMicroBatch(ctx, record)
 	assert.NoError(t, err)
 
@@ -212,10 +209,13 @@ func TestBigQueryDestination_ProcessBatch(t *testing.T) {
 	}
 
 	// Create test batch
-	batch := []*models.Record{
-		{ID: "1", Data: map[string]interface{}{"value": 1}},
-		{ID: "2", Data: map[string]interface{}{"value": 2}},
-		{ID: "3", Data: map[string]interface{}{"value": 3}},
+	batch := make([]*pool.Record, 3)
+	for i := 0; i < 3; i++ {
+		record := pool.GetRecord()
+		defer record.Release()
+		record.ID = string(rune('1' + i))
+		record.SetData("value", i+1)
+		batch[i] = record
 	}
 
 	// Process batch

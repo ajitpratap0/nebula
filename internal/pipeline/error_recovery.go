@@ -179,7 +179,7 @@ func (em *ErrorManager) ProcessErrors(ctx context.Context, errorCh <-chan *Strea
 			em.processError(ctx, streamErr)
 
 		case <-ctx.Done():
-			em.logger.Info("error manager context cancelled")
+			em.logger.Info("error manager context canceled")
 			return
 
 		case <-em.stopCh:

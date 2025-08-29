@@ -14,7 +14,7 @@ func convertCoreToModelsSchema(coreSchema *core.Schema) *models.Schema {
 	if coreSchema == nil {
 		return nil
 	}
-	
+
 	// Convert fields
 	fields := make([]models.Field, len(coreSchema.Fields))
 	for i, coreField := range coreSchema.Fields {
@@ -25,7 +25,7 @@ func convertCoreToModelsSchema(coreSchema *core.Schema) *models.Schema {
 			Required:    !coreField.Nullable,
 		}
 	}
-	
+
 	return &models.Schema{
 		Name:    coreSchema.Name,
 		Fields:  fields,
@@ -38,7 +38,7 @@ func convertModelsToCoreSchema(modelsSchema *models.Schema) *core.Schema {
 	if modelsSchema == nil {
 		return nil
 	}
-	
+
 	// Convert fields
 	fields := make([]core.Field, len(modelsSchema.Fields))
 	for i, modelField := range modelsSchema.Fields {
@@ -49,13 +49,13 @@ func convertModelsToCoreSchema(modelsSchema *models.Schema) *core.Schema {
 			Nullable:    !modelField.Required,
 		}
 	}
-	
+
 	// Convert version
 	version := 1
 	if v, err := strconv.Atoi(modelsSchema.Version); err == nil {
 		version = v
 	}
-	
+
 	return &core.Schema{
 		Name:        modelsSchema.Name,
 		Description: fmt.Sprintf("Version %s", modelsSchema.Version),

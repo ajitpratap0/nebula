@@ -13,7 +13,7 @@ import (
 
 func init() {
 	// Register the Iceberg destination connector
-	registry.RegisterDestination("iceberg", func(config *config.BaseConfig) (core.Destination, error) {
+	_ = registry.RegisterDestination("iceberg", func(config *config.BaseConfig) (core.Destination, error) {
 		return NewIcebergDestination(config)
 	})
 }

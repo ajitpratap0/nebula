@@ -200,7 +200,7 @@ func NewBufferPool(poolSize, bufferSize int) *BufferPool {
 		buffers[i] = make([]byte, bufferSize)
 	}
 	for _, buf := range buffers {
-		bp.pool.Put(buf)
+		bp.pool.Put(&buf)
 	}
 
 	return bp
@@ -216,7 +216,7 @@ func (bp *BufferPool) Get() []byte {
 // Put returns buffer to pool
 func (bp *BufferPool) Put(buf []byte) {
 	if cap(buf) >= bp.size {
-		bp.pool.Put(buf)
+		bp.pool.Put(&buf)
 	}
 }
 

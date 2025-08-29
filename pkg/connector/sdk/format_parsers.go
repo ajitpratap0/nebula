@@ -18,10 +18,10 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/compression"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/errors"
-	"github.com/ajitpratap0/nebula/pkg/pool"
-	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
+	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 )
 
 // FormatParser provides parsing capabilities for different file formats
@@ -167,9 +167,9 @@ func (cp *CSVParser) ParseReader(ctx context.Context, reader io.Reader) (*ParseR
 
 	// Pre-allocate slices and use pooled map for better performance
 	result := &ParseResult{
-		Records: pool.GetBatchSlice(100), // Pre-allocate for typical batch size
-		Metadata: pool.GetMap(),                   // Use pooled map
-		Errors:   make([]error, 0, 10),           // Pre-allocate for common error count
+		Records:  pool.GetBatchSlice(100), // Pre-allocate for typical batch size
+		Metadata: pool.GetMap(),           // Use pooled map
+		Errors:   make([]error, 0, 10),    // Pre-allocate for common error count
 	}
 
 	// Skip initial rows if configured
@@ -412,9 +412,9 @@ func (jp *JSONParser) parseJSONArray(ctx context.Context, reader io.Reader) (*Pa
 
 	// Pre-allocate slices and use pooled map for better performance
 	result := &ParseResult{
-		Records: pool.GetBatchSlice(100), // Pre-allocate for typical batch size
-		Metadata: pool.GetMap(),                   // Use pooled map
-		Errors:   make([]error, 0, 10),           // Pre-allocate for common error count
+		Records:  pool.GetBatchSlice(100), // Pre-allocate for typical batch size
+		Metadata: pool.GetMap(),           // Use pooled map
+		Errors:   make([]error, 0, 10),    // Pre-allocate for common error count
 	}
 
 	// Expect opening bracket
@@ -492,9 +492,9 @@ func (jp *JSONParser) parseJSONLines(ctx context.Context, reader io.Reader) (*Pa
 
 	// Pre-allocate slices and use pooled map for better performance
 	result := &ParseResult{
-		Records: pool.GetBatchSlice(100), // Pre-allocate for typical batch size
-		Metadata: pool.GetMap(),                   // Use pooled map
-		Errors:   make([]error, 0, 10),           // Pre-allocate for common error count
+		Records:  pool.GetBatchSlice(100), // Pre-allocate for typical batch size
+		Metadata: pool.GetMap(),           // Use pooled map
+		Errors:   make([]error, 0, 10),    // Pre-allocate for common error count
 	}
 
 	var sampleRecords []*models.Record

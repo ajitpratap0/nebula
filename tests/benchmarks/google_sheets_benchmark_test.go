@@ -252,6 +252,7 @@ func BenchmarkGoogleSheetsMemoryUsage(b *testing.B) {
 					}
 
 					records = append(records, record)
+				_ = records // Use records to avoid linter warning
 				}
 
 				// Force GC to get accurate memory stats

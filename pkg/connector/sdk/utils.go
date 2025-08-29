@@ -10,10 +10,10 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/ajitpratap0/nebula/pkg/connector/registry"
 	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 )
 

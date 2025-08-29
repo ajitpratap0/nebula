@@ -6,10 +6,10 @@ import (
 
 func init() {
 	// Register JSON destination factory
-	registry.RegisterDestination("json", NewJSONDestination)
+	_ = registry.RegisterDestination("json", NewJSONDestination)
 
 	// Register connector info
-	registry.RegisterConnectorInfo(&registry.ConnectorInfo{
+	_ = registry.RegisterConnectorInfo(&registry.ConnectorInfo{
 		Name:        "json",
 		Type:        "destination",
 		Description: "JSON file destination connector supporting array and line-delimited formats",

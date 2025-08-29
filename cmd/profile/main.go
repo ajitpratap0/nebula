@@ -31,12 +31,12 @@ func main() {
 		fmt.Fprintf(os.Stderr, "  %s -types cpu -duration 30s\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "  %s -cpuprofile cpu.prof -memprofile mem.prof\n", os.Args[0])
 	}
-	
+
 	flag.Parse()
-	
+
 	// Parse profile types
 	types := parseProfileTypes(*profileTypes)
-	
+
 	fmt.Printf("Starting performance profiling...\n")
 	fmt.Printf("Duration: %v\n", *duration)
 	fmt.Printf("Profile types: %s\n", *profileTypes)
@@ -53,18 +53,18 @@ func main() {
 		if cpuProfileFile == "" {
 			cpuProfileFile = fmt.Sprintf("%s/cpu.prof", *outputDir)
 		}
-		
+
 		f, err := os.Create(cpuProfileFile)
 		if err != nil {
 			log.Fatalf("Failed to create CPU profile: %v", err)
 		}
 		defer f.Close()
-		
+
 		if err := pprof.StartCPUProfile(f); err != nil {
 			log.Fatalf("Failed to start CPU profile: %v", err)
 		}
 		defer pprof.StopCPUProfile()
-		
+
 		fmt.Printf("CPU profiling enabled, writing to: %s\n", cpuProfileFile)
 	}
 
@@ -81,18 +81,18 @@ func main() {
 		if memProfileFile == "" {
 			memProfileFile = fmt.Sprintf("%s/mem.prof", *outputDir)
 		}
-		
+
 		f, err := os.Create(memProfileFile)
 		if err != nil {
 			log.Fatalf("Failed to create memory profile: %v", err)
 		}
 		defer f.Close()
-		
+
 		runtime.GC() // Get up-to-date statistics
 		if err := pprof.WriteHeapProfile(f); err != nil {
 			log.Fatalf("Failed to write memory profile: %v", err)
 		}
-		
+
 		fmt.Printf("Memory profile written to: %s\n", memProfileFile)
 	}
 
@@ -114,10 +114,10 @@ func main() {
 // runSimulatedWork simulates some CPU and memory work
 func runSimulatedWork(ctx context.Context) {
 	fmt.Printf("Running simulated workload...\n")
-	
+
 	// Allocate some memory and do some CPU work
 	data := make([][]byte, 1000)
-	
+
 	for i := 0; i < len(data); i++ {
 		select {
 		case <-ctx.Done():
@@ -125,20 +125,20 @@ func runSimulatedWork(ctx context.Context) {
 		default:
 			// Allocate memory
 			data[i] = make([]byte, 1024*1024) // 1MB
-			
+
 			// Do some CPU work
 			for j := 0; j < len(data[i]); j++ {
 				data[i][j] = byte(i + j)
 			}
-			
+
 			// Sleep briefly to make profiling observable
 			time.Sleep(10 * time.Millisecond)
 		}
 	}
-	
+
 	// Keep data alive
 	_ = data
-	
+
 	fmt.Printf("Simulated workload completed\n")
 }
 
@@ -149,20 +149,20 @@ func writeProfile(profileName, filename string) {
 		fmt.Printf("Profile %s not found\n", profileName)
 		return
 	}
-	
+
 	f, err := os.Create(filename)
 	if err != nil {
 		log.Printf("Failed to create %s profile: %v", profileName, err)
 		return
 	}
 	defer f.Close()
-	
+
 	if err := profile.WriteTo(f, 0); err != nil {
 		log.Printf("Failed to write %s profile: %v", profileName, err)
 		return
 	}
-	
-	fmt.Printf("%s profile written to: %s\n", strings.Title(profileName), filename)
+
+	fmt.Printf("%s profile written to: %s\n", profileName, filename)
 }
 
 // parseProfileTypes parses the profile types string
@@ -173,7 +173,7 @@ func parseProfileTypes(typesStr string) []string {
 
 	parts := strings.Split(typesStr, ",")
 	types := make([]string, 0, len(parts))
-	
+
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
 		switch part {
@@ -184,7 +184,7 @@ func parseProfileTypes(typesStr string) []string {
 			types = append(types, part)
 		}
 	}
-	
+
 	return types
 }
 

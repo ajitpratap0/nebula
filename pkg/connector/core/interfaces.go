@@ -26,7 +26,7 @@ type ConnectorType string
 
 const (
 	// ConnectorTypeSource indicates a source connector that reads data
-	ConnectorTypeSource      ConnectorType = "source"
+	ConnectorTypeSource ConnectorType = "source"
 	// ConnectorTypeDestination indicates a destination connector that writes data
 	ConnectorTypeDestination ConnectorType = "destination"
 )
@@ -50,35 +50,35 @@ type Position interface {
 // It includes metadata about the schema version and lifecycle.
 type Schema struct {
 	// Name is the schema identifier (e.g., table name, collection name)
-	Name        string
+	Name string
 	// Description provides human-readable information about the schema
 	Description string
 	// Fields defines the structure of the data
-	Fields      []Field
+	Fields []Field
 	// Version tracks schema evolution
-	Version     int
+	Version int
 	// CreatedAt is when the schema was first created
-	CreatedAt   time.Time
+	CreatedAt time.Time
 	// UpdatedAt is when the schema was last modified
-	UpdatedAt   time.Time
+	UpdatedAt time.Time
 }
 
 // Field represents a field in the schema with type and constraint information.
 type Field struct {
 	// Name is the field identifier
-	Name        string
+	Name string
 	// Type specifies the data type
-	Type        FieldType
+	Type FieldType
 	// Description provides human-readable field information
 	Description string
 	// Nullable indicates if the field can contain null values
-	Nullable    bool
+	Nullable bool
 	// Primary indicates if this field is part of the primary key
-	Primary     bool
+	Primary bool
 	// Unique indicates if values must be unique
-	Unique      bool
+	Unique bool
 	// Default specifies the default value if not provided
-	Default     interface{}
+	Default interface{}
 }
 
 // FieldType represents the data type of a field.
@@ -87,25 +87,24 @@ type FieldType string
 
 const (
 	// FieldTypeString represents text data
-	FieldTypeString    FieldType = "string"
+	FieldTypeString FieldType = "string"
 	// FieldTypeInt represents integer numbers
-	FieldTypeInt       FieldType = "int"
+	FieldTypeInt FieldType = "int"
 	// FieldTypeFloat represents floating-point numbers
-	FieldTypeFloat     FieldType = "float"
+	FieldTypeFloat FieldType = "float"
 	// FieldTypeBool represents boolean values
-	FieldTypeBool      FieldType = "bool"
+	FieldTypeBool FieldType = "bool"
 	// FieldTypeTimestamp represents date and time with timezone
 	FieldTypeTimestamp FieldType = "timestamp"
 	// FieldTypeDate represents date without time
-	FieldTypeDate      FieldType = "date"
+	FieldTypeDate FieldType = "date"
 	// FieldTypeTime represents time without date
-	FieldTypeTime      FieldType = "time"
+	FieldTypeTime FieldType = "time"
 	// FieldTypeJSON represents JSON structured data
-	FieldTypeJSON      FieldType = "json"
+	FieldTypeJSON FieldType = "json"
 	// FieldTypeBinary represents binary data
-	FieldTypeBinary    FieldType = "binary"
+	FieldTypeBinary FieldType = "binary"
 )
-
 
 // RecordStream represents a stream of individual records for real-time processing.
 // It provides separate channels for records and errors to enable concurrent
@@ -114,7 +113,7 @@ type RecordStream struct {
 	// Records channel delivers individual records
 	Records <-chan *pool.Record
 	// Errors channel delivers any errors encountered during streaming
-	Errors  <-chan error
+	Errors <-chan error
 }
 
 // BatchStream represents a stream of record batches for efficient bulk processing.
@@ -123,7 +122,7 @@ type BatchStream struct {
 	// Batches channel delivers slices of records
 	Batches <-chan []*pool.Record
 	// Errors channel delivers any errors encountered during streaming
-	Errors  <-chan error
+	Errors <-chan error
 }
 
 // ChangeStream represents a stream of change events for CDC (Change Data Capture).
@@ -132,24 +131,24 @@ type ChangeStream struct {
 	// Changes channel delivers CDC events
 	Changes <-chan *ChangeEvent
 	// Errors channel delivers any errors encountered during streaming
-	Errors  <-chan error
+	Errors <-chan error
 }
 
 // ChangeEvent represents a change data capture event with before/after states.
 // It captures the complete context of a database change for accurate replication.
 type ChangeEvent struct {
 	// Type indicates the kind of change (insert, update, delete)
-	Type      ChangeType
+	Type ChangeType
 	// Table identifies where the change occurred
-	Table     string
+	Table string
 	// Timestamp indicates when the change happened
 	Timestamp time.Time
 	// Position enables resumable CDC by tracking progress
-	Position  Position
+	Position Position
 	// Before contains the record state before the change (nil for inserts)
-	Before    map[string]interface{}
+	Before map[string]interface{}
 	// After contains the record state after the change (nil for deletes)
-	After     map[string]interface{}
+	After map[string]interface{}
 }
 
 // ChangeType represents the type of database change in CDC.
@@ -178,57 +177,57 @@ type Transaction interface {
 // for batch processing, streaming, CDC, and incremental synchronization.
 type Source interface {
 	// Core functionality
-	
+
 	// Initialize prepares the source connector with configuration
 	Initialize(ctx context.Context, config *config.BaseConfig) error
-	
+
 	// Discover retrieves the schema of available data
 	Discover(ctx context.Context) (*Schema, error)
-	
+
 	// Read starts streaming individual records
 	Read(ctx context.Context) (*RecordStream, error)
-	
+
 	// ReadBatch reads records in batches for improved efficiency
 	ReadBatch(ctx context.Context, batchSize int) (*BatchStream, error)
-	
+
 	// Close cleanly shuts down the connector and releases resources
 	Close(ctx context.Context) error
 
 	// State management for resumable operations
-	
+
 	// GetPosition returns the current read position
 	GetPosition() Position
-	
+
 	// SetPosition sets the read position for incremental sync
 	SetPosition(position Position) error
-	
+
 	// GetState returns the full connector state
 	GetState() State
-	
+
 	// SetState restores connector state from a previous run
 	SetState(state State) error
 
 	// Capabilities indicate what features the source supports
-	
+
 	// SupportsIncremental indicates if incremental sync is available
 	SupportsIncremental() bool
-	
+
 	// SupportsRealtime indicates if real-time streaming is available
 	SupportsRealtime() bool
-	
+
 	// SupportsBatch indicates if batch reading is available
 	SupportsBatch() bool
 
 	// Real-time/CDC support
-	
+
 	// Subscribe starts CDC streaming for specified tables
 	Subscribe(ctx context.Context, tables []string) (*ChangeStream, error)
 
 	// Health and metrics
-	
+
 	// Health checks if the source is operational
 	Health(ctx context.Context) error
-	
+
 	// Metrics returns performance and operational metrics
 	Metrics() map[string]interface{}
 }
@@ -238,63 +237,63 @@ type Source interface {
 // streaming, batching, transactions, bulk loading, and schema management.
 type Destination interface {
 	// Core functionality
-	
+
 	// Initialize prepares the destination connector with configuration
 	Initialize(ctx context.Context, config *config.BaseConfig) error
-	
+
 	// CreateSchema creates the target schema in the destination
 	CreateSchema(ctx context.Context, schema *Schema) error
-	
+
 	// Write processes a stream of individual records
 	Write(ctx context.Context, stream *RecordStream) error
-	
+
 	// WriteBatch processes batches of records for improved efficiency
 	WriteBatch(ctx context.Context, stream *BatchStream) error
-	
+
 	// Close cleanly shuts down the connector and releases resources
 	Close(ctx context.Context) error
 
 	// Capabilities indicate what features the destination supports
-	
+
 	// SupportsBulkLoad indicates if bulk loading is available
 	SupportsBulkLoad() bool
-	
+
 	// SupportsTransactions indicates if transactional writes are supported
 	SupportsTransactions() bool
-	
+
 	// SupportsUpsert indicates if upsert operations are supported
 	SupportsUpsert() bool
-	
+
 	// SupportsBatch indicates if batch writing is available
 	SupportsBatch() bool
-	
+
 	// SupportsStreaming indicates if streaming writes are supported
 	SupportsStreaming() bool
 
 	// Advanced operations
-	
+
 	// BulkLoad performs high-speed data loading from files or readers
 	BulkLoad(ctx context.Context, reader interface{}, format string) error
-	
+
 	// BeginTransaction starts a new transaction for atomic operations
 	BeginTransaction(ctx context.Context) (Transaction, error)
-	
+
 	// Upsert performs insert-or-update operations based on key columns
 	Upsert(ctx context.Context, records []*pool.Record, keys []string) error
 
 	// Schema operations
-	
+
 	// AlterSchema modifies an existing schema structure
 	AlterSchema(ctx context.Context, oldSchema, newSchema *Schema) error
-	
+
 	// DropSchema removes a schema from the destination
 	DropSchema(ctx context.Context, schema *Schema) error
 
 	// Health and metrics
-	
+
 	// Health checks if the destination is operational
 	Health(ctx context.Context) error
-	
+
 	// Metrics returns performance and operational metrics
 	Metrics() map[string]interface{}
 }
@@ -304,29 +303,29 @@ type Destination interface {
 // to provide consistent metadata and lifecycle management.
 type Connector interface {
 	// Metadata
-	
+
 	// Name returns the connector's unique identifier
 	Name() string
-	
+
 	// Type returns whether this is a source or destination
 	Type() ConnectorType
-	
+
 	// Version returns the connector's version string
 	Version() string
 
 	// Lifecycle
-	
+
 	// Initialize prepares the connector with configuration
 	Initialize(ctx context.Context, config *config.BaseConfig) error
-	
+
 	// Close cleanly shuts down the connector
 	Close(ctx context.Context) error
 
 	// Health and monitoring
-	
+
 	// Health checks connector operational status
 	Health(ctx context.Context) error
-	
+
 	// Metrics returns performance and operational metrics
 	Metrics() map[string]interface{}
 }
@@ -336,13 +335,13 @@ type Connector interface {
 type ConnectorFactory interface {
 	// CreateSource instantiates a source connector by type
 	CreateSource(connectorType string, config *config.BaseConfig) (Source, error)
-	
+
 	// CreateDestination instantiates a destination connector by type
 	CreateDestination(connectorType string, config *config.BaseConfig) (Destination, error)
-	
+
 	// ListSources returns available source connector types
 	ListSources() []string
-	
+
 	// ListDestinations returns available destination connector types
 	ListDestinations() []string
 }
@@ -351,13 +350,13 @@ type ConnectorFactory interface {
 // It provides detailed information about the connector's operational state.
 type HealthStatus struct {
 	// Status indicates the overall health ("healthy", "unhealthy", "degraded")
-	Status    string                 `json:"status"`
+	Status string `json:"status"`
 	// Timestamp of the health check
-	Timestamp time.Time              `json:"timestamp"`
+	Timestamp time.Time `json:"timestamp"`
 	// Details provides additional health information
-	Details   map[string]interface{} `json:"details"`
+	Details map[string]interface{} `json:"details"`
 	// Error contains any error information if unhealthy
-	Error     error                  `json:"error,omitempty"`
+	Error error `json:"error,omitempty"`
 }
 
 // MetricType represents the type of metric for monitoring.
@@ -365,30 +364,30 @@ type MetricType string
 
 const (
 	// MetricTypeCounter is for monotonically increasing values
-	MetricTypeCounter   MetricType = "counter"
+	MetricTypeCounter MetricType = "counter"
 	// MetricTypeGauge is for values that can go up or down
-	MetricTypeGauge     MetricType = "gauge"
+	MetricTypeGauge MetricType = "gauge"
 	// MetricTypeHistogram is for distributions of values
 	MetricTypeHistogram MetricType = "histogram"
 	// MetricTypeSummary is for statistical summaries
-	MetricTypeSummary   MetricType = "summary"
+	MetricTypeSummary MetricType = "summary"
 )
 
 // Metric represents a single metric measurement.
 // Metrics are used for monitoring connector performance and behavior.
 type Metric struct {
 	// Name identifies the metric
-	Name        string            `json:"name"`
+	Name string `json:"name"`
 	// Type specifies the metric type
-	Type        MetricType        `json:"type"`
+	Type MetricType `json:"type"`
 	// Value contains the metric measurement
-	Value       interface{}       `json:"value"`
+	Value interface{} `json:"value"`
 	// Labels provide dimensional metadata
-	Labels      map[string]string `json:"labels"`
+	Labels map[string]string `json:"labels"`
 	// Timestamp indicates when the metric was collected
-	Timestamp   time.Time         `json:"timestamp"`
+	Timestamp time.Time `json:"timestamp"`
 	// Description explains what the metric measures
-	Description string            `json:"description"`
+	Description string `json:"description"`
 }
 
 // StreamController provides control over data streams.
@@ -485,15 +484,15 @@ type ConnectionPool interface {
 // PoolStats represents connection pool statistics.
 type PoolStats struct {
 	// Active is the number of connections in use
-	Active   int
+	Active int
 	// Idle is the number of available connections
-	Idle     int
+	Idle int
 	// Total is the total number of connections
-	Total    int
+	Total int
 	// MaxSize is the maximum pool size
-	MaxSize  int
+	MaxSize int
 	// Waits is the number of times waited for a connection
-	Waits    int64
+	Waits int64
 	// Timeouts is the number of wait timeouts
 	Timeouts int64
 }
@@ -577,21 +576,21 @@ type Pipeline interface {
 // It describes connector capabilities and configuration requirements.
 type ConnectorMetadata struct {
 	// Name is the connector identifier
-	Name          string                 `json:"name"`
+	Name string `json:"name"`
 	// Type indicates source or destination
-	Type          ConnectorType          `json:"type"`
+	Type ConnectorType `json:"type"`
 	// Version is the connector version
-	Version       string                 `json:"version"`
+	Version string `json:"version"`
 	// Description explains the connector's purpose
-	Description   string                 `json:"description"`
+	Description string `json:"description"`
 	// Author identifies the connector creator
-	Author        string                 `json:"author"`
+	Author string `json:"author"`
 	// Documentation links to detailed docs
-	Documentation string                 `json:"documentation"`
+	Documentation string `json:"documentation"`
 	// Capabilities lists supported features
-	Capabilities  []string               `json:"capabilities"`
+	Capabilities []string `json:"capabilities"`
 	// ConfigSchema describes configuration options
-	ConfigSchema  map[string]interface{} `json:"config_schema"`
+	ConfigSchema map[string]interface{} `json:"config_schema"`
 }
 
 // ConnectorRegistry manages available connectors.

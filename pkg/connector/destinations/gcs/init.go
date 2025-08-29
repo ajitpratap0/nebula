@@ -8,12 +8,12 @@ import (
 
 func init() {
 	// Register the GCS destination connector
-	registry.RegisterDestination("gcs", func(config *config.BaseConfig) (core.Destination, error) {
+	_ = registry.RegisterDestination("gcs", func(config *config.BaseConfig) (core.Destination, error) {
 		return NewGCSDestination("gcs", config)
 	})
 
 	// Register connector metadata
-	registry.RegisterConnectorInfo(&registry.ConnectorInfo{
+	_ = registry.RegisterConnectorInfo(&registry.ConnectorInfo{
 		Name:        "gcs",
 		Type:        "destination",
 		Description: "Google Cloud Storage destination connector with Parquet support",

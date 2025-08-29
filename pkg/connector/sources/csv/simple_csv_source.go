@@ -1,10 +1,10 @@
 package csv
 
 import (
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"context"
 	"encoding/csv"
 	"fmt"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 	"os"
 	"time"
 
@@ -16,13 +16,13 @@ import (
 
 func init() {
 	// Register the V2 CSV source connector as primary
-	registry.RegisterSource("csv", NewCSVSource)
+	_ = registry.RegisterSource("csv", NewCSVSource)
 
 	// Register the simple CSV source connector as legacy (deprecated)
-	registry.RegisterSource("csv-legacy", NewSimpleCSVSource)
+	_ = registry.RegisterSource("csv-legacy", NewSimpleCSVSource)
 
 	// Register primary connector info (V2 promoted)
-	registry.RegisterConnectorInfo(&registry.ConnectorInfo{
+	_ = registry.RegisterConnectorInfo(&registry.ConnectorInfo{
 		Name:        "csv",
 		Type:        "source",
 		Description: "Production-ready CSV file source connector with BaseConnector features",
@@ -56,7 +56,7 @@ func init() {
 	})
 
 	// Register legacy connector info (deprecated)
-	registry.RegisterConnectorInfo(&registry.ConnectorInfo{
+	_ = registry.RegisterConnectorInfo(&registry.ConnectorInfo{
 		Name:        "csv-legacy",
 		Type:        "source",
 		Description: "DEPRECATED: Simple CSV file source connector (use 'csv' instead)",

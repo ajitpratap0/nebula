@@ -43,7 +43,7 @@ type CDCConfig struct {
 	Database         string   `json:"database"`
 	Tables           []string `json:"tables"`
 	SlotName         string   `json:"slot_name,omitempty"` // PostgreSQL replication slot
-	ServerId         uint32   `json:"server_id,omitempty"` // MySQL server ID
+	ServerID         uint32   `json:"server_id,omitempty"` // MySQL server ID
 
 	// CDC behavior
 	SnapshotMode      string        `json:"snapshot_mode"`    // initial, never, when_needed
@@ -84,8 +84,8 @@ type ChangeEvent struct {
 	// Identity
 	LSN           uint64    `json:"lsn"`
 	Timestamp     time.Time `json:"timestamp"`
-	TransactionId string    `json:"transaction_id"`
-	EventId       string    `json:"event_id"`
+	TransactionID string    `json:"transaction_id"`
+	EventID       string    `json:"event_id"`
 
 	// Change details
 	Operation string `json:"operation"` // INSERT, UPDATE, DELETE
@@ -124,7 +124,7 @@ type SourceInfo struct {
 	Position   int64     `json:"position,omitempty"`
 	Row        int64     `json:"row,omitempty"`
 	Snapshot   bool      `json:"snapshot"`
-	ThreadId   int64     `json:"thread_id,omitempty"`
+	ThreadID   int64     `json:"thread_id,omitempty"`
 }
 
 // EventStream manages the stream of change events
@@ -159,7 +159,7 @@ type CheckpointManager struct {
 type Checkpoint struct {
 	LSN            uint64            `json:"lsn"`
 	Timestamp      time.Time         `json:"timestamp"`
-	TransactionId  string            `json:"transaction_id,omitempty"`
+	TransactionID  string            `json:"transaction_id,omitempty"`
 	BinlogFile     string            `json:"binlog_file,omitempty"`
 	BinlogPosition int64             `json:"binlog_position,omitempty"`
 	Metadata       map[string]string `json:"metadata,omitempty"`
@@ -323,7 +323,7 @@ func (mlr *MockLogReader) ReadChanges(ctx context.Context, fromLSN uint64) (<-ch
 					Table:     "test_table",
 					After:     map[string]interface{}{"id": lsn, "data": "mock_data"},
 					Key:       map[string]interface{}{"id": lsn},
-					EventId:   stringpool.Sprintf("mock_%d", lsn),
+					EventID:   stringpool.Sprintf("mock_%d", lsn),
 				}
 
 				select {

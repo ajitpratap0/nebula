@@ -22,11 +22,11 @@ type DeadLetterQueue interface {
 
 // DeadLetterStats contains statistics for the dead letter queue
 type DeadLetterStats struct {
-	TotalEvents    int64     `json:"total_events"`
-	PendingEvents  int64     `json:"pending_events"`
-	ProcessedEvents int64    `json:"processed_events"`
-	OldestEvent    time.Time `json:"oldest_event"`
-	LastAdded      time.Time `json:"last_added"`
+	TotalEvents     int64     `json:"total_events"`
+	PendingEvents   int64     `json:"pending_events"`
+	ProcessedEvents int64     `json:"processed_events"`
+	OldestEvent     time.Time `json:"oldest_event"`
+	LastAdded       time.Time `json:"last_added"`
 }
 
 // StreamProcessor handles real-time processing of CDC events
@@ -141,12 +141,12 @@ type MemoryCheckpointStorage struct {
 
 // MemoryDeadLetterQueue provides in-memory dead letter queue implementation
 type MemoryDeadLetterQueue struct {
-	tasks       []ProcessingTask
-	errors      map[string]error
+	tasks        []ProcessingTask
+	errors       map[string]error
 	acknowledged map[string]bool
-	stats       DeadLetterStats
-	mutex       sync.RWMutex
-	maxSize     int
+	stats        DeadLetterStats
+	mutex        sync.RWMutex
+	maxSize      int
 }
 
 // NewStreamProcessor creates a new stream processor
@@ -883,15 +883,15 @@ func (dlq *MemoryDeadLetterQueue) Send(task ProcessingTask, err error) error {
 
 	// Generate unique ID for the task
 	taskID := stringpool.Sprintf("dlq_%d_%s", time.Now().UnixNano(), task.Handler)
-	
+
 	// Store task with ID in metadata
 	if task.Timestamp.IsZero() {
 		task.Timestamp = time.Now()
 	}
-	
+
 	dlq.tasks = append(dlq.tasks, task)
 	dlq.errors[taskID] = err
-	
+
 	// Update stats
 	dlq.stats.TotalEvents += int64(len(task.Events))
 	dlq.stats.PendingEvents += int64(len(task.Events))
@@ -913,7 +913,7 @@ func (dlq *MemoryDeadLetterQueue) Read(limit int) ([]ProcessingTask, error) {
 
 	for _, task := range dlq.tasks {
 		taskID := stringpool.Sprintf("dlq_%d_%s", task.Timestamp.UnixNano(), task.Handler)
-		
+
 		// Skip acknowledged tasks
 		if dlq.acknowledged[taskID] {
 			continue
@@ -936,7 +936,7 @@ func (dlq *MemoryDeadLetterQueue) Acknowledge(taskID string) error {
 	defer dlq.mutex.Unlock()
 
 	dlq.acknowledged[taskID] = true
-	
+
 	// Update stats
 	for _, task := range dlq.tasks {
 		id := stringpool.Sprintf("dlq_%d_%s", task.Timestamp.UnixNano(), task.Handler)
@@ -954,6 +954,6 @@ func (dlq *MemoryDeadLetterQueue) Acknowledge(taskID string) error {
 func (dlq *MemoryDeadLetterQueue) GetStats() DeadLetterStats {
 	dlq.mutex.RLock()
 	defer dlq.mutex.RUnlock()
-	
+
 	return dlq.stats
 }

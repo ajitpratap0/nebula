@@ -83,11 +83,11 @@ type SimplePipeline struct {
 	startTime        time.Time // Pipeline start time
 
 	// State management
-	logger *zap.Logger         // Structured logger
-	ctx    context.Context     // Pipeline context
-	cancel context.CancelFunc  // Cancellation function
-	wg     sync.WaitGroup      // Tracks goroutines
-	mu     sync.Mutex          // Protects metrics
+	logger *zap.Logger        // Structured logger
+	ctx    context.Context    // Pipeline context
+	cancel context.CancelFunc // Cancellation function
+	wg     sync.WaitGroup     // Tracks goroutines
+	mu     sync.Mutex         // Protects metrics
 }
 
 // Transform represents a data transformation function that modifies records
@@ -281,7 +281,7 @@ func (p *SimplePipeline) readSource(ctx context.Context, recordChan chan<- *mode
 			}
 
 		case <-ctx.Done():
-			p.logger.Info("source reader cancelled")
+			p.logger.Info("source reader canceled")
 			return
 		}
 	}
@@ -328,7 +328,7 @@ func (p *SimplePipeline) transformWorker(ctx context.Context, id int, in <-chan 
 			}
 
 		case <-ctx.Done():
-			logger.Debug("transform worker cancelled")
+			logger.Debug("transform worker canceled")
 			return
 		}
 	}
@@ -380,7 +380,7 @@ func (p *SimplePipeline) batchCollector(ctx context.Context, in <-chan *models.R
 
 		case <-ctx.Done():
 			flush()
-			p.logger.Info("batch collector cancelled")
+			p.logger.Info("batch collector canceled")
 			return
 		}
 	}
@@ -440,7 +440,7 @@ func (p *SimplePipeline) writeDestination(ctx context.Context, batchChan <-chan 
 
 		case <-ctx.Done():
 			close(destBatchChan)
-			p.logger.Info("destination writer cancelled")
+			p.logger.Info("destination writer canceled")
 			return
 		}
 	}
@@ -463,7 +463,7 @@ func (p *SimplePipeline) errorHandler(ctx context.Context, errorChan <-chan erro
 			}
 
 		case <-ctx.Done():
-			p.logger.Debug("error handler context cancelled")
+			p.logger.Debug("error handler context canceled")
 			return
 		}
 	}
