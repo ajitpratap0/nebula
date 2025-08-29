@@ -104,6 +104,28 @@ func (d *IcebergDestination) icebergTypeToArrowType(icebergType icebergGo.Type) 
 		}, nil
 	case icebergGo.DateType:
 		return arrow.FixedWidthTypes.Date32, nil
+	case *icebergGo.ListType:
+		// Handle list types recursively
+		elemArrowType, err := d.icebergTypeToArrowType(t.Element)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get list element type: %w", err)
+		}
+		return arrow.ListOf(elemArrowType), nil
+	case *icebergGo.StructType:
+		// Handle struct types recursively
+		var fields []arrow.Field
+		for _, f := range t.Fields() {
+			fieldArrowType, err := d.icebergTypeToArrowType(f.Type)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert struct field '%s': %w", f.Name, err)
+			}
+			fields = append(fields, arrow.Field{
+				Name:     f.Name,
+				Type:     fieldArrowType,
+				Nullable: !f.Required,
+			})
+		}
+		return arrow.StructOf(fields...), nil
 	default:
 		d.logger.Warn("Unsupported Iceberg type, defaulting to string",
 			zap.String("type", t.String()))
@@ -289,6 +311,34 @@ func (d *IcebergDestination) appendToBuilder(dt arrow.DataType, b array.Builder,
 			}
 		} else {
 			builder.AppendNull()
+		}
+	case *array.ListBuilder:
+		// Handle list/array values
+		values, ok := val.([]interface{})
+		if !ok {
+			builder.AppendNull()
+			return
+		}
+
+		builder.Append(true)
+		elemBuilder := builder.ValueBuilder()
+		elemType := dt.(*arrow.ListType).Elem()
+
+		for _, v := range values {
+			d.appendToBuilder(elemType, elemBuilder, v)
+		}
+	case *array.StructBuilder:
+		// Handle struct/object values
+		valueMap, ok := val.(map[string]interface{})
+		if !ok {
+			builder.AppendNull()
+			return
+		}
+
+		builder.Append(true)
+		structType := dt.(*arrow.StructType)
+		for i, field := range structType.Fields() {
+			d.appendToBuilder(field.Type, builder.FieldBuilder(i), valueMap[field.Name])
 		}
 	default:
 		d.logger.Warn("Unsupported Arrow builder type",
