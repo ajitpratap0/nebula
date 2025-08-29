@@ -47,7 +47,7 @@ func DefaultSystemFlags() *SystemFlags {
 		BatchSize:      1000,
 		Workers:        runtime.NumCPU(),
 		MaxConcurrency: runtime.NumCPU() * 2,
-		FlushInterval:  10,
+		FlushInterval:  10 * time.Second,
 		Timeout:        30 * time.Minute,
 		LogLevel:       "info",
 		EnableMetrics:  true,
@@ -132,11 +132,11 @@ Example:
 
 	// Optional system flags
 	runCmd.Flags().StringVar(&systemFlagsFile, "system-flags", "", "Path to system configuration JSON file (optional)")
-	runCmd.Flags().IntVar(&batchSize, "batch-size", 1000, "Number of records per batch")
-	runCmd.Flags().IntVar(&workers, "workers", runtime.NumCPU(), "Number of worker threads")
-	runCmd.Flags().IntVar(&maxConcurrency, "max-concurrency", runtime.NumCPU()*2, "Maximum concurrent operations")
+	runCmd.Flags().IntVar(&batchSize, "batch-size", 1000, "Number of records per batch. Higher values improve throughput but increase memory usage and latency")
+	runCmd.Flags().IntVar(&workers, "workers", runtime.NumCPU(), "Number of worker threads for parallel processing. Increase for CPU-bound workloads")
+	runCmd.Flags().IntVar(&maxConcurrency, "max-concurrency", runtime.NumCPU()*2, "Maximum concurrent I/O operations. Increase for I/O-bound workloads")
 	runCmd.Flags().DurationVar(&timeout, "timeout", 30*time.Minute, "Pipeline timeout")
-	runCmd.Flags().DurationVar(&flushInterval, "flush-interval", time.Second, "Time interval for batch flushing")
+	runCmd.Flags().DurationVar(&flushInterval, "flush-interval", 10*time.Second, "Time interval for periodic batch flushing (e.g., 1s, 30s, 2m). Lower values reduce latency but may impact throughput")
 	runCmd.Flags().StringVar(&logLevel, "log-level", "error", "Log level (debug, info, warn, error)")
 	runCmd.Flags().BoolVar(&enableMetrics, "enable-metrics", false, "Enable metrics collection")
 

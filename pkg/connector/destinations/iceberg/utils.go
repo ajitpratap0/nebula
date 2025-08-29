@@ -272,13 +272,12 @@ func (d *IcebergDestination) appendToBuilder(dt arrow.DataType, b array.Builder,
 		if v, ok := val.(time.Time); ok {
 			builder.Append(getTimestampValue(v))
 		} else if v, ok := val.(string); ok {
-			// Try multiple timestamp formats
 			formats := []string{
-				time.RFC3339,
-				time.RFC3339Nano,
-				"2006-01-02T15:04:05",
 				"2006-01-02 15:04:05",
+				"2006-01-02T15:04:05",
+				time.RFC3339,
 				"2006-01-02 15:04:05.999999",
+				time.RFC3339Nano,
 				"2006-01-02",
 			}
 
@@ -292,7 +291,9 @@ func (d *IcebergDestination) appendToBuilder(dt arrow.DataType, b array.Builder,
 			}
 
 			if !parsed {
-				d.logger.Warn("Failed to parse timestamp string", zap.String("value", v))
+				d.logger.Error("Failed to parse timestamp string - data may be lost", 
+					zap.String("value", v),
+					zap.Strings("attempted_formats", formats))
 				builder.AppendNull()
 			}
 		} else {

@@ -112,7 +112,7 @@ func DefaultPipelineConfig() *PipelineConfig {
 	return &PipelineConfig{
 		BatchSize:     5000,
 		WorkerCount:   4,
-		FlushInterval: 10,
+		FlushInterval: 10 * time.Second,
 	}
 }
 
