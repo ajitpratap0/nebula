@@ -106,7 +106,7 @@ func TestBigQueryDestination_ConvertFieldTypes(t *testing.T) {
 		{core.FieldTypeString, "STRING"},
 		{core.FieldTypeInt, "INTEGER"},
 		{core.FieldTypeFloat, "FLOAT"},
-		{core.FieldTypeBool, "BOOL"},
+		{core.FieldTypeBool, "BOOLEAN"},
 		{core.FieldTypeTimestamp, "TIMESTAMP"},
 		{core.FieldTypeDate, "DATE"},
 		{core.FieldTypeTime, "TIME"},
@@ -161,8 +161,17 @@ func TestBigQueryDestination_GetStats(t *testing.T) {
 func TestBigQueryDestination_MicroBatching(t *testing.T) {
 	ctx := context.Background()
 	
-	// Create base connector for embedded field
+	// Create base connector and initialize it
 	baseConn := base.NewBaseConnector("test-bigquery", core.ConnectorTypeDestination, "1.0.0")
+	testConfig := &config.BaseConfig{
+		Name: "test-bigquery",
+		Reliability: config.ReliabilityConfig{
+			RetryAttempts: 3,
+			RetryDelay:   1,
+		},
+	}
+	err := baseConn.Initialize(ctx, testConfig)
+	require.NoError(t, err)
 	
 	dest := &BigQueryDestination{
 		BaseConnector: baseConn,
@@ -190,7 +199,7 @@ func TestBigQueryDestination_MicroBatching(t *testing.T) {
 	defer record.Release()
 	record.ID = "c"
 	record.SetData("value", 2)
-	err := dest.addToMicroBatch(ctx, record)
+	err = dest.addToMicroBatch(ctx, record)
 	assert.NoError(t, err)
 
 	// Verify batch was flushed

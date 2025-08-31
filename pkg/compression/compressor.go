@@ -59,7 +59,6 @@ import (
 	"io"
 	"sync"
 
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"github.com/klauspost/compress/s2"
 	"github.com/klauspost/compress/snappy"
@@ -363,12 +362,8 @@ func (gc *gzipCompressor) Compress(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// Copy data from pooled builder to result
-	result := pool.GetByteSlice()
-	if cap(result) < builder.Len() {
-		result = make([]byte, builder.Len())
-	}
-	defer pool.PutByteSlice(result)
+	// Create result slice with proper size
+	result := make([]byte, builder.Len())
 	copy(result, builder.Bytes())
 	return result, nil
 }
@@ -389,12 +384,8 @@ func (gc *gzipCompressor) Decompress(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// Copy data from pooled builder to result
-	result := pool.GetByteSlice()
-	if cap(result) < builder.Len() {
-		result = make([]byte, builder.Len())
-	}
-	defer pool.PutByteSlice(result)
+	// Create result slice with proper size
+	result := make([]byte, builder.Len())
 	copy(result, builder.Bytes())
 	return result, nil
 }
@@ -498,12 +489,8 @@ func (lc *lz4Compressor) Compress(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// Copy data from pooled builder to result
-	result := pool.GetByteSlice()
-	if cap(result) < builder.Len() {
-		result = make([]byte, builder.Len())
-	}
-	defer pool.PutByteSlice(result)
+	// Create result slice with proper size
+	result := make([]byte, builder.Len())
 	copy(result, builder.Bytes())
 	return result, nil
 }
@@ -519,12 +506,8 @@ func (lc *lz4Compressor) Decompress(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// Copy data from pooled builder to result
-	result := pool.GetByteSlice()
-	if cap(result) < builder.Len() {
-		result = make([]byte, builder.Len())
-	}
-	defer pool.PutByteSlice(result)
+	// Create result slice with proper size
+	result := make([]byte, builder.Len())
 	copy(result, builder.Bytes())
 	return result, nil
 }
@@ -693,12 +676,8 @@ func (dc *deflateCompressor) Compress(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// Copy data from pooled builder to result
-	result := pool.GetByteSlice()
-	if cap(result) < builder.Len() {
-		result = make([]byte, builder.Len())
-	}
-	defer pool.PutByteSlice(result)
+	// Create result slice with proper size
+	result := make([]byte, builder.Len())
 	copy(result, builder.Bytes())
 	return result, nil
 }
@@ -715,12 +694,8 @@ func (dc *deflateCompressor) Decompress(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// Copy data from pooled builder to result
-	result := pool.GetByteSlice()
-	if cap(result) < builder.Len() {
-		result = make([]byte, builder.Len())
-	}
-	defer pool.PutByteSlice(result)
+	// Create result slice with proper size
+	result := make([]byte, builder.Len())
 	copy(result, builder.Bytes())
 	return result, nil
 }

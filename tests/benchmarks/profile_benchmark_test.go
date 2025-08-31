@@ -319,7 +319,7 @@ func createTestPipeline(t *testing.T, inputFile, outputFile string, logger *zap.
 	// Create source
 	sourceConfig := config.NewBaseConfig("test-source", "source")
 	sourceConfig.Security.Credentials = map[string]string{
-		"file_path": inputFile,
+		"path": inputFile,
 	}
 
 	source, err := csvsrc.NewCSVSource(sourceConfig)
@@ -331,7 +331,7 @@ func createTestPipeline(t *testing.T, inputFile, outputFile string, logger *zap.
 	// Create destination
 	destConfig := config.NewBaseConfig("test-destination", "destination")
 	destConfig.Security.Credentials = map[string]string{
-		"file_path": outputFile,
+		"path": outputFile,
 	}
 
 	dest, err := csvdest.NewCSVDestination(destConfig)
