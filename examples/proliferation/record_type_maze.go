@@ -102,7 +102,7 @@ func ComparePerformance() {
 
 // ShowBeforeAndAfter demonstrates the transformation
 func ShowBeforeAndAfter() {
-	fmt.Println("=== BEFORE vs AFTER ===\n")
+	fmt.Println("=== BEFORE vs AFTER ===")
 
 	fmt.Println("BEFORE (8 different types for same data):")
 	fmt.Println("- models.Record")
@@ -124,7 +124,7 @@ func ShowBeforeAndAfter() {
 }
 
 func main() {
-	fmt.Println("=== Nebula Feature Proliferation: SOLVED! ===\n")
+	fmt.Println("=== Nebula Feature Proliferation: SOLVED! ===")
 
 	ShowBeforeAndAfter()
 	SimulateDataFlowAfter()
