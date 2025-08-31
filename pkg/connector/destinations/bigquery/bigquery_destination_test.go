@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ajitpratap0/nebula/pkg/config"
+	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/stretchr/testify/assert"
@@ -159,7 +160,12 @@ func TestBigQueryDestination_GetStats(t *testing.T) {
 
 func TestBigQueryDestination_MicroBatching(t *testing.T) {
 	ctx := context.Background()
+	
+	// Create base connector for embedded field
+	baseConn := base.NewBaseConnector("test-bigquery", core.ConnectorTypeDestination, "1.0.0")
+	
 	dest := &BigQueryDestination{
+		BaseConnector: baseConn,
 		batchSize:    3,
 		batchTimeout: 100 * time.Millisecond,
 		microBatch:   pool.GetBatchSlice(3),
