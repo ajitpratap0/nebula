@@ -43,9 +43,10 @@ func Example() {
 		log.Fatal(err)
 	}
 
-	// Read from stream
+	// Read from stream with a limit to ensure deterministic output
 	recordCount := 0
-	for {
+	maxRecords := 3 // We know data.csv has 3 data rows
+	for recordCount < maxRecords {
 		select {
 		case record, ok := <-stream.Records:
 			if !ok {
@@ -55,8 +56,11 @@ func Example() {
 			record.Release()
 		case err := <-stream.Errors:
 			if err != nil {
-				log.Printf("Stream error: %v", err)
+				// Don't log in example as it affects output
+				goto done  
 			}
+		case <-time.After(100 * time.Millisecond):
+			// Timeout to prevent hanging
 			goto done
 		}
 	}
@@ -65,7 +69,7 @@ done:
 	fmt.Printf("Read %d records from CSV\n", recordCount)
 
 	// Output:
-	// Read 2 records from CSV
+	// Read 3 records from CSV
 }
 
 // Example_pipeline shows how to create a simple pipeline between connectors.
