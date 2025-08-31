@@ -1,0 +1,649 @@
+?   	github.com/ajitpratap0/nebula	[no test files]
+?   	github.com/ajitpratap0/nebula/cmd/benchmark	[no test files]
+?   	github.com/ajitpratap0/nebula/cmd/nebula	[no test files]
+?   	github.com/ajitpratap0/nebula/cmd/profile	[no test files]
+?   	github.com/ajitpratap0/nebula/examples/evolution	[no test files]
+?   	github.com/ajitpratap0/nebula/examples/proliferation	[no test files]
+ok  	github.com/ajitpratap0/nebula/internal/pipeline	(cached) [no tests to run]
+?   	github.com/ajitpratap0/nebula/pkg/auth	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/cdc	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/clients	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/columnar	[no test files]
+ok  	github.com/ajitpratap0/nebula/pkg/compression	(cached)
+ok  	github.com/ajitpratap0/nebula/pkg/config	(cached)
+{"level":"info","timestamp":"2025-08-31T12:32:40.055+0530","caller":"base/base_connector.go:193","message":"connector initialized","connector":"csv","type":"source","version":"2.0.0"}
+{"level":"info","timestamp":"2025-08-31T12:32:40.055+0530","caller":"csv/csv_source.go:176","message":"CSV source initialized","connector":"csv","file":"data.csv","total_rows":3,"has_header":true}
+{"level":"info","timestamp":"2025-08-31T12:32:40.055+0530","caller":"base/base_connector.go:323","message":"closing connector","connector":"csv"}
+{"level":"info","timestamp":"2025-08-31T12:32:40.055+0530","caller":"base/base_connector.go:343","message":"connector closed","connector":"csv"}
+--- FAIL: Example (0.00s)
+got:
+Read 1 records from CSV
+want:
+Read 4 records from CSV
+{"level":"info","timestamp":"2025-08-31T12:32:40.055+0530","caller":"base/base_connector.go:193","message":"connector initialized","connector":"csv","type":"source","version":"2.0.0"}
+{"level":"info","timestamp":"2025-08-31T12:32:40.056+0530","caller":"csv/csv_source.go:176","message":"CSV source initialized","connector":"csv","file":"input.csv","total_rows":3,"has_header":true}
+{"level":"info","timestamp":"2025-08-31T12:32:40.062+0530","caller":"base/base_connector.go:323","message":"closing connector","connector":"csv"}
+{"level":"info","timestamp":"2025-08-31T12:32:40.062+0530","caller":"base/base_connector.go:343","message":"connector closed","connector":"csv"}
+{"level":"info","timestamp":"2025-08-31T12:32:40.062+0530","caller":"base/base_connector.go:193","message":"connector initialized","connector":"csv","type":"source","version":"2.0.0"}
+{"level":"info","timestamp":"2025-08-31T12:32:40.062+0530","caller":"csv/csv_source.go:176","message":"CSV source initialized","connector":"csv","file":"test.csv","total_rows":3,"has_header":true}
+{"level":"info","timestamp":"2025-08-31T12:32:40.062+0530","caller":"base/base_connector.go:323","message":"closing connector","connector":"csv"}
+{"level":"info","timestamp":"2025-08-31T12:32:40.062+0530","caller":"base/base_connector.go:343","message":"connector closed","connector":"csv"}
+FAIL
+FAIL	github.com/ajitpratap0/nebula/pkg/connector	0.238s
+?   	github.com/ajitpratap0/nebula/pkg/connector/base	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/core	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/destinations	[no test files]
+ok  	github.com/ajitpratap0/nebula/pkg/connector/destinations/bigquery	(cached)
+?   	github.com/ajitpratap0/nebula/pkg/connector/destinations/compressed	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/destinations/csv	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/destinations/gcs	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/destinations/iceberg	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/destinations/json	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/destinations/s3	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/destinations/snowflake	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/evolution	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/optimization	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/registry	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/sdk	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/sources	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/sources/csv	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/sources/google_ads	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/sources/json	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/sources/meta_ads	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/sources/mongodb_cdc	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/sources/mysql_cdc	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/sources/postgresql	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/connector/sources/postgresql_cdc	[no test files]
+ok  	github.com/ajitpratap0/nebula/pkg/errors	(cached)
+ok  	github.com/ajitpratap0/nebula/pkg/formats/columnar	(cached) [no tests to run]
+?   	github.com/ajitpratap0/nebula/pkg/formats/examples	[no test files]
+ok  	github.com/ajitpratap0/nebula/pkg/json	(cached)
+?   	github.com/ajitpratap0/nebula/pkg/lockfree	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/logger	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/metrics	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/mmap	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/models	[no test files]
+{"level":"info","timestamp":"2025-08-31T12:32:40.874+0530","caller":"observability/logging.go:98","message":"test message with context","connector_type":"file","connector_name":"csv-reader"}
+{"level":"info","timestamp":"2025-08-31T12:32:40.874+0530","caller":"observability/logging.go:160","message":"starting read operation","connector_type":"file","connector_name":"csv-reader","operation":"read","phase":"start"}
+{"level":"info","timestamp":"2025-08-31T12:32:40.874+0530","caller":"observability/logging.go:170","message":"reading records","connector_type":"file","connector_name":"csv-reader","operation":"read","phase":"progress","progress_percent":50,"elapsed":0.000005458}
+{"level":"info","timestamp":"2025-08-31T12:32:40.874+0530","caller":"observability/logging.go:180","message":"read operation completed","connector_type":"file","connector_name":"csv-reader","operation":"read","phase":"complete","total_duration":0.000021917}
+{"level":"error","timestamp":"2025-08-31T12:32:40.874+0530","caller":"observability/logging.go:191","message":"operation failed","connector_type":"file","connector_name":"csv-reader","operation":"read","phase":"error","duration_before_error":0.000024917,"error":"test error","stacktrace":"github.com/ajitpratap0/nebula/pkg/observability.(*OperationLogger).LogError\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/logging.go:191\ngithub.com/ajitpratap0/nebula/pkg/observability.TestStructuredLogger\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/observability_test.go:150\ntesting.tRunner\n\t/opt/homebrew/Cellar/go/1.25.0/libexec/src/testing/testing.go:1934"}
+{"level":"info","timestamp":"2025-08-31T12:32:40.886+0530","caller":"observability/metrics.go:329","message":"performance stats","operation":"read","duration":0.011008417,"records_processed":300,"throughput_rps":27251.87463374616,"errors":1,"retries":1,"error_rate":0.0033333333333333335}
+{"level":"debug","timestamp":"2025-08-31T12:32:40.891+0530","caller":"observability/metrics.go:390","message":"operation completed","connector_type":"file","connector_name":"csv-reader","operation":"read","duration":0.005637458}
+{"level":"error","timestamp":"2025-08-31T12:32:40.895+0530","caller":"observability/metrics.go:384","message":"operation failed","connector_type":"file","connector_name":"csv-reader","operation":"read","duration":0.003395041,"error":"test error","stacktrace":"github.com/ajitpratap0/nebula/pkg/observability.(*ConnectorMetrics).TrackOperation\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/metrics.go:384\ngithub.com/ajitpratap0/nebula/pkg/observability.TestConnectorMetrics\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/observability_test.go:219\ntesting.tRunner\n\t/opt/homebrew/Cellar/go/1.25.0/libexec/src/testing/testing.go:1934"}
+{"level":"info","timestamp":"2025-08-31T12:32:40.895+0530","caller":"observability/logging.go:139","message":"processing progress","connector_type":"file","connector_name":"csv-reader","operation":"test","records_processed":300,"errors":1,"bytes_processed":3072,"records_per_second":3614457831.325301,"bytes_per_second":37012048192.77108,"elapsed":0.000000083}
+{"level":"info","timestamp":"2025-08-31T12:32:40.895+0530","caller":"observability/logging.go:180","message":"processing completed","connector_type":"file","connector_name":"csv-reader","operation":"test","total_records":300,"total_errors":1,"total_bytes":3072,"avg_records_per_second":23151720.944590215,"avg_bytes_per_second":237073622.4726038,"error_rate_percent":0.33333333333333337,"total_duration":0.000012958,"phase":"complete","total_duration":0.000013208}
+{"level":"info","timestamp":"2025-08-31T12:32:40.895+0530","caller":"observability/logging.go:298","message":"throughput measurement","component":"performance","operation":"read","records_per_second":1000,"threshold":800,"status":"normal","threshold_ratio":1.25}
+{"level":"warn","timestamp":"2025-08-31T12:32:40.895+0530","caller":"observability/logging.go:298","message":"throughput measurement","component":"performance","operation":"read","records_per_second":500,"threshold":800,"status":"degraded","threshold_ratio":0.625,"stacktrace":"github.com/ajitpratap0/nebula/pkg/observability.(*PerformanceLogger).LogThroughput\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/logging.go:298\ngithub.com/ajitpratap0/nebula/pkg/observability.TestPerformanceLogger\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/observability_test.go:270\ntesting.tRunner\n\t/opt/homebrew/Cellar/go/1.25.0/libexec/src/testing/testing.go:1934"}
+{"level":"error","timestamp":"2025-08-31T12:32:40.895+0530","caller":"observability/logging.go:298","message":"throughput measurement","component":"performance","operation":"read","records_per_second":200,"threshold":800,"status":"critical","threshold_ratio":0.25,"stacktrace":"github.com/ajitpratap0/nebula/pkg/observability.(*PerformanceLogger).LogThroughput\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/logging.go:298\ngithub.com/ajitpratap0/nebula/pkg/observability.TestPerformanceLogger\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/observability_test.go:271\ntesting.tRunner\n\t/opt/homebrew/Cellar/go/1.25.0/libexec/src/testing/testing.go:1934"}
+{"level":"info","timestamp":"2025-08-31T12:32:40.895+0530","caller":"observability/logging.go:320","message":"latency measurement","component":"performance","operation":"read","latency":0.001,"threshold":0.002,"status":"normal","threshold_ratio":0.5}
+{"level":"warn","timestamp":"2025-08-31T12:32:40.895+0530","caller":"observability/logging.go:320","message":"latency measurement","component":"performance","operation":"read","latency":0.003,"threshold":0.002,"status":"degraded","threshold_ratio":1.5,"stacktrace":"github.com/ajitpratap0/nebula/pkg/observability.(*PerformanceLogger).LogLatency\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/logging.go:320\ngithub.com/ajitpratap0/nebula/pkg/observability.TestPerformanceLogger\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/observability_test.go:275\ntesting.tRunner\n\t/opt/homebrew/Cellar/go/1.25.0/libexec/src/testing/testing.go:1934"}
+{"level":"error","timestamp":"2025-08-31T12:32:40.895+0530","caller":"observability/logging.go:320","message":"latency measurement","component":"performance","operation":"read","latency":0.005,"threshold":0.002,"status":"critical","threshold_ratio":2.5,"stacktrace":"github.com/ajitpratap0/nebula/pkg/observability.(*PerformanceLogger).LogLatency\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/logging.go:320\ngithub.com/ajitpratap0/nebula/pkg/observability.TestPerformanceLogger\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/observability_test.go:276\ntesting.tRunner\n\t/opt/homebrew/Cellar/go/1.25.0/libexec/src/testing/testing.go:1934"}
+{"level":"info","timestamp":"2025-08-31T12:32:40.895+0530","caller":"observability/logging.go:342","message":"memory usage","component":"performance","component":"buffer","allocated_bytes":1048576,"threshold_bytes":2097152,"status":"normal","threshold_ratio":0.5}
+{"level":"warn","timestamp":"2025-08-31T12:32:40.895+0530","caller":"observability/logging.go:342","message":"memory usage","component":"performance","component":"buffer","allocated_bytes":3145728,"threshold_bytes":2097152,"status":"high","threshold_ratio":1.5,"stacktrace":"github.com/ajitpratap0/nebula/pkg/observability.(*PerformanceLogger).LogMemoryUsage\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/logging.go:342\ngithub.com/ajitpratap0/nebula/pkg/observability.TestPerformanceLogger\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/observability_test.go:280\ntesting.tRunner\n\t/opt/homebrew/Cellar/go/1.25.0/libexec/src/testing/testing.go:1934"}
+{"level":"error","timestamp":"2025-08-31T12:32:40.895+0530","caller":"observability/logging.go:342","message":"memory usage","component":"performance","component":"buffer","allocated_bytes":5242880,"threshold_bytes":2097152,"status":"critical","threshold_ratio":2.5,"stacktrace":"github.com/ajitpratap0/nebula/pkg/observability.(*PerformanceLogger).LogMemoryUsage\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/logging.go:342\ngithub.com/ajitpratap0/nebula/pkg/observability.TestPerformanceLogger\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/observability_test.go:281\ntesting.tRunner\n\t/opt/homebrew/Cellar/go/1.25.0/libexec/src/testing/testing.go:1934"}
+{"level":"info","timestamp":"2025-08-31T12:32:40.895+0530","caller":"observability/logging.go:380","message":"authentication event","component":"security","event":"login","user":"user123","success":true,"ip":"192.168.1.1","user_agent":"test-client"}
+{"level":"warn","timestamp":"2025-08-31T12:32:40.895+0530","caller":"observability/logging.go:380","message":"authentication event","component":"security","event":"login","user":"user456","success":false,"ip":"192.168.1.2","reason":"invalid_password","stacktrace":"github.com/ajitpratap0/nebula/pkg/observability.(*SecurityLogger).LogAuthEvent\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/logging.go:380\ngithub.com/ajitpratap0/nebula/pkg/observability.TestSecurityAndErrorReporting\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/observability_test.go:300\ntesting.tRunner\n\t/opt/homebrew/Cellar/go/1.25.0/libexec/src/testing/testing.go:1934"}
+{"level":"warn","timestamp":"2025-08-31T12:32:40.895+0530","caller":"observability/logging.go:400","message":"security violation","component":"security","violation":"rate_limit_exceeded","severity":"medium","timestamp":"2025-08-31T12:32:40.895+0530","ip":"192.168.1.3","attempts":10,"stacktrace":"github.com/ajitpratap0/nebula/pkg/observability.(*SecurityLogger).LogSecurityViolation\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/logging.go:400\ngithub.com/ajitpratap0/nebula/pkg/observability.TestSecurityAndErrorReporting\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/observability_test.go:304\ntesting.tRunner\n\t/opt/homebrew/Cellar/go/1.25.0/libexec/src/testing/testing.go:1934"}
+{"level":"error","timestamp":"2025-08-31T12:32:40.895+0530","caller":"observability/logging.go:439","message":"error reported","component":"error_reporter","error":"test error","component":"connector","operation":"read","error_type":"*errors.errorString","timestamp":"2025-08-31T12:32:40.895+0530","file":"test.csv","line":123,"stacktrace":"github.com/ajitpratap0/nebula/pkg/observability.(*ErrorReporter).ReportError\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/logging.go:439\ngithub.com/ajitpratap0/nebula/pkg/observability.TestSecurityAndErrorReporting\n\t/Users/ajitpratapsingh/dev/nebula/pkg/observability/observability_test.go:314\ntesting.tRunner\n\t/opt/homebrew/Cellar/go/1.25.0/libexec/src/testing/testing.go:1934"}
+{
+	"Name": "file.csv-reader.read",
+	"SpanContext": {
+		"TraceID": "ed52d4ba9a84ca7a78b1f6ad02a495a5",
+		"SpanID": "793c4e37560719ca",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"Parent": {
+		"TraceID": "00000000000000000000000000000000",
+		"SpanID": "0000000000000000",
+		"TraceFlags": "00",
+		"TraceState": "",
+		"Remote": false
+	},
+	"SpanKind": 1,
+	"StartTime": "2025-08-31T12:32:40.836896+05:30",
+	"EndTime": "2025-08-31T12:32:40.847937625+05:30",
+	"Attributes": [
+		{
+			"Key": "connector.type",
+			"Value": {
+				"Type": "STRING",
+				"Value": "file"
+			}
+		},
+		{
+			"Key": "connector.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "csv-reader"
+			}
+		},
+		{
+			"Key": "connector.operation",
+			"Value": {
+				"Type": "STRING",
+				"Value": "read"
+			}
+		},
+		{
+			"Key": "record.id",
+			"Value": {
+				"Type": "STRING",
+				"Value": "record-123"
+			}
+		},
+		{
+			"Key": "record.operation",
+			"Value": {
+				"Type": "STRING",
+				"Value": "read"
+			}
+		}
+	],
+	"Events": null,
+	"Links": null,
+	"Status": {
+		"Code": "Ok",
+		"Description": ""
+	},
+	"DroppedAttributes": 0,
+	"DroppedEvents": 0,
+	"DroppedLinks": 0,
+	"ChildSpanCount": 0,
+	"Resource": [
+		{
+			"Key": "deployment.environment",
+			"Value": {
+				"Type": "STRING",
+				"Value": "test"
+			}
+		},
+		{
+			"Key": "service.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "test-nebula"
+			}
+		},
+		{
+			"Key": "service.version",
+			"Value": {
+				"Type": "STRING",
+				"Value": "1.0.0-test"
+			}
+		}
+	],
+	"InstrumentationScope": {
+		"Name": "test-nebula",
+		"Version": "",
+		"SchemaURL": "",
+		"Attributes": null
+	},
+	"InstrumentationLibrary": {
+		"Name": "test-nebula",
+		"Version": "",
+		"SchemaURL": "",
+		"Attributes": null
+	}
+}
+{
+	"Name": "file.csv-reader.read",
+	"SpanContext": {
+		"TraceID": "0af758ee388b44892658e7dedb0059f5",
+		"SpanID": "c46d73741fa271b8",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"Parent": {
+		"TraceID": "00000000000000000000000000000000",
+		"SpanID": "0000000000000000",
+		"TraceFlags": "00",
+		"TraceState": "",
+		"Remote": false
+	},
+	"SpanKind": 1,
+	"StartTime": "2025-08-31T12:32:40.847945+05:30",
+	"EndTime": "2025-08-31T12:32:40.853606292+05:30",
+	"Attributes": [
+		{
+			"Key": "connector.type",
+			"Value": {
+				"Type": "STRING",
+				"Value": "file"
+			}
+		},
+		{
+			"Key": "connector.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "csv-reader"
+			}
+		},
+		{
+			"Key": "connector.operation",
+			"Value": {
+				"Type": "STRING",
+				"Value": "read"
+			}
+		},
+		{
+			"Key": "record.id",
+			"Value": {
+				"Type": "STRING",
+				"Value": "record-456"
+			}
+		},
+		{
+			"Key": "record.operation",
+			"Value": {
+				"Type": "STRING",
+				"Value": "read"
+			}
+		},
+		{
+			"Key": "error",
+			"Value": {
+				"Type": "BOOL",
+				"Value": true
+			}
+		},
+		{
+			"Key": "error.message",
+			"Value": {
+				"Type": "STRING",
+				"Value": "test error"
+			}
+		}
+	],
+	"Events": null,
+	"Links": null,
+	"Status": {
+		"Code": "Error",
+		"Description": "test error"
+	},
+	"DroppedAttributes": 0,
+	"DroppedEvents": 0,
+	"DroppedLinks": 0,
+	"ChildSpanCount": 0,
+	"Resource": [
+		{
+			"Key": "deployment.environment",
+			"Value": {
+				"Type": "STRING",
+				"Value": "test"
+			}
+		},
+		{
+			"Key": "service.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "test-nebula"
+			}
+		},
+		{
+			"Key": "service.version",
+			"Value": {
+				"Type": "STRING",
+				"Value": "1.0.0-test"
+			}
+		}
+	],
+	"InstrumentationScope": {
+		"Name": "test-nebula",
+		"Version": "",
+		"SchemaURL": "",
+		"Attributes": null
+	},
+	"InstrumentationLibrary": {
+		"Name": "test-nebula",
+		"Version": "",
+		"SchemaURL": "",
+		"Attributes": null
+	}
+}
+{
+	"Name": "file.csv-reader.process",
+	"SpanContext": {
+		"TraceID": "1e6e834863fe21cb1ae074b175603358",
+		"SpanID": "1359fa29444052d5",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"Parent": {
+		"TraceID": "00000000000000000000000000000000",
+		"SpanID": "0000000000000000",
+		"TraceFlags": "00",
+		"TraceState": "",
+		"Remote": false
+	},
+	"SpanKind": 1,
+	"StartTime": "2025-08-31T12:32:40.853613+05:30",
+	"EndTime": "2025-08-31T12:32:40.87436925+05:30",
+	"Attributes": [
+		{
+			"Key": "connector.type",
+			"Value": {
+				"Type": "STRING",
+				"Value": "file"
+			}
+		},
+		{
+			"Key": "connector.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "csv-reader"
+			}
+		},
+		{
+			"Key": "connector.operation",
+			"Value": {
+				"Type": "STRING",
+				"Value": "process"
+			}
+		},
+		{
+			"Key": "batch.size",
+			"Value": {
+				"Type": "INT64",
+				"Value": 100
+			}
+		},
+		{
+			"Key": "batch.operation",
+			"Value": {
+				"Type": "STRING",
+				"Value": "process"
+			}
+		},
+		{
+			"Key": "batch.throughput",
+			"Value": {
+				"Type": "FLOAT64",
+				"Value": 4829.518014102193
+			}
+		}
+	],
+	"Events": null,
+	"Links": null,
+	"Status": {
+		"Code": "Ok",
+		"Description": ""
+	},
+	"DroppedAttributes": 0,
+	"DroppedEvents": 0,
+	"DroppedLinks": 0,
+	"ChildSpanCount": 0,
+	"Resource": [
+		{
+			"Key": "deployment.environment",
+			"Value": {
+				"Type": "STRING",
+				"Value": "test"
+			}
+		},
+		{
+			"Key": "service.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "test-nebula"
+			}
+		},
+		{
+			"Key": "service.version",
+			"Value": {
+				"Type": "STRING",
+				"Value": "1.0.0-test"
+			}
+		}
+	],
+	"InstrumentationScope": {
+		"Name": "test-nebula",
+		"Version": "",
+		"SchemaURL": "",
+		"Attributes": null
+	},
+	"InstrumentationLibrary": {
+		"Name": "test-nebula",
+		"Version": "",
+		"SchemaURL": "",
+		"Attributes": null
+	}
+}
+{
+	"Name": "file.csv-reader.read",
+	"SpanContext": {
+		"TraceID": "b4330023dbc7304b64aa158bb4ae5056",
+		"SpanID": "7115e5b3354ee8df",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"Parent": {
+		"TraceID": "00000000000000000000000000000000",
+		"SpanID": "0000000000000000",
+		"TraceFlags": "00",
+		"TraceState": "",
+		"Remote": false
+	},
+	"SpanKind": 1,
+	"StartTime": "2025-08-31T12:32:40.886051+05:30",
+	"EndTime": "2025-08-31T12:32:40.891698084+05:30",
+	"Attributes": [
+		{
+			"Key": "connector.type",
+			"Value": {
+				"Type": "STRING",
+				"Value": "file"
+			}
+		},
+		{
+			"Key": "connector.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "csv-reader"
+			}
+		},
+		{
+			"Key": "connector.operation",
+			"Value": {
+				"Type": "STRING",
+				"Value": "read"
+			}
+		}
+	],
+	"Events": null,
+	"Links": null,
+	"Status": {
+		"Code": "Unset",
+		"Description": ""
+	},
+	"DroppedAttributes": 0,
+	"DroppedEvents": 0,
+	"DroppedLinks": 0,
+	"ChildSpanCount": 0,
+	"Resource": [
+		{
+			"Key": "deployment.environment",
+			"Value": {
+				"Type": "STRING",
+				"Value": "test"
+			}
+		},
+		{
+			"Key": "service.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "test-nebula"
+			}
+		},
+		{
+			"Key": "service.version",
+			"Value": {
+				"Type": "STRING",
+				"Value": "1.0.0-test"
+			}
+		}
+	],
+	"InstrumentationScope": {
+		"Name": "test-nebula",
+		"Version": "",
+		"SchemaURL": "",
+		"Attributes": null
+	},
+	"InstrumentationLibrary": {
+		"Name": "test-nebula",
+		"Version": "",
+		"SchemaURL": "",
+		"Attributes": null
+	}
+}
+{
+	"Name": "file.csv-reader.read",
+	"SpanContext": {
+		"TraceID": "aa840eda69f43766998acd6f3b993e74",
+		"SpanID": "d7cc0ed082ff0038",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"Parent": {
+		"TraceID": "00000000000000000000000000000000",
+		"SpanID": "0000000000000000",
+		"TraceFlags": "00",
+		"TraceState": "",
+		"Remote": false
+	},
+	"SpanKind": 1,
+	"StartTime": "2025-08-31T12:32:40.891702+05:30",
+	"EndTime": "2025-08-31T12:32:40.895128542+05:30",
+	"Attributes": [
+		{
+			"Key": "connector.type",
+			"Value": {
+				"Type": "STRING",
+				"Value": "file"
+			}
+		},
+		{
+			"Key": "connector.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "csv-reader"
+			}
+		},
+		{
+			"Key": "connector.operation",
+			"Value": {
+				"Type": "STRING",
+				"Value": "read"
+			}
+		},
+		{
+			"Key": "error",
+			"Value": {
+				"Type": "BOOL",
+				"Value": true
+			}
+		},
+		{
+			"Key": "error.message",
+			"Value": {
+				"Type": "STRING",
+				"Value": "test error"
+			}
+		}
+	],
+	"Events": null,
+	"Links": null,
+	"Status": {
+		"Code": "Unset",
+		"Description": ""
+	},
+	"DroppedAttributes": 0,
+	"DroppedEvents": 0,
+	"DroppedLinks": 0,
+	"ChildSpanCount": 0,
+	"Resource": [
+		{
+			"Key": "deployment.environment",
+			"Value": {
+				"Type": "STRING",
+				"Value": "test"
+			}
+		},
+		{
+			"Key": "service.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "test-nebula"
+			}
+		},
+		{
+			"Key": "service.version",
+			"Value": {
+				"Type": "STRING",
+				"Value": "1.0.0-test"
+			}
+		}
+	],
+	"InstrumentationScope": {
+		"Name": "test-nebula",
+		"Version": "",
+		"SchemaURL": "",
+		"Attributes": null
+	},
+	"InstrumentationLibrary": {
+		"Name": "test-nebula",
+		"Version": "",
+		"SchemaURL": "",
+		"Attributes": null
+	}
+}
+--- FAIL: TestShutdown (0.00s)
+    observability_test.go:334: Shutdown should not return error: shutdown errors: [failed to sync logger: sync /dev/stdout: bad file descriptor]
+FAIL
+FAIL	github.com/ajitpratap0/nebula/pkg/observability	0.444s
+ok  	github.com/ajitpratap0/nebula/pkg/performance	(cached) [no tests to run]
+?   	github.com/ajitpratap0/nebula/pkg/performance/examples	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/performance/profiling	[no test files]
+?   	github.com/ajitpratap0/nebula/pkg/pipeline	[no test files]
+ok  	github.com/ajitpratap0/nebula/pkg/pool	(cached)
+?   	github.com/ajitpratap0/nebula/pkg/schema	[no test files]
+ok  	github.com/ajitpratap0/nebula/pkg/strings	(cached)
+?   	github.com/ajitpratap0/nebula/pkg/testutil	[no test files]
+{"level":"info","timestamp":"2025-08-31T12:32:41.756+0530","caller":"base/base_connector.go:193","message":"connector initialized","connector":"csv","type":"source","version":"2.0.0"}
+{"level":"info","timestamp":"2025-08-31T12:32:41.762+0530","caller":"csv/csv_source.go:176","message":"CSV source initialized","connector":"csv","file":"/tmp/test_50000_5.csv","total_rows":50000,"has_header":true}
+{"level":"info","timestamp":"2025-08-31T12:32:41.762+0530","caller":"base/base_connector.go:193","message":"connector initialized","connector":"csv","type":"destination","version":"2.0.0"}
+{"level":"info","timestamp":"2025-08-31T12:32:41.763+0530","caller":"csv/csv_destination.go:158","message":"CSV destination initialized","connector":"csv","file":"test_output_Memory Leak Detection.csv","overwrite":true,"buffer_size":10000}
+{"level":"info","timestamp":"2025-08-31T12:32:41.763+0530","caller":"pipeline/simple_pipeline.go:171","message":"starting pipeline","component":"pipeline","batch_size":100,"worker_count":2,"transforms":1}
+{"level":"info","timestamp":"2025-08-31T12:32:41.763+0530","caller":"pipeline/simple_pipeline.go:177","message":"initializing destination schema","component":"pipeline"}
+--- FAIL: TestProfileBottleneckDetection (0.03s)
+    --- FAIL: TestProfileBottleneckDetection/Memory_Leak_Detection (0.03s)
+panic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]
+[signal SIGSEGV: segmentation violation code=0x2 addr=0x28 pc=0x10356c87c]
+
+goroutine 58 [running]:
+testing.tRunner.func1.2({0x103850500, 0x1040c56d0})
+	/opt/homebrew/Cellar/go/1.25.0/libexec/src/testing/testing.go:1872 +0x190
+testing.tRunner.func1()
+	/opt/homebrew/Cellar/go/1.25.0/libexec/src/testing/testing.go:1875 +0x31c
+panic({0x103850500?, 0x1040c56d0?})
+	/opt/homebrew/Cellar/go/1.25.0/libexec/src/runtime/panic.go:783 +0x120
+github.com/ajitpratap0/nebula/pkg/connector/destinations/csv.(*CSVDestination).CreateSchema(0x1400027a3c0, {0x1036032aa?, 0x1400001dc01?}, 0x0)
+	/Users/ajitpratapsingh/dev/nebula/pkg/connector/destinations/csv/csv_destination.go:172 +0xac
+github.com/ajitpratap0/nebula/internal/pipeline.(*SimplePipeline).Run(0x14000274580, {0x1039bb7a0, 0x140002fc310})
+	/Users/ajitpratapsingh/dev/nebula/internal/pipeline/simple_pipeline.go:178 +0x20c
+github.com/ajitpratap0/nebula/tests/benchmarks.TestProfileBottleneckDetection.func4(0x140003f3180)
+	/Users/ajitpratapsingh/dev/nebula/tests/benchmarks/profile_benchmark_test.go:175 +0x23c
+testing.tRunner(0x140003f3180, 0x140003c0f00)
+	/opt/homebrew/Cellar/go/1.25.0/libexec/src/testing/testing.go:1934 +0xc8
+created by testing.(*T).Run in goroutine 57
+	/opt/homebrew/Cellar/go/1.25.0/libexec/src/testing/testing.go:1997 +0x364
+FAIL	github.com/ajitpratap0/nebula/tests/benchmarks	0.398s
+?   	github.com/ajitpratap0/nebula/tests/cdc	[no test files]
+ok  	github.com/ajitpratap0/nebula/tests/integration	(cached)
+FAIL

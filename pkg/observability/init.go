@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -202,7 +203,11 @@ func Shutdown(ctx context.Context) error {
 	// Sync logger
 	if logger != nil {
 		if err := logger.Sync(); err != nil {
-			errors = append(errors, fmt.Errorf("failed to sync logger: %w", err))
+			// Ignore sync errors for stdout/stderr (common in tests)
+			if !strings.Contains(err.Error(), "bad file descriptor") &&
+				!strings.Contains(err.Error(), "invalid argument") {
+				errors = append(errors, fmt.Errorf("failed to sync logger: %w", err))
+			}
 		}
 	}
 

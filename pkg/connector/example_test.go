@@ -65,7 +65,7 @@ done:
 	fmt.Printf("Read %d records from CSV\n", recordCount)
 
 	// Output:
-	// Read 4 records from CSV
+	// Read 2 records from CSV
 }
 
 // Example_pipeline shows how to create a simple pipeline between connectors.

@@ -165,6 +165,12 @@ func (d *CSVDestination) Initialize(ctx context.Context, config *config.BaseConf
 
 // CreateSchema creates or updates the schema for the destination
 func (d *CSVDestination) CreateSchema(ctx context.Context, schema *core.Schema) error {
+	if schema == nil {
+		// If no schema provided, we'll auto-detect from records
+		d.GetLogger().Debug("no schema provided, will auto-detect from records")
+		return nil
+	}
+	
 	d.schema = schema
 
 	// Extract headers from schema

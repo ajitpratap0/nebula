@@ -1,0 +1,51 @@
+Nebula Performance Bottleneck Analysis
+=====================================
+
+Timestamp: 2025-08-31T12:34:27+05:30
+Summary: Found 2 bottlenecks: 1 critical, 1 high severity, 
+Primary bottleneck: Memory growing at 629.96 MB/s - potential memory leak (memory)
+
+Bottlenecks:
+-----------
+
+1. [CRITICAL] Memory growing at 629.96 MB/s - potential memory leak
+   Type: memory
+   Component: memory_allocator
+   Impact: 6299.6%
+   Suggestions:
+   - Profile heap allocations to identify leak source
+   - Check for unbounded data structures
+   - Ensure proper cleanup of resources
+   - Use object pools for frequently allocated objects
+   Details:
+   - total_growth_mb: 30.61345672607422
+   - duration: 48.596166ms
+   - growth_rate_mb_per_s: 629.956213543147
+
+2. [HIGH] GC overhead 14.2% - excessive garbage collection
+   Type: gc
+   Component: garbage_collector
+   Impact: 14.2%
+   Suggestions:
+   - Reduce allocation rate
+   - Use object pools
+   - Pre-allocate slices with appropriate capacity
+   - Consider using value types instead of pointers where appropriate
+   - Profile allocations to identify high-frequency allocators
+   Details:
+   - gc_overhead_percent: 14.242047407608247
+   - num_gc: 50
+   - gc_pause_total_ms: 6
+   - gc_pause_last_ms: 0
+
+Prioritized Recommendations:
+---------------------------
+1. Profile heap allocations to identify leak source
+2. Check for unbounded data structures
+3. Ensure proper cleanup of resources
+4. Use object pools for frequently allocated objects
+5. Reduce allocation rate
+6. Use object pools
+7. Pre-allocate slices with appropriate capacity
+8. Consider using value types instead of pointers where appropriate
+9. Profile allocations to identify high-frequency allocators
