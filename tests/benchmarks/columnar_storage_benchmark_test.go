@@ -22,7 +22,7 @@ func BenchmarkColumnarStorage(b *testing.B) {
 			// Create test data
 			testFile := fmt.Sprintf("/tmp/columnar_bench_%d.csv", recordCount)
 			createTestDataForColumnar(b, testFile, recordCount)
-			defer os.Remove(testFile)
+			defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 			b.ResetTimer()
 			b.ReportAllocs()
@@ -67,7 +67,7 @@ func BenchmarkColumnarVsRowBased(b *testing.B) {
 	testFile := "/tmp/comparison_test.csv"
 	recordCount := 10000
 	createTestDataForColumnar(b, testFile, recordCount)
-	defer os.Remove(testFile)
+	defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 	b.Run("RowBased", func(b *testing.B) {
 		var m1, m2 runtime.MemStats
@@ -125,7 +125,7 @@ func BenchmarkColumnarDictionaryEncoding(b *testing.B) {
 		b.Run(tc.name, func(b *testing.B) {
 			testFile := fmt.Sprintf("/tmp/dict_test_%s.csv", tc.name)
 			createCategoricalTestData(b, testFile, tc.records, tc.categories)
-			defer os.Remove(testFile)
+			defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 			var m1, m2 runtime.MemStats
 			runtime.GC()
@@ -162,7 +162,7 @@ func BenchmarkColumnarBatchProcessing(b *testing.B) {
 	testFile := "/tmp/batch_test.csv"
 	recordCount := 100000
 	createTestDataForColumnar(b, testFile, recordCount)
-	defer os.Remove(testFile)
+	defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 	store := processCSVColumnar(b, testFile)
 
@@ -205,7 +205,11 @@ func processCSVColumnar(b *testing.B, filename string) *columnar.ColumnStore {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			b.Errorf("Failed to close file: %v", err)
+		}
+	}()
 
 	reader := csv.NewReader(file)
 	reader.ReuseRecord = true
@@ -235,14 +239,14 @@ func processCSVColumnar(b *testing.B, filename string) *columnar.ColumnStore {
 		batch = append(batch, recordCopy)
 
 		if len(batch) >= batchSize {
-			converter.AddBatch(batch)
+			_ = converter.AddBatch(batch) // Ignore add batch error
 			batch = batch[:0]
 		}
 	}
 
 	// Add remaining records
 	if len(batch) > 0 {
-		converter.AddBatch(batch)
+		_ = converter.AddBatch(batch) // Ignore add batch error
 	}
 
 	return converter.GetStore()
@@ -253,7 +257,11 @@ func processRowBased(b *testing.B, filename string) []*pool.Record {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			b.Errorf("Failed to close file: %v", err)
+		}
+	}()
 
 	reader := csv.NewReader(file)
 	headers, _ := reader.Read()
@@ -283,7 +291,11 @@ func createTestDataForColumnar(b *testing.B, filename string, records int) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			b.Errorf("Failed to close file: %v", err)
+		}
+	}()
 
 	writer := csv.NewWriter(file)
 
@@ -292,7 +304,7 @@ func createTestDataForColumnar(b *testing.B, filename string, records int) {
 		"id", "name", "age", "city", "status", "score",
 		"created_at", "active", "category", "value",
 	}
-	_ = writer.Write(headers)
+	_ = writer.Write(headers) // Ignore write error
 
 	// Generate data with some repetition for dictionary encoding
 	cities := []string{"New York", "Los Angeles", "Chicago", "Houston", "Phoenix"}
@@ -312,10 +324,10 @@ func createTestDataForColumnar(b *testing.B, filename string, records int) {
 			categories[i%len(categories)],                                       // category (repetitive)
 			fmt.Sprintf("%d", i*10),                                             // value
 		}
-		_ = writer.Write(record)
+		_ = writer.Write(record) // Ignore write error
 	}
 
-	writer.Flush()
+	writer.Flush() // Flush writes (no return value)
 }
 
 func createCategoricalTestData(b *testing.B, filename string, records, categories int) {
@@ -323,13 +335,17 @@ func createCategoricalTestData(b *testing.B, filename string, records, categorie
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			b.Errorf("Failed to close file: %v", err)
+		}
+	}()
 
 	writer := csv.NewWriter(file)
 
 	// Headers
 	headers := []string{"id", "category1", "category2", "category3", "value"}
-	_ = writer.Write(headers)
+	_ = writer.Write(headers) // Ignore write error
 
 	// Generate categorical values
 	var catValues []string
@@ -345,10 +361,10 @@ func createCategoricalTestData(b *testing.B, filename string, records, categorie
 			catValues[(i*3)%len(catValues)],
 			fmt.Sprintf("%d", i),
 		}
-		_ = writer.Write(record)
+		_ = writer.Write(record) // Ignore write error
 	}
 
-	writer.Flush()
+	writer.Flush() // Flush writes (no return value)
 }
 
 // BenchmarkColumnarMemoryBreakdown provides detailed memory analysis
@@ -356,7 +372,7 @@ func BenchmarkColumnarMemoryBreakdown(b *testing.B) {
 	testFile := "/tmp/memory_breakdown.csv"
 	recordCount := 10000
 	createTestDataForColumnar(b, testFile, recordCount)
-	defer os.Remove(testFile)
+	defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 	store := processCSVColumnar(b, testFile)
 
@@ -382,7 +398,7 @@ func BenchmarkColumnarWithPooledRecords(b *testing.B) {
 	testFile := "/tmp/pooled_columnar.csv"
 	recordCount := 10000
 	createTestDataForColumnar(b, testFile, recordCount)
-	defer os.Remove(testFile)
+	defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 	b.ResetTimer()
 

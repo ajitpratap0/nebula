@@ -8,9 +8,9 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/logger"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"go.uber.org/zap"
 )
@@ -216,15 +216,15 @@ func (cb *ConnectorBuilder) WithConfigValidator(validator func(*config.BaseConfi
 // Returns an error if name, type, or version are missing or invalid.
 func (cb *ConnectorBuilder) Validate() error {
 	if cb.name == "" {
-		return errors.New(errors.ErrorTypeConfig, "connector name is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "connector name is required")
 	}
 
 	if cb.connectorType != core.ConnectorTypeSource && cb.connectorType != core.ConnectorTypeDestination {
-		return errors.New(errors.ErrorTypeConfig, "invalid connector type")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "invalid connector type")
 	}
 
 	if cb.version == "" {
-		return errors.New(errors.ErrorTypeConfig, "connector version is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "connector version is required")
 	}
 
 	return nil

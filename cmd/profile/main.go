@@ -58,7 +58,11 @@ func main() {
 		if err != nil {
 			log.Fatalf("Failed to create CPU profile: %v", err)
 		}
-		defer f.Close()
+		defer func() {
+			if err := f.Close(); err != nil {
+				log.Printf("Failed to close CPU profile file: %v", err)
+			}
+		}()
 
 		if err := pprof.StartCPUProfile(f); err != nil {
 			log.Fatalf("Failed to start CPU profile: %v", err)
@@ -86,7 +90,11 @@ func main() {
 		if err != nil {
 			log.Fatalf("Failed to create memory profile: %v", err)
 		}
-		defer f.Close()
+		defer func() {
+			if err := f.Close(); err != nil {
+				log.Printf("Failed to close memory profile file: %v", err)
+			}
+		}()
 
 		runtime.GC() // Get up-to-date statistics
 		if err := pprof.WriteHeapProfile(f); err != nil {
@@ -155,7 +163,11 @@ func writeProfile(profileName, filename string) {
 		log.Printf("Failed to create %s profile: %v", profileName, err)
 		return
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			log.Printf("Failed to close %s profile file: %v", profileName, err)
+		}
+	}()
 
 	if err := profile.WriteTo(f, 0); err != nil {
 		log.Printf("Failed to write %s profile: %v", profileName, err)

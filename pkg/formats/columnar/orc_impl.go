@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"unsafe"
 )
@@ -856,13 +856,13 @@ func (or *orcReader) setupDecompression() error {
 
 func (or *orcReader) buildSchema() error {
 	if len(or.footer.types) == 0 {
-		return errors.New(errors.ErrorTypeData, "no types found in ORC file")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeData, "no types found in ORC file")
 	}
 
 	// First type should be struct
 	rootType := or.footer.types[0]
 	if rootType.kind != STRUCT {
-		return errors.New(errors.ErrorTypeData, "root type is not STRUCT")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeData, "root type is not STRUCT")
 	}
 
 	fields := make([]core.Field, 0, len(rootType.fieldNames))

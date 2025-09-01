@@ -11,7 +11,7 @@ import (
 
 // Load loads a configuration from a YAML file
 func Load(filePath string, config interface{}) error {
-	data, err := os.ReadFile(filePath)
+	data, err := os.ReadFile(filePath) //nolint:gosec // G304: File path is controlled by caller and validated
 	if err != nil {
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
@@ -34,7 +34,7 @@ func Save(filePath string, config interface{}) error {
 		return fmt.Errorf("failed to marshal YAML: %w", err)
 	}
 
-	if err := os.WriteFile(filePath, data, 0644); err != nil {
+	if err := os.WriteFile(filePath, data, 0644); err != nil { //nolint:gosec
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

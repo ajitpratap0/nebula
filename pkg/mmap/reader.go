@@ -41,13 +41,13 @@ func NewReader(filename string) (*Reader, error) {
 
 	stat, err := file.Stat()
 	if err != nil {
-		file.Close()
+		_ = file.Close() // Ignore close error
 		return nil, fmt.Errorf("failed to stat file: %w", err)
 	}
 
 	fileSize := stat.Size()
 	if fileSize == 0 {
-		file.Close()
+		_ = file.Close() // Ignore close error
 		return nil, fmt.Errorf("file is empty")
 	}
 
@@ -55,7 +55,7 @@ func NewReader(filename string) (*Reader, error) {
 	data, err := mmap(int(file.Fd()), 0, int(fileSize),
 		PROT_READ, MAP_SHARED)
 	if err != nil {
-		file.Close()
+		_ = file.Close() // Ignore close error
 		return nil, fmt.Errorf("failed to mmap file: %w", err)
 	}
 

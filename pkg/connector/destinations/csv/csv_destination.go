@@ -71,8 +71,8 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	nerrors "github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
 )
@@ -131,7 +131,7 @@ func NewCSVDestination(config *config.BaseConfig) (core.Destination, error) {
 func (d *CSVDestination) Initialize(ctx context.Context, config *config.BaseConfig) error {
 	// Initialize base connector first
 	if err := d.BaseConnector.Initialize(ctx, config); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize base connector")
+		return nerrors.Wrap(err, nerrors.ErrorTypeConfig, "failed to initialize base connector")
 	}
 
 	// Validate configuration
@@ -146,7 +146,7 @@ func (d *CSVDestination) Initialize(ctx context.Context, config *config.BaseConf
 	if err := d.ExecuteWithCircuitBreaker(func() error {
 		return d.createFile(config)
 	}); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to create CSV file")
+		return nerrors.Wrap(err, nerrors.ErrorTypeConnection, "failed to create CSV file")
 	}
 
 	d.UpdateHealth(true, map[string]interface{}{
@@ -165,6 +165,12 @@ func (d *CSVDestination) Initialize(ctx context.Context, config *config.BaseConf
 
 // CreateSchema creates or updates the schema for the destination
 func (d *CSVDestination) CreateSchema(ctx context.Context, schema *core.Schema) error {
+	if schema == nil {
+		// If no schema provided, we'll auto-detect from records
+		d.GetLogger().Debug("no schema provided, will auto-detect from records")
+		return nil
+	}
+
 	d.schema = schema
 
 	// Extract headers from schema
@@ -251,7 +257,7 @@ func (d *CSVDestination) Write(ctx context.Context, stream *core.RecordStream) e
 
 		case err := <-stream.Errors:
 			if err != nil {
-				return errors.Wrap(err, errors.ErrorTypeData, "error in record stream")
+				return nerrors.Wrap(err, nerrors.ErrorTypeData, "error in record stream")
 			}
 
 		case <-ctx.Done():
@@ -308,7 +314,7 @@ func (d *CSVDestination) WriteBatch(ctx context.Context, stream *core.BatchStrea
 
 		case err := <-stream.Errors:
 			if err != nil {
-				return errors.Wrap(err, errors.ErrorTypeData, "error in batch stream")
+				return nerrors.Wrap(err, nerrors.ErrorTypeData, "error in batch stream")
 			}
 
 		case <-ctx.Done():
@@ -374,41 +380,41 @@ func (d *CSVDestination) SupportsStreaming() bool {
 // BulkLoad loads data in bulk from a reader (CSV supports this natively)
 func (d *CSVDestination) BulkLoad(ctx context.Context, reader interface{}, format string) error {
 	if format != "csv" {
-		return errors.New(errors.ErrorTypeCapability, "CSV destination only supports CSV format for bulk load")
+		return nerrors.New(nerrors.ErrorTypeCapability, "CSV destination only supports CSV format for bulk load")
 	}
 
 	// For CSV, bulk load is essentially a copy operation
 	// This would be implemented based on the reader type (io.Reader, file path, etc.)
-	return errors.New(errors.ErrorTypeCapability, "bulk load not yet implemented for CSV destination")
+	return nerrors.New(nerrors.ErrorTypeCapability, "bulk load not yet implemented for CSV destination")
 }
 
 // BeginTransaction returns an error since CSV doesn't support transactions
 func (d *CSVDestination) BeginTransaction(ctx context.Context) (core.Transaction, error) {
-	return nil, errors.New(errors.ErrorTypeCapability, "CSV destination does not support transactions")
+	return nil, nerrors.New(nerrors.ErrorTypeCapability, "CSV destination does not support transactions")
 }
 
 // Upsert returns an error since CSV doesn't support upsert operations
 func (d *CSVDestination) Upsert(ctx context.Context, records []*models.Record, keys []string) error {
-	return errors.New(errors.ErrorTypeCapability, "CSV destination does not support upsert operations")
+	return nerrors.New(nerrors.ErrorTypeCapability, "CSV destination does not support upsert operations")
 }
 
 // DropSchema removes the schema (for CSV, this would delete the file)
 func (d *CSVDestination) DropSchema(ctx context.Context, schema *core.Schema) error {
 	path := d.getFilePath()
 	if path == "" {
-		return errors.New(errors.ErrorTypeConfig, "no file path configured")
+		return nerrors.New(nerrors.ErrorTypeConfig, "no file path configured")
 	}
 
 	// Close current file first
 	if d.file != nil {
-		d.file.Close()
+		_ = d.file.Close() // Ignore close error during cleanup
 		d.file = nil
 		d.writer = nil
 	}
 
 	// Remove the file
 	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to remove CSV file")
+		return nerrors.Wrap(err, nerrors.ErrorTypeConnection, "failed to remove CSV file")
 	}
 
 	d.GetLogger().Info("schema dropped", zap.String("file", path))

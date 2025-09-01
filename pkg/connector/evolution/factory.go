@@ -5,14 +5,14 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/connector/destinations/bigquery"
 	"github.com/ajitpratap0/nebula/pkg/connector/destinations/snowflake"
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/schema"
 )
 
 // WrapDestinationWithEvolution wraps any destination with schema evolution capabilities
 func WrapDestinationWithEvolution(dest core.Destination, config *EvolutionConfig) (core.Destination, error) {
 	if dest == nil {
-		return nil, errors.New(errors.ErrorTypeConfig, "destination cannot be nil")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "destination cannot be nil")
 	}
 
 	return NewSchemaEvolutionDestination(dest, config)
@@ -23,7 +23,7 @@ func CreateSnowflakeWithEvolution(name string, config *config.BaseConfig, evolut
 	// Create base Snowflake destination
 	snowflakeDest, err := snowflake.NewSnowflakeOptimizedDestination(name, config)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConfig, "failed to create Snowflake destination")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to create Snowflake destination")
 	}
 
 	// Wrap with evolution
@@ -35,7 +35,7 @@ func CreateBigQueryWithEvolution(name string, config *config.BaseConfig, evoluti
 	// Create base BigQuery destination
 	bigqueryDest, err := bigquery.NewBigQueryDestination(name, config)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConfig, "failed to create BigQuery destination")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to create BigQuery destination")
 	}
 
 	// Wrap with evolution

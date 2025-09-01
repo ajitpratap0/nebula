@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -202,7 +203,16 @@ func Shutdown(ctx context.Context) error {
 	// Sync logger
 	if logger != nil {
 		if err := logger.Sync(); err != nil {
-			errors = append(errors, fmt.Errorf("failed to sync logger: %w", err))
+			// Ignore sync errors for stdout/stderr/stdin
+			// These are common in tests and when output is redirected
+			// See: https://github.com/uber-go/zap/issues/328
+			errStr := err.Error()
+			if !strings.Contains(errStr, "bad file descriptor") &&
+				!strings.Contains(errStr, "invalid argument") &&
+				!strings.Contains(errStr, "/dev/stdout") &&
+				!strings.Contains(errStr, "/dev/stderr") {
+				errors = append(errors, fmt.Errorf("failed to sync logger: %w", err))
+			}
 		}
 	}
 

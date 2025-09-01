@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"go.uber.org/zap"
@@ -61,12 +61,12 @@ func (eh *ErrorHandler) HandleError(ctx context.Context, err error, record *mode
 	if eh.ShouldRetry(err) {
 		atomic.AddInt64(&eh.retriedErrors, 1)
 		eh.logger.Warn("retryable error occurred", fields...)
-		return errors.Wrap(err, errors.ErrorTypeTimeout, "error can be retried")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeTimeout, "error can be retried")
 	}
 
 	atomic.AddInt64(&eh.fatalErrors, 1)
 	eh.logger.Error("fatal error occurred", fields...)
-	return errors.Wrap(err, errors.ErrorTypeInternal, "error cannot be retried")
+	return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "error cannot be retried")
 }
 
 // ShouldRetry determines if an error should be retried
@@ -76,7 +76,7 @@ func (eh *ErrorHandler) ShouldRetry(err error) bool {
 	}
 
 	// Check if error is explicitly marked as non-retryable
-	if errors.IsType(err, errors.ErrorTypeInternal) {
+	if errors.IsType(err, nebulaerrors.ErrorTypeInternal) {
 		return false
 	}
 
@@ -133,8 +133,8 @@ func (eh *ErrorHandler) ShouldRetry(err error) bool {
 	}
 
 	// Default: retry network and timeout errors
-	return errors.IsType(err, errors.ErrorTypeConnection) ||
-		errors.IsType(err, errors.ErrorTypeTimeout)
+	return errors.IsType(err, nebulaerrors.ErrorTypeConnection) ||
+		errors.IsType(err, nebulaerrors.ErrorTypeTimeout)
 }
 
 // GetRetryDelay calculates the retry delay for a given attempt
@@ -213,25 +213,25 @@ func (eh *ErrorHandler) categorizeError(err error) string {
 	}
 
 	// Check for known error types
-	if errors.IsType(err, errors.ErrorTypeConnection) {
+	if errors.IsType(err, nebulaerrors.ErrorTypeConnection) {
 		return "connection"
 	}
-	if errors.IsType(err, errors.ErrorTypeTimeout) {
+	if errors.IsType(err, nebulaerrors.ErrorTypeTimeout) {
 		return "timeout"
 	}
-	if errors.IsType(err, errors.ErrorTypeAuthentication) {
+	if errors.IsType(err, nebulaerrors.ErrorTypeAuthentication) {
 		return "authentication"
 	}
-	if errors.IsType(err, errors.ErrorTypeRateLimit) {
+	if errors.IsType(err, nebulaerrors.ErrorTypeRateLimit) {
 		return "rate_limit"
 	}
-	if errors.IsType(err, errors.ErrorTypeConfig) {
+	if errors.IsType(err, nebulaerrors.ErrorTypeConfig) {
 		return "configuration"
 	}
-	if errors.IsType(err, errors.ErrorTypeData) {
+	if errors.IsType(err, nebulaerrors.ErrorTypeData) {
 		return "data_error"
 	}
-	if errors.IsType(err, errors.ErrorTypeInternal) {
+	if errors.IsType(err, nebulaerrors.ErrorTypeInternal) {
 		return "internal"
 	}
 

@@ -7,8 +7,8 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/compression"
 	nebulaConfig "github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"go.uber.org/zap"
 )
@@ -144,7 +144,7 @@ func (w *Wrapper) extractCompressionConfig(config *nebulaConfig.BaseConfig) erro
 	var err error
 	w.compressor, err = compression.NewCompressor(compressionConfig)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to create compressor")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to create compressor")
 	}
 
 	return nil

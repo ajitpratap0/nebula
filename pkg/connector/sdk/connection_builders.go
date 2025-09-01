@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 )
 
 // ConnectionBuilder provides utilities for building database connections
@@ -154,13 +154,13 @@ func (pcb *PostgreSQLConnectionBuilder) WithApplicationName(appName string) *Pos
 // BuildPostgreSQLPool builds a PostgreSQL connection pool
 func (pcb *PostgreSQLConnectionBuilder) BuildPostgreSQLPool(ctx context.Context) (*pgxpool.Pool, error) {
 	if pcb.connectionString == "" {
-		return nil, errors.New(errors.ErrorTypeConfig, "connection string is required")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "connection string is required")
 	}
 
 	// Parse connection string
 	config, err := pgxpool.ParseConfig(pcb.connectionString)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConfig, "failed to parse PostgreSQL connection string")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to parse PostgreSQL connection string")
 	}
 
 	// Apply connection pool settings
@@ -175,12 +175,12 @@ func (pcb *PostgreSQLConnectionBuilder) BuildPostgreSQLPool(ctx context.Context)
 	// Create connection pool
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "failed to create PostgreSQL connection pool")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to create PostgreSQL connection pool")
 	}
 
 	// Test connection
 	if err := pcb.testConnection(ctx, pool); err != nil {
-		pool.Close()
+		pool.Close() // Close the pool (no return value)
 		return nil, err
 	}
 
@@ -197,14 +197,14 @@ func (pcb *PostgreSQLConnectionBuilder) BuildPostgreSQLPool(ctx context.Context)
 func (pcb *PostgreSQLConnectionBuilder) testConnection(ctx context.Context, pool *pgxpool.Pool) error {
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to acquire connection for testing")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to acquire connection for testing")
 	}
 	defer conn.Release()
 
 	var result int
 	err = conn.QueryRow(ctx, pcb.healthQuery).Scan(&result)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "health check query failed")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "health check query failed")
 	}
 
 	pcb.logger.Info("PostgreSQL connection test successful", zap.String("health_query", pcb.healthQuery))
@@ -214,13 +214,13 @@ func (pcb *PostgreSQLConnectionBuilder) testConnection(ctx context.Context, pool
 // BuildSQLDB builds a standard sql.DB connection
 func (dcb *DatabaseConnectionBuilder) BuildSQLDB(driverName string) (*sql.DB, error) {
 	if dcb.connectionString == "" {
-		return nil, errors.New(errors.ErrorTypeConfig, "connection string is required")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "connection string is required")
 	}
 
 	// Open database connection
 	db, err := sql.Open(driverName, dcb.connectionString)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "failed to open database connection")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to open database connection")
 	}
 
 	// Configure connection pool
@@ -233,8 +233,8 @@ func (dcb *DatabaseConnectionBuilder) BuildSQLDB(driverName string) (*sql.DB, er
 	defer cancel()
 
 	if err := db.PingContext(ctx); err != nil {
-		db.Close()
-		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "database ping failed")
+		_ = db.Close() // Ignore close error when connection already failed
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "database ping failed")
 	}
 
 	dcb.logger.Info("SQL database connection created successfully",
@@ -266,14 +266,14 @@ func NewConnectionHealthChecker(healthQuery string, checkInterval time.Duration)
 func (chc *ConnectionHealthChecker) CheckPostgreSQLHealth(ctx context.Context, pool *pgxpool.Pool) error {
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to acquire connection for health check")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to acquire connection for health check")
 	}
 	defer conn.Release()
 
 	var result int
 	err = conn.QueryRow(ctx, chc.healthQuery).Scan(&result)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "health check query failed")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "health check query failed")
 	}
 
 	return nil
@@ -282,7 +282,7 @@ func (chc *ConnectionHealthChecker) CheckPostgreSQLHealth(ctx context.Context, p
 // CheckSQLDBHealth checks standard sql.DB health
 func (chc *ConnectionHealthChecker) CheckSQLDBHealth(ctx context.Context, db *sql.DB) error {
 	if err := db.PingContext(ctx); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "database ping failed")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "database ping failed")
 	}
 
 	// Execute health query if specified
@@ -290,7 +290,7 @@ func (chc *ConnectionHealthChecker) CheckSQLDBHealth(ctx context.Context, db *sq
 		var result int
 		err := db.QueryRowContext(ctx, chc.healthQuery).Scan(&result)
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeConnection, "health check query failed")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "health check query failed")
 		}
 	}
 

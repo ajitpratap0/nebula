@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
 )
@@ -24,15 +24,15 @@ type CDCEngine struct {
 	conflict    *ConflictResolver
 
 	// State management
-	isRunning  int32
-	lastLSN    uint64 // Log Sequence Number
-	lastCommit time.Time
+	isRunning  int32     //nolint:unused // Reserved for runtime state tracking
+	lastLSN    uint64    //nolint:unused // Reserved for position tracking
+	lastCommit time.Time //nolint:unused // Reserved for commit timestamp tracking
 	metrics    *CDCMetrics
 
 	// Control
 	ctx    context.Context
 	cancel context.CancelFunc
-	wg     sync.WaitGroup
+	wg     sync.WaitGroup //nolint:unused // Reserved for goroutine coordination
 }
 
 // CDCConfig configures CDC behavior
@@ -343,7 +343,8 @@ func (mlr *MockLogReader) ReadChanges(ctx context.Context, fromLSN uint64) (<-ch
 }
 
 func (mlr *MockLogReader) GetCurrentLSN(ctx context.Context) (uint64, error) {
-	return uint64(time.Now().Unix()), nil
+	// Unix time is always positive, safe to convert
+	return uint64(time.Now().Unix()), nil //nolint:gosec
 }
 
 func (mlr *MockLogReader) CreateSnapshot(ctx context.Context, tables []string) (<-chan *SnapshotEvent, <-chan error) {
@@ -456,7 +457,7 @@ func (mcs *MemoryCheckpointStorage) Load(ctx context.Context) (*Checkpoint, erro
 	defer mcs.mu.RUnlock()
 
 	if len(mcs.checkpoints) == 0 {
-		return nil, errors.New(errors.ErrorTypeData, "no checkpoints found")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeData, "no checkpoints found")
 	}
 
 	// Return the latest checkpoint

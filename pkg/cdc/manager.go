@@ -307,6 +307,8 @@ func (m *Manager) startConnector(name string, config CDCConfig) error {
 		connector = NewMySQLConnector(m.logger)
 	case ConnectorMongoDB:
 		connector = NewMongoDBConnector(m.logger)
+	case ConnectorKafka:
+		return fmt.Errorf("kafka connector not yet implemented")
 	default:
 		return fmt.Errorf("unsupported connector type: %s", config.Type)
 	}

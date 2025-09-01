@@ -78,8 +78,8 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
@@ -136,13 +136,13 @@ func NewPostgreSQLCDCSource(config *config.BaseConfig) (core.Source, error) {
 func (s *PostgreSQLCDCSource) Initialize(ctx context.Context, config *config.BaseConfig) error {
 	// Initialize base connector first
 	if err := s.BaseConnector.Initialize(ctx, config); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize base connector")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to initialize base connector")
 	}
 
 	// Extract CDC configuration from connector config
 	cdcConfig, err := s.extractCDCConfig(config)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to extract CDC configuration")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to extract CDC configuration")
 	}
 
 	s.cdcConfig = cdcConfig
@@ -154,12 +154,12 @@ func (s *PostgreSQLCDCSource) Initialize(ctx context.Context, config *config.Bas
 	if err := s.ExecuteWithCircuitBreaker(func() error {
 		return s.cdcConnector.Connect(cdcConfig)
 	}); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to connect to PostgreSQL")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to connect to PostgreSQL")
 	}
 
 	// Subscribe to tables
 	if err := s.cdcConnector.Subscribe(cdcConfig.Tables); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to subscribe to tables")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to subscribe to tables")
 	}
 
 	s.UpdateHealth(true, map[string]interface{}{
@@ -309,12 +309,12 @@ func (s *PostgreSQLCDCSource) SetState(state core.State) error {
 // Subscribe enables real-time change streaming for specified tables
 func (s *PostgreSQLCDCSource) Subscribe(ctx context.Context, tables []string) (*core.ChangeStream, error) {
 	if s.cdcConnector == nil {
-		return nil, errors.New(errors.ErrorTypeConnection, "CDC connector not initialized")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConnection, "CDC connector not initialized")
 	}
 
 	// Subscribe to tables via CDC connector
 	if err := s.cdcConnector.Subscribe(tables); err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConfig, "failed to subscribe to tables")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to subscribe to tables")
 	}
 
 	// Create change stream
@@ -367,12 +367,12 @@ func (s *PostgreSQLCDCSource) Close(ctx context.Context) error {
 // Health returns the health status of the CDC connector
 func (s *PostgreSQLCDCSource) Health(ctx context.Context) error {
 	if s.cdcConnector == nil {
-		return errors.New(errors.ErrorTypeConnection, "CDC connector not initialized")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConnection, "CDC connector not initialized")
 	}
 
 	health := s.cdcConnector.Health()
 	if !health.IsHealthy() {
-		return errors.New(errors.ErrorTypeConnection, health.Message)
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConnection, health.Message)
 	}
 
 	return nil
@@ -407,7 +407,7 @@ func (s *PostgreSQLCDCSource) streamEvents(ctx context.Context) {
 	// Get CDC event stream
 	eventStream, err := s.cdcConnector.ReadChanges(ctx)
 	if err != nil {
-		s.errorStream <- errors.Wrap(err, errors.ErrorTypeData, "failed to read CDC changes")
+		s.errorStream <- nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to read CDC changes")
 		return
 	}
 
@@ -579,7 +579,7 @@ func (s *PostgreSQLCDCSource) streamChangeEvents(ctx context.Context, changeCh c
 	// Get CDC event stream
 	eventStream, err := s.cdcConnector.ReadChanges(ctx)
 	if err != nil {
-		errorCh <- errors.Wrap(err, errors.ErrorTypeData, "failed to read CDC changes")
+		errorCh <- nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to read CDC changes")
 		return
 	}
 

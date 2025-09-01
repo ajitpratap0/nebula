@@ -54,7 +54,7 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/clients"
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/logger"
 	"github.com/ajitpratap0/nebula/pkg/metrics"
 	"github.com/ajitpratap0/nebula/pkg/models"
@@ -142,7 +142,7 @@ func NewBaseConnector(name string, connectorType core.ConnectorType, version str
 //
 //	connector := NewMyConnector()
 //	if err := connector.Initialize(ctx, config); err != nil {
-//	    return nil, errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize connector")
+//	    return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to initialize connector")
 //	}
 //	defer connector.Close(ctx)
 func (bc *BaseConnector) Initialize(ctx context.Context, config *config.BaseConfig) error {
@@ -255,12 +255,12 @@ func (bc *BaseConnector) SetPosition(position core.Position) error {
 // Health performs a health check
 func (bc *BaseConnector) Health(ctx context.Context) error {
 	if bc.closed {
-		return errors.New(errors.ErrorTypeConnection, "connector is closed")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConnection, "connector is closed")
 	}
 
 	status := bc.healthChecker.GetStatus()
 	if status.Status != "healthy" {
-		return errors.Wrap(status.Error, errors.ErrorTypeHealth, "health check failed")
+		return nebulaerrors.Wrap(status.Error, nebulaerrors.ErrorTypeHealth, "health check failed")
 	}
 
 	return nil
@@ -371,7 +371,7 @@ func (bc *BaseConnector) ExecuteWithRetry(ctx context.Context, fn func() error) 
 //	    return externalService.Call()
 //	})
 //	if err != nil {
-//	    if errors.IsType(err, errors.ErrorTypeRateLimit) {
+//	    if errors.IsType(err, nebulaerrors.ErrorTypeRateLimit) {
 //	        // Circuit is open, back off
 //	    }
 //	}
@@ -544,11 +544,11 @@ func (bc *BaseConnector) GetQualityChecker() core.DataQualityChecker {
 // Validate validates the connector configuration
 func (bc *BaseConnector) Validate() error {
 	if bc.config == nil {
-		return errors.New(errors.ErrorTypeConfig, "configuration is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "configuration is required")
 	}
 
 	if bc.config.Name == "" {
-		return errors.New(errors.ErrorTypeConfig, "connector name is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "connector name is required")
 	}
 
 	if bc.config.Performance.BatchSize <= 0 {

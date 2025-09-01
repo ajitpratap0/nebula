@@ -45,7 +45,7 @@
 //		pipeline.StorageModeHybrid,
 //		config,
 //	)
-//	defer adapter.Close()
+//	defer adapter.Close() // Ignore close error
 //
 // Processing records:
 //
@@ -95,7 +95,7 @@
 //			pipeline.ParseStorageMode(s.config.Advanced.StorageMode),
 //			s.config,
 //		)
-//		defer adapter.Close()
+//		defer adapter.Close() // Ignore close error
 //
 //		for s.hasMoreData() {
 //			record := s.readRecord()

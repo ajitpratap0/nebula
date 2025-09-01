@@ -432,7 +432,7 @@ func (rm *RetryManager) calculateBackoff(errorID string, attempt int) time.Durat
 
 	// Exponential backoff with jitter
 	baseDelay := rm.config.RetryBackoffBase
-	exponentialDelay := time.Duration(1<<uint(attempt)) * baseDelay
+	exponentialDelay := time.Duration(1<<uint(attempt)) * baseDelay //nolint:gosec // G115: Safe conversion as attempt is bounded by MaxRetries
 
 	// Add jitter (±25%)
 	jitter := time.Duration(time.Now().UnixNano()%int64(exponentialDelay/4)) - exponentialDelay/8

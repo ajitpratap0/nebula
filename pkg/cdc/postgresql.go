@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"github.com/jackc/pglogrepl"
@@ -108,7 +108,7 @@ func (c *PostgreSQLConnector) Connect(config CDCConfig) error {
 	defer c.mutex.Unlock()
 
 	if err := config.Validate(); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "invalid config")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "invalid config")
 	}
 
 	c.config = config
@@ -149,14 +149,14 @@ func (c *PostgreSQLConnector) Connect(config CDCConfig) error {
 	var err error
 	c.conn, err = pgx.Connect(context.Background(), config.ConnectionStr)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to connect to PostgreSQL")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to connect to PostgreSQL")
 	}
 
 	// Test connection
 	var version string
 	err = c.conn.QueryRow(context.Background(), "SELECT version()").Scan(&version)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeQuery, "failed to query PostgreSQL version")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "failed to query PostgreSQL version")
 	}
 
 	c.logger.Info("connected to PostgreSQL", zap.String("version", version))
@@ -164,29 +164,29 @@ func (c *PostgreSQLConnector) Connect(config CDCConfig) error {
 	// Establish replication connection
 	replConfig, err := pgconn.ParseConfig(config.ConnectionStr)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to parse replication config")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to parse replication config")
 	}
 
 	replConfig.RuntimeParams["replication"] = "database"
 
 	c.replConn, err = pgconn.ConnectConfig(context.Background(), replConfig)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to establish replication connection")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to establish replication connection")
 	}
 
 	// Create publication if it doesn't exist
 	if err := c.ensurePublication(); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to ensure publication")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to ensure publication")
 	}
 
 	// Create replication slot if it doesn't exist
 	if err := c.ensureReplicationSlot(pgConfig); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to ensure replication slot")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to ensure replication slot")
 	}
 
 	// Load table schemas
 	if err := c.loadTableSchemas(); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeQuery, "failed to load table schemas")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "failed to load table schemas")
 	}
 
 	c.updateHealth("connected", "Connected to PostgreSQL", nil)
@@ -204,12 +204,12 @@ func (c *PostgreSQLConnector) Subscribe(tables []string) error {
 	defer c.mutex.Unlock()
 
 	if c.running {
-		return errors.New(errors.ErrorTypeConflict, "connector is already running")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConflict, "connector is already running")
 	}
 
 	// Update publication to include specified tables
 	if err := c.updatePublication(tables); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to update publication")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to update publication")
 	}
 
 	c.running = true
@@ -227,7 +227,7 @@ func (c *PostgreSQLConnector) Subscribe(tables []string) error {
 // ReadChanges returns a channel of change events
 func (c *PostgreSQLConnector) ReadChanges(ctx context.Context) (<-chan ChangeEvent, error) {
 	if !c.running {
-		return nil, errors.New(errors.ErrorTypeConflict, "connector is not running")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConflict, "connector is not running")
 	}
 
 	return c.eventCh, nil
@@ -251,17 +251,17 @@ func (c *PostgreSQLConnector) GetPosition() Position {
 // Acknowledge confirms processing of events up to the given position
 func (c *PostgreSQLConnector) Acknowledge(position Position) error {
 	if position.Type != "postgresql_lsn" {
-		return errors.New(errors.ErrorTypeValidation, stringpool.Sprintf("invalid position type: %s", position.Type))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeValidation, stringpool.Sprintf("invalid position type: %s", position.Type))
 	}
 
 	lsnStr, ok := position.Value.(string)
 	if !ok {
-		return errors.New(errors.ErrorTypeData, stringpool.Sprintf("invalid LSN value type: %T", position.Value))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeData, stringpool.Sprintf("invalid LSN value type: %T", position.Value))
 	}
 
 	lsn, err := pglogrepl.ParseLSN(lsnStr)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to parse LSN")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to parse LSN")
 	}
 
 	c.mutex.Lock()
@@ -286,11 +286,15 @@ func (c *PostgreSQLConnector) Stop() error {
 
 	// Close connections
 	if c.replConn != nil {
-		c.replConn.Close(context.Background())
+		if err := c.replConn.Close(context.Background()); err != nil {
+			c.logger.Error("failed to close replication connection", zap.Error(err))
+		}
 	}
 
 	if c.conn != nil {
-		c.conn.Close(context.Background())
+		if err := c.conn.Close(context.Background()); err != nil {
+			c.logger.Error("failed to close connection", zap.Error(err))
+		}
 	}
 
 	c.updateHealth("stopped", "Connector stopped", nil)
@@ -326,7 +330,7 @@ func (c *PostgreSQLConnector) ensurePublication() error {
 		"SELECT EXISTS(SELECT 1 FROM pg_publication WHERE pubname = $1)",
 		c.publication).Scan(&exists)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeQuery, "failed to check publication existence")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "failed to check publication existence")
 	}
 
 	if !exists {
@@ -334,7 +338,7 @@ func (c *PostgreSQLConnector) ensurePublication() error {
 		_, err = c.conn.Exec(context.Background(),
 			stringpool.Sprintf("CREATE PUBLICATION %s FOR ALL TABLES", c.publication))
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeQuery, "failed to create publication")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "failed to create publication")
 		}
 
 		c.logger.Info("created publication", zap.String("publication", c.publication))
@@ -360,7 +364,7 @@ func (c *PostgreSQLConnector) updatePublication(tables []string) error {
 	_, err := c.conn.Exec(context.Background(),
 		stringpool.Sprintf("ALTER PUBLICATION %s SET TABLE %s", c.publication, tableList))
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to update publication")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to update publication")
 	}
 
 	c.logger.Info("updated publication",
@@ -378,7 +382,7 @@ func (c *PostgreSQLConnector) ensureReplicationSlot(config PostgreSQLConfig) err
 		"SELECT EXISTS(SELECT 1 FROM pg_replication_slots WHERE slot_name = $1)",
 		c.slotName).Scan(&exists)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeQuery, "failed to check replication slot existence")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "failed to check replication slot existence")
 	}
 
 	if !exists {
@@ -387,7 +391,7 @@ func (c *PostgreSQLConnector) ensureReplicationSlot(config PostgreSQLConfig) err
 			c.slotName, config.PluginName,
 			pglogrepl.CreateReplicationSlotOptions{Temporary: config.TempSlot})
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeConfig, "failed to create replication slot")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to create replication slot")
 		}
 
 		c.logger.Info("created replication slot",
@@ -422,9 +426,9 @@ func (c *PostgreSQLConnector) loadTableSchemas() error {
 
 	rows, err := c.conn.Query(context.Background(), query)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeQuery, "failed to query table schemas")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "failed to query table schemas")
 	}
-	defer rows.Close()
+	defer rows.Close() // Ignore close error
 
 	c.schemaMutex.Lock()
 	defer c.schemaMutex.Unlock()
@@ -438,7 +442,7 @@ func (c *PostgreSQLConnector) loadTableSchemas() error {
 
 		err := rows.Scan(&schema, &table, &column, &dataType, &nullable, &columnDefault, &oid)
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, "failed to scan schema row")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to scan schema row")
 		}
 
 		tableName := stringpool.Sprintf("%s.%s", schema, table)
@@ -496,7 +500,7 @@ func (c *PostgreSQLConnector) loadTableSchemas() error {
 			}
 			primaryKey = append(primaryKey, column)
 		}
-		pkRows.Close()
+		pkRows.Close() // Close result set (no return value)
 
 		schemaMap[tableName].PrimaryKey = primaryKey
 	}
@@ -516,7 +520,7 @@ func (c *PostgreSQLConnector) loadTableSchemas() error {
 	if err != nil {
 		c.logger.Warn("failed to load relation OIDs", zap.Error(err))
 	} else {
-		defer relationRows.Close()
+		defer relationRows.Close() // Ignore close error
 
 		for relationRows.Next() {
 			var oid uint32
@@ -635,7 +639,7 @@ func (c *PostgreSQLConnector) processReplicationMessage(msg pgproto3.BackendMess
 func (c *PostgreSQLConnector) processXLogData(data []byte) error {
 	xld, err := pglogrepl.ParseXLogData(data)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to parse XLogData")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to parse XLogData")
 	}
 
 	c.mutex.Lock()
@@ -645,7 +649,7 @@ func (c *PostgreSQLConnector) processXLogData(data []byte) error {
 	// Parse logical replication message
 	logicalMsg, err := pglogrepl.Parse(xld.WALData)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to parse logical replication message")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to parse logical replication message")
 	}
 
 	return c.processLogicalMessage(logicalMsg)
@@ -706,12 +710,12 @@ func (c *PostgreSQLConnector) processRelationMessage(msg *pglogrepl.RelationMess
 func (c *PostgreSQLConnector) processInsertMessage(msg *pglogrepl.InsertMessage) error {
 	tableName := c.getTableNameByRelationID(msg.RelationID)
 	if tableName == "" {
-		return errors.New(errors.ErrorTypeData, stringpool.Sprintf("unknown relation ID: %d", msg.RelationID))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeData, stringpool.Sprintf("unknown relation ID: %d", msg.RelationID))
 	}
 
 	after, err := c.tupleToMap(msg.Tuple, tableName)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to convert tuple to map")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to convert tuple to map")
 	}
 
 	event := ChangeEvent{
@@ -738,7 +742,7 @@ func (c *PostgreSQLConnector) processInsertMessage(msg *pglogrepl.InsertMessage)
 func (c *PostgreSQLConnector) processUpdateMessage(msg *pglogrepl.UpdateMessage) error {
 	tableName := c.getTableNameByRelationID(msg.RelationID)
 	if tableName == "" {
-		return errors.New(errors.ErrorTypeData, stringpool.Sprintf("unknown relation ID: %d", msg.RelationID))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeData, stringpool.Sprintf("unknown relation ID: %d", msg.RelationID))
 	}
 
 	var before map[string]interface{}
@@ -747,13 +751,13 @@ func (c *PostgreSQLConnector) processUpdateMessage(msg *pglogrepl.UpdateMessage)
 	if msg.OldTuple != nil {
 		before, err = c.tupleToMap(msg.OldTuple, tableName)
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, "failed to convert old tuple to map")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to convert old tuple to map")
 		}
 	}
 
 	after, err := c.tupleToMap(msg.NewTuple, tableName)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to convert new tuple to map")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to convert new tuple to map")
 	}
 
 	event := ChangeEvent{
@@ -781,7 +785,7 @@ func (c *PostgreSQLConnector) processUpdateMessage(msg *pglogrepl.UpdateMessage)
 func (c *PostgreSQLConnector) processDeleteMessage(msg *pglogrepl.DeleteMessage) error {
 	tableName := c.getTableNameByRelationID(msg.RelationID)
 	if tableName == "" {
-		return errors.New(errors.ErrorTypeData, stringpool.Sprintf("unknown relation ID: %d", msg.RelationID))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeData, stringpool.Sprintf("unknown relation ID: %d", msg.RelationID))
 	}
 
 	var before map[string]interface{}
@@ -790,7 +794,7 @@ func (c *PostgreSQLConnector) processDeleteMessage(msg *pglogrepl.DeleteMessage)
 	if msg.OldTuple != nil {
 		before, err = c.tupleToMap(msg.OldTuple, tableName)
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, "failed to convert old tuple to map")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to convert old tuple to map")
 		}
 	}
 
@@ -832,7 +836,7 @@ func (c *PostgreSQLConnector) processCommitMessage(msg *pglogrepl.CommitMessage)
 func (c *PostgreSQLConnector) processPrimaryKeepalive(data []byte) error {
 	keepalive, err := pglogrepl.ParsePrimaryKeepaliveMessage(data)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to parse keepalive")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to parse keepalive")
 	}
 
 	if keepalive.ReplyRequested {
@@ -866,7 +870,7 @@ func (c *PostgreSQLConnector) tupleToMap(tuple *pglogrepl.TupleData, tableName s
 	c.schemaMutex.RUnlock()
 
 	if !exists {
-		return nil, errors.New(errors.ErrorTypeNotFound, stringpool.Sprintf("schema not found for table: %s", tableName))
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeNotFound, stringpool.Sprintf("schema not found for table: %s", tableName))
 	}
 
 	result := pool.GetMap()
@@ -986,7 +990,7 @@ func (c *PostgreSQLConnector) sendEvent(event ChangeEvent) error {
 		c.updateMetrics(func(m *EventMetrics) {
 			m.EventsErrored++
 		})
-		return errors.New(errors.ErrorTypeRateLimit, "event channel is full")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeRateLimit, "event channel is full")
 	}
 }
 

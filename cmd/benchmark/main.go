@@ -84,7 +84,7 @@ func runGoogleSheetsBenchmarks(timestamp string) {
 			args = append(args, "-v")
 		}
 
-		cmd := exec.Command("go", args...)
+		cmd := exec.Command("go", args...) //nolint:gosec // Controlled args from predefined benchmarks
 
 		// Capture output
 		output, err := cmd.CombinedOutput()
@@ -101,9 +101,15 @@ func runGoogleSheetsBenchmarks(timestamp string) {
 			continue
 		}
 
-		f.WriteString(fmt.Sprintf("\n=== %s ===\n", benchmark)) //nolint:errcheck
-		f.Write(output) //nolint:errcheck
-		f.Close()
+		if _, err := f.WriteString(fmt.Sprintf("\n=== %s ===\n", benchmark)); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to write benchmark header: %v\n", err)
+		}
+		if _, err := f.Write(output); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to write benchmark output: %v\n", err)
+		}
+		if err := f.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to close output file: %v\n", err)
+		}
 
 		// Print summary
 		printBenchmarkSummary(string(output))
@@ -143,8 +149,12 @@ func runGoogleSheetsBenchmarks(timestamp string) {
 			fmt.Fprintf(os.Stderr, "Failed to create text report: %v\n", err)
 		} else {
 			// TODO: PrintReport not implemented
-			fmt.Fprintln(f, "Report generation not yet implemented") // benchmarks.PrintReport(report, f)
-			f.Close()
+			if _, err := fmt.Fprintln(f, "Report generation not yet implemented"); err != nil {
+				fmt.Fprintf(os.Stderr, "Failed to write report: %v\n", err)
+			}
+			if err := f.Close(); err != nil {
+				fmt.Fprintf(os.Stderr, "Failed to close report file: %v\n", err)
+			}
 			fmt.Printf("Text report saved to: %s\n", textFile)
 		}
 	}

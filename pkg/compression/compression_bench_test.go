@@ -2,8 +2,8 @@
 package compression
 
 import (
-	crypto_rand "crypto/rand"
 	"bytes"
+	crypto_rand "crypto/rand"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -21,9 +21,9 @@ func generateJSONData(size int) []byte {
 			"id":        i,
 			"name":      fmt.Sprintf("User %d", i),
 			"email":     fmt.Sprintf("user%d@example.com", i),
-			"age":       rand.Intn(80) + 20,
-			"score":     rand.Float64() * 100,
-			"active":    rand.Intn(2) == 1,
+			"age":       rand.Intn(80) + 20,   //nolint:gosec // G404: Using weak random for test data generation is acceptable
+			"score":     rand.Float64() * 100, //nolint:gosec // G404: Using weak random for test data generation is acceptable
+			"active":    rand.Intn(2) == 1,    //nolint:gosec // G404: Using weak random for test data generation is acceptable
 			"tags":      []string{"tag1", "tag2", "tag3"},
 			"metadata":  map[string]string{"key1": "value1", "key2": "value2"},
 			"timestamp": "2024-01-15T10:30:00Z",
@@ -42,7 +42,7 @@ func generateCSVData(size int) []byte {
 	writer.WriteString("id,name,email,age,score,active\n")
 	for i := 0; i < size/50; i++ {
 		fmt.Fprintf(&writer, "%d,User %d,user%d@example.com,%d,%.2f,%t\n",
-			i, i, i, rand.Intn(80)+20, rand.Float64()*100, rand.Intn(2) == 1)
+			i, i, i, rand.Intn(80)+20, rand.Float64()*100, rand.Intn(2) == 1) //nolint:gosec // G404: Using weak random for test data generation is acceptable
 	}
 	return writer.Bytes()
 }
@@ -53,7 +53,7 @@ func generateTextData(size int) []byte {
 	// Use bytes.Buffer for writer operations
 	var writer bytes.Buffer
 	for writer.Len() < size {
-		writer.WriteString(words[rand.Intn(len(words))])
+		writer.WriteString(words[rand.Intn(len(words))]) //nolint:gosec // G404: Using weak random for test data generation is acceptable
 		writer.WriteString(" ")
 	}
 	result := writer.Bytes()

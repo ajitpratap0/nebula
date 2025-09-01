@@ -21,11 +21,11 @@ func BenchmarkSimplePipeline(b *testing.B) {
 	testFile := "/tmp/benchmark_test.csv"
 	err := createBenchmarkCSV(testFile, 100000) // 100K records
 	require.NoError(b, err)
-	defer os.Remove(testFile)
+	defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 	// Create output file
 	outputFile := "/tmp/benchmark_output.csv"
-	defer os.Remove(outputFile)
+	defer func() { _ = os.Remove(outputFile) }() // Best effort cleanup
 
 	// Initialize logger
 	log := logger.Get()
@@ -37,7 +37,7 @@ func BenchmarkSimplePipeline(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		// Clean up output file between runs
-		os.Remove(outputFile)
+		_ = os.Remove(outputFile) // Best effort cleanup
 
 		// Create source config
 		sourceConfig := config.NewBaseConfig("csv-source", "source")
@@ -105,7 +105,7 @@ func createBenchmarkCSV(filename string, records int) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer file.Close() // Ignore close error
 
 	// Write header
 	fmt.Fprintln(file, "id,name,email,age,department,salary,created_at")

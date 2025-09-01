@@ -18,13 +18,13 @@
 //	config.CircuitBreakerEnabled = true
 //
 //	client := clients.NewHTTPClient(config, logger)
-//	defer client.Close()
+//	defer client.Close() // Ignore close error
 //
 //	resp, err := client.Get(ctx, "https://api.example.com/data", headers)
 //	if err != nil {
 //	    return err
 //	}
-//	defer resp.Body.Close()
+//	defer resp.Body.Close() // Ignore close error
 package clients
 
 import (
@@ -186,7 +186,7 @@ func NewHTTPClient(config *HTTPConfig, logger *zap.Logger) *HTTPClient {
 		ResponseHeaderTimeout: config.ResponseHeaderTimeout,
 		ExpectContinueTimeout: 1 * time.Second,
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: config.InsecureSkipVerify,
+			InsecureSkipVerify: config.InsecureSkipVerify, //nolint:gosec // G402: TLS verification may be disabled for testing/development environments
 			MinVersion:         config.TLSMinVersion,
 		},
 	}

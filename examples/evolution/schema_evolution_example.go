@@ -62,7 +62,11 @@ func basicSnowflakeExample(ctx context.Context) {
 	if err := dest.Initialize(ctx, snowflakeConfig); err != nil {
 		log.Fatal("Failed to initialize destination:", err)
 	}
-	defer dest.Close(ctx)
+	defer func() {
+		if err := dest.Close(ctx); err != nil {
+			log.Printf("Failed to close destination: %v", err)
+		}
+	}()
 
 	// Create initial schema
 	initialSchema := &core.Schema{
@@ -163,7 +167,11 @@ func advancedBigQueryExample(ctx context.Context) {
 	if err := dest.Initialize(ctx, bigqueryConfig); err != nil {
 		log.Fatal("Failed to initialize destination:", err)
 	}
-	defer dest.Close(ctx)
+	defer func() {
+		if err := dest.Close(ctx); err != nil {
+			log.Printf("Failed to close destination: %v", err)
+		}
+	}()
 
 	// Example of schema evolution with type changes
 	fmt.Println("Demonstrating schema evolution with type changes...")
@@ -255,7 +263,11 @@ func customStrategyExample(ctx context.Context) {
 	if err := evolvedDest.Initialize(ctx, baseConfig); err != nil {
 		log.Fatal("Failed to initialize:", err)
 	}
-	defer evolvedDest.Close(ctx)
+	defer func() {
+		if err := evolvedDest.Close(ctx); err != nil {
+			log.Printf("Failed to close evolved destination: %v", err)
+		}
+	}()
 
 	// Demonstrate strict evolution (only allows adding optional fields)
 	baseSchema := &core.Schema{

@@ -6,8 +6,8 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"go.uber.org/zap"
 )
 
@@ -48,7 +48,7 @@ func (sc *SDKSourceConnector) Initialize(ctx context.Context, config *config.Bas
 	// Validate configuration if validator is provided
 	if sc.builder.configValidator != nil {
 		if err := sc.builder.configValidator(config); err != nil {
-			return errors.Wrap(err, errors.ErrorTypeConfig, "configuration validation failed")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "configuration validation failed")
 		}
 	}
 
@@ -63,7 +63,7 @@ func (sc *SDKSourceConnector) Initialize(ctx context.Context, config *config.Bas
 // Discover discovers the schema
 func (sc *SDKSourceConnector) Discover(ctx context.Context) (*core.Schema, error) {
 	if sc.builder.discoverHook == nil {
-		return nil, errors.New(errors.ErrorTypeCapability, "schema discovery not implemented")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "schema discovery not implemented")
 	}
 	return sc.builder.discoverHook(ctx)
 }
@@ -71,7 +71,7 @@ func (sc *SDKSourceConnector) Discover(ctx context.Context) (*core.Schema, error
 // Read reads records from the source
 func (sc *SDKSourceConnector) Read(ctx context.Context) (*core.RecordStream, error) {
 	if sc.builder.readHook == nil {
-		return nil, errors.New(errors.ErrorTypeCapability, "record reading not implemented")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "record reading not implemented")
 	}
 	return sc.builder.readHook(ctx)
 }
@@ -79,7 +79,7 @@ func (sc *SDKSourceConnector) Read(ctx context.Context) (*core.RecordStream, err
 // ReadBatch reads records in batches
 func (sc *SDKSourceConnector) ReadBatch(ctx context.Context, batchSize int) (*core.BatchStream, error) {
 	if sc.builder.readBatchHook == nil {
-		return nil, errors.New(errors.ErrorTypeCapability, "batch reading not implemented")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "batch reading not implemented")
 	}
 	return sc.builder.readBatchHook(ctx, batchSize)
 }
@@ -134,11 +134,11 @@ func (sc *SDKSourceConnector) SupportsBatch() bool {
 // Subscribe subscribes to real-time changes
 func (sc *SDKSourceConnector) Subscribe(ctx context.Context, tables []string) (*core.ChangeStream, error) {
 	if !sc.builder.supportsRealtime || !sc.builder.supportsCDC {
-		return nil, errors.New(errors.ErrorTypeCapability, "real-time subscription not supported")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "real-time subscription not supported")
 	}
 
 	if sc.builder.subscribeHook == nil {
-		return nil, errors.New(errors.ErrorTypeCapability, "subscription not implemented")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "subscription not implemented")
 	}
 
 	return sc.builder.subscribeHook(ctx, tables)
@@ -213,7 +213,7 @@ func (dc *SDKDestinationConnector) Initialize(ctx context.Context, config *confi
 	// Validate configuration if validator is provided
 	if dc.builder.configValidator != nil {
 		if err := dc.builder.configValidator(config); err != nil {
-			return errors.Wrap(err, errors.ErrorTypeConfig, "configuration validation failed")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "configuration validation failed")
 		}
 	}
 
@@ -228,7 +228,7 @@ func (dc *SDKDestinationConnector) Initialize(ctx context.Context, config *confi
 // CreateSchema creates a schema
 func (dc *SDKDestinationConnector) CreateSchema(ctx context.Context, schema *core.Schema) error {
 	if dc.builder.createSchemaHook == nil {
-		return errors.New(errors.ErrorTypeCapability, "schema creation not implemented")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "schema creation not implemented")
 	}
 	return dc.builder.createSchemaHook(ctx, schema)
 }
@@ -236,7 +236,7 @@ func (dc *SDKDestinationConnector) CreateSchema(ctx context.Context, schema *cor
 // Write writes records to the destination
 func (dc *SDKDestinationConnector) Write(ctx context.Context, stream *core.RecordStream) error {
 	if dc.builder.writeHook == nil {
-		return errors.New(errors.ErrorTypeCapability, "record writing not implemented")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "record writing not implemented")
 	}
 	return dc.builder.writeHook(ctx, stream)
 }
@@ -244,7 +244,7 @@ func (dc *SDKDestinationConnector) Write(ctx context.Context, stream *core.Recor
 // WriteBatch writes batches of records
 func (dc *SDKDestinationConnector) WriteBatch(ctx context.Context, stream *core.BatchStream) error {
 	if dc.builder.writeBatchHook == nil {
-		return errors.New(errors.ErrorTypeCapability, "batch writing not implemented")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "batch writing not implemented")
 	}
 	return dc.builder.writeBatchHook(ctx, stream)
 }
@@ -277,7 +277,7 @@ func (dc *SDKDestinationConnector) SupportsStreaming() bool {
 // BulkLoad performs bulk loading
 func (dc *SDKDestinationConnector) BulkLoad(ctx context.Context, reader interface{}, format string) error {
 	if !dc.builder.supportsBulkLoad || dc.builder.bulkLoadHook == nil {
-		return errors.New(errors.ErrorTypeCapability, "bulk loading not supported")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "bulk loading not supported")
 	}
 	return dc.builder.bulkLoadHook(ctx, reader, format)
 }
@@ -285,7 +285,7 @@ func (dc *SDKDestinationConnector) BulkLoad(ctx context.Context, reader interfac
 // BeginTransaction begins a transaction
 func (dc *SDKDestinationConnector) BeginTransaction(ctx context.Context) (core.Transaction, error) {
 	if !dc.builder.supportsTransactions || dc.builder.beginTransactionHook == nil {
-		return nil, errors.New(errors.ErrorTypeCapability, "transactions not supported")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "transactions not supported")
 	}
 	return dc.builder.beginTransactionHook(ctx)
 }
@@ -293,7 +293,7 @@ func (dc *SDKDestinationConnector) BeginTransaction(ctx context.Context) (core.T
 // Upsert performs upsert operations
 func (dc *SDKDestinationConnector) Upsert(ctx context.Context, records []*models.Record, keys []string) error {
 	if !dc.builder.supportsUpsert || dc.builder.upsertHook == nil {
-		return errors.New(errors.ErrorTypeCapability, "upsert operations not supported")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "upsert operations not supported")
 	}
 	return dc.builder.upsertHook(ctx, records, keys)
 }
@@ -301,7 +301,7 @@ func (dc *SDKDestinationConnector) Upsert(ctx context.Context, records []*models
 // AlterSchema alters the schema
 func (dc *SDKDestinationConnector) AlterSchema(ctx context.Context, oldSchema, newSchema *core.Schema) error {
 	if dc.builder.alterSchemaHook == nil {
-		return errors.New(errors.ErrorTypeCapability, "schema alteration not implemented")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "schema alteration not implemented")
 	}
 	return dc.builder.alterSchemaHook(ctx, oldSchema, newSchema)
 }
@@ -309,7 +309,7 @@ func (dc *SDKDestinationConnector) AlterSchema(ctx context.Context, oldSchema, n
 // DropSchema drops the schema
 func (dc *SDKDestinationConnector) DropSchema(ctx context.Context, schema *core.Schema) error {
 	if dc.builder.dropSchemaHook == nil {
-		return errors.New(errors.ErrorTypeCapability, "schema dropping not implemented")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "schema dropping not implemented")
 	}
 	return dc.builder.dropSchemaHook(ctx, schema)
 }
