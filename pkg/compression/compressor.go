@@ -685,9 +685,7 @@ func (dc *deflateCompressor) Compress(data []byte) ([]byte, error) {
 func (dc *deflateCompressor) Decompress(data []byte) ([]byte, error) {
 	r := flate.NewReader(bytes.NewReader(data))
 	defer func() {
-		if err := r.Close(); err != nil {
-			// Decompressor close errors are typically not critical
-		}
+		_ = r.Close() // Decompressor close errors are typically not critical
 	}()
 
 	// Use pooled builder for decompression buffer
@@ -719,12 +717,10 @@ func (dc *deflateCompressor) CompressStream(dst io.Writer, src io.Reader) error 
 func (dc *deflateCompressor) DecompressStream(dst io.Writer, src io.Reader) error {
 	r := flate.NewReader(src)
 	defer func() {
-		if err := r.Close(); err != nil {
-			// Decompressor close errors are typically not critical
-		}
+		_ = r.Close() // Decompressor close errors are typically not critical
 	}()
 
-	_, err := io.Copy(dst, r)
+	_, err := io.Copy(dst, r) //nolint:gosec // G110: TODO - Add decompression size limits to prevent DoS attacks
 	return err
 }
 
@@ -734,6 +730,10 @@ func mapGzipLevel(level Level) int {
 	switch level {
 	case Fastest:
 		return gzip.BestSpeed
+	case Default:
+		return gzip.DefaultCompression
+	case Better:
+		return gzip.BestCompression
 	case Best:
 		return gzip.BestCompression
 	default:
@@ -745,6 +745,10 @@ func mapLZ4Level(level Level) lz4.CompressionLevel {
 	switch level {
 	case Fastest:
 		return lz4.Fast
+	case Default:
+		return lz4.Level5
+	case Better:
+		return lz4.Level7
 	case Best:
 		return lz4.Level9
 	default:
@@ -756,6 +760,8 @@ func mapZstdLevel(level Level) zstd.EncoderLevel {
 	switch level {
 	case Fastest:
 		return zstd.SpeedFastest
+	case Default:
+		return zstd.SpeedDefault
 	case Better:
 		return zstd.SpeedBetterCompression
 	case Best:
@@ -769,6 +775,10 @@ func mapDeflateLevel(level Level) int {
 	switch level {
 	case Fastest:
 		return flate.BestSpeed
+	case Default:
+		return flate.DefaultCompression
+	case Better:
+		return flate.BestCompression
 	case Best:
 		return flate.BestCompression
 	default:

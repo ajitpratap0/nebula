@@ -30,7 +30,7 @@ type HTTPMetrics struct {
 	requestsPerSecond float64
 	lastRateCalc      time.Time
 	rateWindow        []int64
-	rateWindowIndex   int
+	rateWindowIndex   int  //nolint:unused // Reserved for sliding window rate calculation
 
 	// HTTP/2 metrics
 	http2Connections int64

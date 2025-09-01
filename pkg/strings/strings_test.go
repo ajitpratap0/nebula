@@ -262,7 +262,7 @@ func TestIntern(t *testing.T) {
 	}
 
 	// Check that they are actually the same underlying string
-	if unsafe.StringData(s1) != unsafe.StringData(s2) {
+	if unsafe.StringData(s1) != unsafe.StringData(s2) { //nolint:gosec // G103: Test verification of memory sharing
 		t.Error("interned strings should share memory")
 	}
 

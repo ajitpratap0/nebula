@@ -308,13 +308,13 @@ func (a *StorageAdapter) Flush() error {
 	case StorageModeColumnar:
 		// Optimize column types after batch
 		if a.columnarBatch != nil {
-			a.columnarBatch.OptimizeTypes()
+			_ = a.columnarBatch.OptimizeTypes() // Ignore optimization errors
 		}
 		return nil
 	case StorageModeHybrid:
 		// Flush both if needed
 		if a.columnarBatch != nil {
-			a.columnarBatch.OptimizeTypes()
+			_ = a.columnarBatch.OptimizeTypes() // Ignore optimization errors
 		}
 		return nil
 	}

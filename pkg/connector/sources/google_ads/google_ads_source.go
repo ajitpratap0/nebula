@@ -647,7 +647,7 @@ func (s *GoogleAdsSource) makeAPIRequest(ctx context.Context, customerID, pageTo
 	if err != nil {
 		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "HTTP request failed")
 	}
-	defer resp.Body.Close() // Ignore close error
+	defer func() { _ = resp.Body.Close() }() // Ignore close error
 
 	// Parse response
 	responseData := s.responsePool.Get().(*GoogleAdsResponse)

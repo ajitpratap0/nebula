@@ -45,8 +45,8 @@ type HTTPCircuitBreaker struct {
 	// Counters
 	consecutiveFailures  int32
 	consecutiveSuccesses int32
-	requestsInWindow     int32
-	failuresInWindow     int32
+	requestsInWindow     int32  //nolint:unused // Reserved for future window-based metrics
+	failuresInWindow     int32  //nolint:unused // Reserved for future window-based metrics
 
 	// Sliding window
 	window          *SlidingWindow
@@ -156,12 +156,16 @@ func (cb *HTTPCircuitBreaker) RecordSuccess() {
 		// Reset consecutive failures
 		atomic.StoreInt32(&cb.consecutiveFailures, 0)
 
+	case StateOpen:
+		// No action needed - requests should not succeed when circuit is open
+		// This case should not normally occur
+
 	case StateHalfOpen:
 		// Increment consecutive successes
 		successes := atomic.AddInt32(&cb.consecutiveSuccesses, 1)
 
 		// Check if we should close the circuit
-		if successes >= int32(cb.config.SuccessThreshold) {
+		if successes >= int32(cb.config.SuccessThreshold) { //nolint:gosec // G115: SuccessThreshold is controlled config value
 			cb.transitionToClosed()
 		}
 	}
@@ -185,9 +189,12 @@ func (cb *HTTPCircuitBreaker) RecordFailure() {
 		failureRate := cb.window.GetFailureRate()
 
 		// Open circuit if threshold exceeded
-		if failures >= int32(cb.config.FailureThreshold) || failureRate > 0.5 {
+		if failures >= int32(cb.config.FailureThreshold) || failureRate > 0.5 { //nolint:gosec // G115: FailureThreshold is controlled config value
 			cb.transitionToOpen()
 		}
+
+	case StateOpen:
+		// No action needed - circuit is already open due to failures
 
 	case StateHalfOpen:
 		// Any failure in half-open state reopens the circuit

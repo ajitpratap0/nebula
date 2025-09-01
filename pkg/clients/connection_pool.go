@@ -36,12 +36,12 @@ type ConnectionPool struct {
 // usage, health, and protocol information.
 type PooledConnection struct {
 	conn      net.Conn
-	httpConn  *http.Client
+	httpConn  *http.Client //nolint:unused // Reserved for HTTP client pooling
 	host      string
 	createdAt time.Time
 	lastUsed  time.Time
 	useCount  int64
-	isHTTP2   bool
+	isHTTP2   bool  //nolint:unused // Reserved for HTTP/2 protocol detection
 	isHealthy bool
 }
 

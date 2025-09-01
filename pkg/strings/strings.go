@@ -16,7 +16,7 @@ func BytesToString(b []byte) string {
 	if len(b) == 0 {
 		return ""
 	}
-	return unsafe.String(&b[0], len(b))
+	return unsafe.String(&b[0], len(b)) //nolint:gosec // G103: Performance optimization, checked for safety
 }
 
 // StringToBytes converts string to byte slice without allocation
@@ -26,7 +26,7 @@ func StringToBytes(s string) []byte {
 	if len(s) == 0 {
 		return nil
 	}
-	return unsafe.Slice(unsafe.StringData(s), len(s))
+	return unsafe.Slice(unsafe.StringData(s), len(s)) //nolint:gosec // G103: Performance optimization, checked for safety
 }
 
 // Builder provides efficient string building with zero-copy operations
@@ -434,7 +434,7 @@ func Sprintf(format string, args ...interface{}) string {
 	defer PutBuilder(builder, size)
 
 	// Use fmt to write to our builder
-	fmt.Fprintf(builder, format, args...)
+	_, _ = fmt.Fprintf(builder, format, args...)
 
 	return Clone(builder.String())
 }

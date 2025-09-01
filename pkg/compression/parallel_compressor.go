@@ -2,6 +2,7 @@ package compression
 
 import (
 	"bytes"
+	"compress/flate"
 	"context"
 	"io"
 	"runtime"
@@ -308,6 +309,10 @@ func (pc *ParallelCompressor) compressChunk(data []byte) ([]byte, error) {
 	buf := bytes.NewBuffer(buffer[:0])
 
 	switch pc.algorithm {
+	case None:
+		// No compression, just return original data
+		return data, nil
+		
 	case Gzip:
 		w, _ := gzip.NewWriterLevel(buf, pc.getGzipLevel())
 		_, err := w.Write(data)
@@ -342,6 +347,14 @@ func (pc *ParallelCompressor) compressChunk(data []byte) ([]byte, error) {
 	case S2:
 		return s2.EncodeSnappy(nil, data), nil
 
+	case Deflate:
+		w, _ := flate.NewWriter(buf, pc.getDeflateLevel())
+		_, err := w.Write(data)
+		if closeErr := w.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+		return buf.Bytes(), err
+
 	default:
 		return nil, errors.New(errors.ErrorTypeConfig,
 			"unsupported compression algorithm for parallel compression")
@@ -351,6 +364,10 @@ func (pc *ParallelCompressor) compressChunk(data []byte) ([]byte, error) {
 // decompressChunk decompresses a single chunk
 func (pc *ParallelCompressor) decompressChunk(data []byte) ([]byte, error) {
 	switch pc.algorithm {
+	case None:
+		// No decompression needed, just return original data
+		return data, nil
+		
 	case Gzip:
 		r, err := gzip.NewReader(bytes.NewReader(data))
 		if err != nil {
@@ -373,6 +390,11 @@ func (pc *ParallelCompressor) decompressChunk(data []byte) ([]byte, error) {
 
 	case S2:
 		return s2.Decode(nil, data)
+
+	case Deflate:
+		r := flate.NewReader(bytes.NewReader(data))
+		defer func() { _ = r.Close() }() // Ignore close error in decompression
+		return io.ReadAll(r)
 
 	default:
 		return nil, errors.New(errors.ErrorTypeConfig,
@@ -417,6 +439,8 @@ func (pc *ParallelCompressor) createHeader(numChunks, originalSize int) []byte {
 	// Map algorithm to byte
 	var algByte byte
 	switch pc.algorithm {
+	case None:
+		algByte = 0
 	case Gzip:
 		algByte = 1
 	case Snappy:
@@ -427,6 +451,8 @@ func (pc *ParallelCompressor) createHeader(numChunks, originalSize int) []byte {
 		algByte = 4
 	case S2:
 		algByte = 5
+	case Deflate:
+		algByte = 6
 	default:
 		algByte = 0
 	}
@@ -460,6 +486,10 @@ func (pc *ParallelCompressor) getGzipLevel() int {
 	switch pc.level {
 	case Fastest:
 		return gzip.BestSpeed
+	case Default:
+		return gzip.DefaultCompression
+	case Better:
+		return gzip.BestCompression
 	case Best:
 		return gzip.BestCompression
 	default:
@@ -471,6 +501,10 @@ func (pc *ParallelCompressor) getLZ4Level() lz4.CompressionLevel {
 	switch pc.level {
 	case Fastest:
 		return lz4.Fast
+	case Default:
+		return lz4.Level4
+	case Better:
+		return lz4.Level7
 	case Best:
 		return lz4.Level9
 	default:
@@ -482,10 +516,29 @@ func (pc *ParallelCompressor) getZstdLevel() zstd.EncoderLevel {
 	switch pc.level {
 	case Fastest:
 		return zstd.SpeedFastest
+	case Default:
+		return zstd.SpeedDefault
+	case Better:
+		return zstd.SpeedBetterCompression
 	case Best:
 		return zstd.SpeedBestCompression
 	default:
 		return zstd.SpeedDefault
+	}
+}
+
+func (pc *ParallelCompressor) getDeflateLevel() int {
+	switch pc.level {
+	case Fastest:
+		return flate.BestSpeed
+	case Default:
+		return flate.DefaultCompression
+	case Better:
+		return flate.BestCompression
+	case Best:
+		return flate.BestCompression
+	default:
+		return flate.DefaultCompression
 	}
 }
 

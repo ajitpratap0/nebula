@@ -39,11 +39,12 @@ func (p *ChannelPool[T]) Put(ch chan T) {
 	}
 
 	// Drain channel before returning to pool
+drainLoop:
 	for len(ch) > 0 {
 		select {
 		case <-ch:
 		default:
-			break
+			break drainLoop
 		}
 	}
 

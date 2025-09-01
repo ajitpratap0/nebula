@@ -114,7 +114,7 @@ func (b *BottleneckAnalyzer) analyzeCPU() error {
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to open CPU profile")
 	}
-	defer file.Close() // Ignore close error
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	// Parse is from the profile package, not pprof
 	// For now, we'll skip detailed CPU analysis
@@ -468,45 +468,45 @@ func (b *BottleneckAnalyzer) saveAnalysisReport(result *AnalysisResult) error {
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create analysis report")
 	}
-	defer file.Close() // Ignore close error
+	defer func() { _ = file.Close() }() // Ignore close error
 
-	fmt.Fprintf(file, "Nebula Performance Bottleneck Analysis\n")
-	fmt.Fprintf(file, "=====================================\n\n")
-	fmt.Fprintf(file, "Timestamp: %s\n", result.Timestamp.Format(time.RFC3339))
-	fmt.Fprintf(file, "Summary: %s\n\n", result.Summary)
+	_, _ = fmt.Fprintf(file, "Nebula Performance Bottleneck Analysis\n")
+	_, _ = fmt.Fprintf(file, "=====================================\n\n")
+	_, _ = fmt.Fprintf(file, "Timestamp: %s\n", result.Timestamp.Format(time.RFC3339))
+	_, _ = fmt.Fprintf(file, "Summary: %s\n\n", result.Summary)
 
 	if len(result.Bottlenecks) > 0 {
-		fmt.Fprintf(file, "Bottlenecks:\n")
-		fmt.Fprintf(file, "-----------\n\n")
+		_, _ = fmt.Fprintf(file, "Bottlenecks:\n")
+		_, _ = fmt.Fprintf(file, "-----------\n\n")
 
 		for i, bottleneck := range result.Bottlenecks {
-			fmt.Fprintf(file, "%d. [%s] %s\n", i+1, strings.ToUpper(bottleneck.Severity), bottleneck.Description)
-			fmt.Fprintf(file, "   Type: %s\n", bottleneck.Type)
-			fmt.Fprintf(file, "   Component: %s\n", bottleneck.Component)
-			fmt.Fprintf(file, "   Impact: %.1f%%\n", bottleneck.Impact)
+			_, _ = fmt.Fprintf(file, "%d. [%s] %s\n", i+1, strings.ToUpper(bottleneck.Severity), bottleneck.Description)
+			_, _ = fmt.Fprintf(file, "   Type: %s\n", bottleneck.Type)
+			_, _ = fmt.Fprintf(file, "   Component: %s\n", bottleneck.Component)
+			_, _ = fmt.Fprintf(file, "   Impact: %.1f%%\n", bottleneck.Impact)
 
 			if len(bottleneck.Suggestions) > 0 {
-				fmt.Fprintf(file, "   Suggestions:\n")
+				_, _ = fmt.Fprintf(file, "   Suggestions:\n")
 				for _, suggestion := range bottleneck.Suggestions {
-					fmt.Fprintf(file, "   - %s\n", suggestion)
+					_, _ = fmt.Fprintf(file, "   - %s\n", suggestion)
 				}
 			}
 
 			if len(bottleneck.Details) > 0 {
-				fmt.Fprintf(file, "   Details:\n")
+				_, _ = fmt.Fprintf(file, "   Details:\n")
 				for key, value := range bottleneck.Details {
-					fmt.Fprintf(file, "   - %s: %v\n", key, value)
+					_, _ = fmt.Fprintf(file, "   - %s: %v\n", key, value)
 				}
 			}
-			fmt.Fprintf(file, "\n")
+			_, _ = fmt.Fprintf(file, "\n")
 		}
 	}
 
 	if len(result.Recommendations) > 0 {
-		fmt.Fprintf(file, "Prioritized Recommendations:\n")
-		fmt.Fprintf(file, "---------------------------\n")
+		_, _ = fmt.Fprintf(file, "Prioritized Recommendations:\n")
+		_, _ = fmt.Fprintf(file, "---------------------------\n")
 		for i, rec := range result.Recommendations {
-			fmt.Fprintf(file, "%d. %s\n", i+1, rec)
+			_, _ = fmt.Fprintf(file, "%d. %s\n", i+1, rec)
 		}
 	}
 

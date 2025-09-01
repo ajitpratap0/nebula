@@ -42,7 +42,7 @@ func generateCSVData(size int) []byte {
 	writer.WriteString("id,name,email,age,score,active\n")
 	for i := 0; i < size/50; i++ {
 		fmt.Fprintf(&writer, "%d,User %d,user%d@example.com,%d,%.2f,%t\n",
-			i, i, i, rand.Intn(80)+20, rand.Float64()*100, rand.Intn(2) == 1)
+			i, i, i, rand.Intn(80)+20, rand.Float64()*100, rand.Intn(2) == 1) //nolint:gosec // G404: Using weak random for test data generation is acceptable
 	}
 	return writer.Bytes()
 }
@@ -53,7 +53,7 @@ func generateTextData(size int) []byte {
 	// Use bytes.Buffer for writer operations
 	var writer bytes.Buffer
 	for writer.Len() < size {
-		writer.WriteString(words[rand.Intn(len(words))])
+		writer.WriteString(words[rand.Intn(len(words))]) //nolint:gosec // G404: Using weak random for test data generation is acceptable
 		writer.WriteString(" ")
 	}
 	result := writer.Bytes()

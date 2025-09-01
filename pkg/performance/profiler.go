@@ -120,7 +120,7 @@ func (p *Profiler) Start() {
 	runtime.ReadMemStats(&p.memStats)
 
 	if p.cpuProfile != nil {
-		pprof.StartCPUProfile(nil)
+		_ = pprof.StartCPUProfile(nil)
 	}
 }
 

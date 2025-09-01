@@ -564,6 +564,14 @@ func (c *MongoDBConnector) processMongoChangeEvent(changeEvent MongoChangeEvent)
 			// At minimum, include the document key
 			before = changeEvent.DocumentKey
 		}
+
+	case OperationDDL:
+		// DDL operations typically don't have before/after data in the same way
+		// The operation details are in the change event itself
+
+	case OperationCommit:
+		// Commit operations typically don't have before/after data
+		// They represent transaction boundaries
 	}
 
 	// Create change event

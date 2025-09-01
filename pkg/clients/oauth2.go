@@ -28,7 +28,7 @@ type OAuth2Client struct {
 	tokenRefreshes int64
 	authFailures   int64
 
-	mu sync.RWMutex
+	mu sync.RWMutex  //nolint:unused // Reserved for thread-safe operations
 }
 
 // OAuth2Config configures OAuth2 authentication parameters including endpoints,

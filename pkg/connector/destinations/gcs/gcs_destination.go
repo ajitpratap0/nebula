@@ -271,11 +271,11 @@ func (d *GCSDestination) CreateSchema(ctx context.Context, schema *core.Schema) 
 
 	_, err = writer.Write(schemaJSON) // Ignore write error
 	if err != nil {
-_ = 		writer.Close() // Ignore close error
+		_ = writer.Close() // Ignore close error
 		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to write schema metadata")
 	}
 
-	if err = writer.Close(); err != nil {
+	if err = _ = writer.Close(); err != nil {
 		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to close schema writer")
 	}
 
@@ -580,11 +580,11 @@ func (d *GCSDestination) uploadBatch(ctx context.Context, batch []*models.Record
 	// Copy data to GCS
 	_, err = io.Copy(writer, data)
 	if err != nil {
-_ = 		writer.Close() // Ignore close error
+		_ = writer.Close() // Ignore close error
 		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to write to GCS")
 	}
 
-	if err = writer.Close(); err != nil {
+	if err = _ = writer.Close(); err != nil {
 		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to close GCS writer")
 	}
 

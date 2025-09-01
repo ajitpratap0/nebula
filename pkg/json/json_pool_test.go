@@ -163,7 +163,7 @@ func BenchmarkStreamingEncoder(b *testing.B) {
 			}
 		}
 
-_ = 		enc.Close() // Ignore close error
+		_ = enc.Close() // Ignore close error
 	}
 
 	b.ReportMetric(float64(len(records)*b.N), "records/op")
