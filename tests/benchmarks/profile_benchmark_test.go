@@ -287,7 +287,7 @@ func runBenchmarkPipeline(
 	destConfig.Security.Credentials = map[string]string{
 		"file_path": outputFile,
 	}
-
+  
 	dest, err := csvdest.NewCSVDestination(destConfig)
 	require.NoError(b, err)
 
@@ -323,6 +323,7 @@ func createTestPipeline(t *testing.T, inputFile, outputFile string, logger *zap.
 	}
 
 	source, err := csvsrc.NewCSVSource(sourceConfig)
+
 	require.NoError(t, err)
 
 	err = source.Initialize(ctx, sourceConfig)
