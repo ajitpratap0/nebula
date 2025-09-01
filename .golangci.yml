@@ -87,7 +87,9 @@ issues:
         
     # Temporarily ignore typecheck errors in connector files
     - path: pkg/connector/.*\.go
-      text: "no errors \\(typecheck\\)"
+      text: "no errors"
+      linters:
+        - typecheck
         
     # Exclude some linters from generated files
     - path: _gen\.go
@@ -107,6 +109,8 @@ issues:
         
   # Exclude some well-known issues
   exclude:
+    # Go 1.25.0 bug: outputs "no errors" to stderr for successful builds
+    - "no errors"
     # errcheck: Almost all programs ignore errors on these functions
     - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
     
