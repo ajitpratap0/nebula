@@ -205,7 +205,11 @@ func processCSVColumnar(b *testing.B, filename string) *columnar.ColumnStore {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			b.Errorf("Failed to close file: %v", err)
+		}
+	}()
 
 	reader := csv.NewReader(file)
 	reader.ReuseRecord = true
@@ -253,7 +257,11 @@ func processRowBased(b *testing.B, filename string) []*pool.Record {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			b.Errorf("Failed to close file: %v", err)
+		}
+	}()
 
 	reader := csv.NewReader(file)
 	headers, _ := reader.Read()
@@ -283,7 +291,11 @@ func createTestDataForColumnar(b *testing.B, filename string, records int) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			b.Errorf("Failed to close file: %v", err)
+		}
+	}()
 
 	writer := csv.NewWriter(file)
 
@@ -323,7 +335,11 @@ func createCategoricalTestData(b *testing.B, filename string, records, categorie
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			b.Errorf("Failed to close file: %v", err)
+		}
+	}()
 
 	writer := csv.NewWriter(file)
 

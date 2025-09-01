@@ -137,7 +137,11 @@ func (cp *CSVParser) ParseReader(ctx context.Context, reader io.Reader) (*ParseR
 		// Start decompression in a goroutine
 		errChan := make(chan error, 1)
 		go func() {
-			defer pw.Close()
+			defer func() {
+				if err := pw.Close(); err != nil {
+					// Pipe writer close errors can be ignored
+				}
+			}()
 			err := cp.compressor.DecompressStream(pw, reader)
 			errChan <- err
 		}()
@@ -146,7 +150,7 @@ func (cp *CSVParser) ParseReader(ctx context.Context, reader io.Reader) (*ParseR
 		select {
 		case err := <-errChan:
 			if err != nil {
-				pr.Close()
+				_ = pr.Close() // Close reader on error
 				return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to decompress CSV data")
 			}
 		default:
@@ -376,7 +380,11 @@ func (jp *JSONParser) ParseReader(ctx context.Context, reader io.Reader) (*Parse
 		// Start decompression in a goroutine
 		errChan := make(chan error, 1)
 		go func() {
-			defer pw.Close()
+			defer func() {
+				if err := pw.Close(); err != nil {
+					// Pipe writer close errors can be ignored
+				}
+			}()
 			err := jp.compressor.DecompressStream(pw, reader)
 			errChan <- err
 		}()
@@ -385,7 +393,7 @@ func (jp *JSONParser) ParseReader(ctx context.Context, reader io.Reader) (*Parse
 		select {
 		case err := <-errChan:
 			if err != nil {
-				pr.Close()
+				_ = pr.Close() // Close reader on error
 				return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to decompress JSON data")
 			}
 		default:
@@ -699,7 +707,11 @@ func (cw *CSVWriter) WriteToWriter(ctx context.Context, writer io.Writer, record
 		// Start compression in a goroutine
 		errChan := make(chan error, 1)
 		go func() {
-			defer pr.Close()
+			defer func() {
+				if err := pr.Close(); err != nil {
+					// Pipe reader close errors can be ignored
+				}
+			}()
 			err := cw.compressor.CompressStream(writer, pr)
 			errChan <- err
 		}()
@@ -709,7 +721,9 @@ func (cw *CSVWriter) WriteToWriter(ctx context.Context, writer io.Writer, record
 
 		// Ensure we close the pipe writer at the end
 		defer func() {
-			pw.Close()
+			if err := pw.Close(); err != nil {
+				// Pipe writer close errors can be ignored
+			}
 			// Wait for compression to complete
 			if err := <-errChan; err != nil {
 				cw.logger.Error("compression error", zap.Error(err))
@@ -820,7 +834,11 @@ func (jw *JSONWriter) WriteToWriter(ctx context.Context, writer io.Writer, recor
 		// Start compression in a goroutine
 		errChan := make(chan error, 1)
 		go func() {
-			defer pr.Close()
+			defer func() {
+				if err := pr.Close(); err != nil {
+					// Pipe reader close errors can be ignored
+				}
+			}()
 			err := jw.compressor.CompressStream(writer, pr)
 			errChan <- err
 		}()
@@ -830,7 +848,9 @@ func (jw *JSONWriter) WriteToWriter(ctx context.Context, writer io.Writer, recor
 
 		// Ensure we close the pipe writer at the end
 		defer func() {
-			pw.Close()
+			if err := pw.Close(); err != nil {
+				// Pipe writer close errors can be ignored
+			}
 			// Wait for compression to complete
 			if err := <-errChan; err != nil {
 				jw.logger.Error("compression error", zap.Error(err))

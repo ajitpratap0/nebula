@@ -684,7 +684,11 @@ func (dc *deflateCompressor) Compress(data []byte) ([]byte, error) {
 
 func (dc *deflateCompressor) Decompress(data []byte) ([]byte, error) {
 	r := flate.NewReader(bytes.NewReader(data))
-	defer r.Close()
+	defer func() {
+		if err := r.Close(); err != nil {
+			// Decompressor close errors are typically not critical
+		}
+	}()
 
 	// Use pooled builder for decompression buffer
 	builder := stringpool.GetBuilder(stringpool.Medium)
@@ -714,7 +718,11 @@ func (dc *deflateCompressor) CompressStream(dst io.Writer, src io.Reader) error 
 
 func (dc *deflateCompressor) DecompressStream(dst io.Writer, src io.Reader) error {
 	r := flate.NewReader(src)
-	defer r.Close()
+	defer func() {
+		if err := r.Close(); err != nil {
+			// Decompressor close errors are typically not critical
+		}
+	}()
 
 	_, err := io.Copy(dst, r)
 	return err

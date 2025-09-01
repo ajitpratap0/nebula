@@ -160,12 +160,20 @@ func (sp *StreamingPipeline) Run(ctx context.Context) error {
 	if err := sp.source.Initialize(ctx, nil); err != nil {
 		return fmt.Errorf("failed to initialize source: %w", err)
 	}
-	defer sp.source.Close(ctx)
+	defer func() {
+		if err := sp.source.Close(ctx); err != nil {
+			sp.logger.Debug("failed to close source", zap.Error(err))
+		}
+	}()
 
 	if err := sp.destination.Initialize(ctx, nil); err != nil {
 		return fmt.Errorf("failed to initialize destination: %w", err)
 	}
-	defer sp.destination.Close(ctx)
+	defer func() {
+		if err := sp.destination.Close(ctx); err != nil {
+			sp.logger.Debug("failed to close destination", zap.Error(err))
+		}
+	}()
 
 	// Start monitoring
 	sp.wg.Add(2)

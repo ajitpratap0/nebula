@@ -294,7 +294,7 @@ func (c *MySQLConnector) Stop() error {
 
 	// Close database connection
 	if c.db != nil {
-		c.db.Close()
+		_ = c.db.Close() // Best effort close
 	}
 
 	c.updateHealth("stopped", "Connector stopped", nil)

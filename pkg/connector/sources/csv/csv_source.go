@@ -343,7 +343,9 @@ func (s *CSVSource) discoverSchema() error {
 	}
 
 	// Reset file position
-	s.file.Seek(0, 0)
+	if _, err := s.file.Seek(0, 0); err != nil {
+		return fmt.Errorf("failed to reset file position: %w", err)
+	}
 	s.reader = csv.NewReader(s.file)
 	s.reader.FieldsPerRecord = -1
 	s.currentRow = 0

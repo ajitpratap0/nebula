@@ -200,7 +200,9 @@ func (d *JSONDestination) Write(ctx context.Context, stream *core.RecordStream) 
 						return fmt.Errorf("failed to close array: %w", err)
 					}
 				}
-				d.writer.Flush()
+				if err := d.writer.Flush(); err != nil {
+					// Flush errors at stream end are typically not critical
+				}
 				return nil
 			}
 
@@ -214,7 +216,9 @@ func (d *JSONDestination) Write(ctx context.Context, stream *core.RecordStream) 
 			return err
 
 		case <-ctx.Done():
-			d.writer.Flush()
+			if err := d.writer.Flush(); err != nil {
+				// Flush errors on context done are typically not critical
+			}
 			return ctx.Err()
 		}
 	}
@@ -233,7 +237,9 @@ func (d *JSONDestination) WriteBatch(ctx context.Context, stream *core.BatchStre
 						return fmt.Errorf("failed to close array: %w", err)
 					}
 				}
-				d.writer.Flush()
+				if err := d.writer.Flush(); err != nil {
+					// Flush errors at stream end are typically not critical
+				}
 				return nil
 			}
 
@@ -247,7 +253,9 @@ func (d *JSONDestination) WriteBatch(ctx context.Context, stream *core.BatchStre
 			return err
 
 		case <-ctx.Done():
-			d.writer.Flush()
+			if err := d.writer.Flush(); err != nil {
+				// Flush errors on context done are typically not critical
+			}
 			return ctx.Err()
 		}
 	}

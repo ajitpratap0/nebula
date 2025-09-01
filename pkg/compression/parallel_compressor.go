@@ -311,7 +311,9 @@ func (pc *ParallelCompressor) compressChunk(data []byte) ([]byte, error) {
 	case Gzip:
 		w, _ := gzip.NewWriterLevel(buf, pc.getGzipLevel())
 		_, err := w.Write(data)
-		w.Close()
+		if closeErr := w.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
 		return buf.Bytes(), err
 
 	case Snappy:
@@ -319,16 +321,22 @@ func (pc *ParallelCompressor) compressChunk(data []byte) ([]byte, error) {
 
 	case LZ4:
 		w := lz4.NewWriter(buf)
-		w.Apply(lz4.CompressionLevelOption(pc.getLZ4Level()))
+		if err := w.Apply(lz4.CompressionLevelOption(pc.getLZ4Level())); err != nil {
+			return nil, err
+		}
 		_, err := w.Write(data)
-		w.Close()
+		if closeErr := w.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
 		return buf.Bytes(), err
 
 	case Zstd:
 		encoder, _ := zstd.NewWriter(buf,
 			zstd.WithEncoderLevel(pc.getZstdLevel()))
 		_, err := encoder.Write(data)
-		encoder.Close()
+		if closeErr := encoder.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
 		return buf.Bytes(), err
 
 	case S2:

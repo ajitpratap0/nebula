@@ -233,7 +233,7 @@ func (dcb *DatabaseConnectionBuilder) BuildSQLDB(driverName string) (*sql.DB, er
 	defer cancel()
 
 	if err := db.PingContext(ctx); err != nil {
-		db.Close()
+		_ = db.Close() // Ignore close error when connection already failed
 		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "database ping failed")
 	}
 

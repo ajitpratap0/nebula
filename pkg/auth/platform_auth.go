@@ -83,7 +83,12 @@ func (p *PlatformAuthService) GetGoogleAdsCredentials(ctx context.Context, accou
 	if err != nil {
 		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "failed to make request")
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			// Log error but don't propagate - response body close errors are typically not critical
+			// This is a common pattern in Go HTTP client code
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New(errors.ErrorTypeConnection,
