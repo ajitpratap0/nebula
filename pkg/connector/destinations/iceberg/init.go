@@ -74,11 +74,11 @@ func (d *IcebergDestination) WriteBatch(ctx context.Context, stream *core.BatchS
 		select {
 		case batch, ok := <-stream.Batches:
 			if !ok {
-				d.logger.Debug("WriteBatch completed", zap.Int("batches", batchCount))
+				d.logger.Debug("WriteBatch completed", zap.Int("total_batches", batchCount))
 				return nil
 			}
 			batchCount++
-			d.logger.Debug("Processing batch", zap.Int("records", len(batch)))
+			d.logger.Debug("Writing batch immediately", zap.Int("batch_num", batchCount), zap.Int("records", len(batch)))
 			if err := d.catalogProvider.WriteData(ctx, d.database, d.tableName, batch); err != nil {
 				return fmt.Errorf("failed to write batch %d: %w", batchCount, err)
 			}

@@ -1,14 +1,24 @@
 package iceberg
 
 import (
+	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
+	icebergGo "github.com/shubham-tomar/iceberg-go"
 	"go.uber.org/zap"
 )
+
+// SimpleSchemaValidator validates schema once at initialization
+type SimpleSchemaValidator struct {
+	icebergSchema *icebergGo.Schema
+	arrowSchema   *arrow.Schema
+	validated     bool
+}
 
 // IcebergDestination is a minimal Iceberg destination connector
 type IcebergDestination struct {
 	catalogProvider CatalogProvider
+	schemaValidator *SimpleSchemaValidator
 	
 	// Configuration
 	catalogURI   string
@@ -47,7 +57,8 @@ func NewIcebergDestination(config *config.BaseConfig) (core.Destination, error) 
 	logger, _ := zap.NewProduction()
 	
 	return &IcebergDestination{
-		properties: make(map[string]string),
-		logger:     logger,
+		properties:      make(map[string]string),
+		logger:          logger,
+		schemaValidator: &SimpleSchemaValidator{},
 	}, nil
 }

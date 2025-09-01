@@ -156,6 +156,10 @@ func (n *NessieCatalog) GetSchema(ctx context.Context, database, table string) (
 	}, nil
 }
 
+func (n *NessieCatalog) WriteBulkBatches(ctx context.Context, database, table string, batches [][]*pool.Record) error {
+	return fmt.Errorf("Nessie catalog WriteBulkBatches not implemented yet")
+}
+
 func (n *NessieCatalog) WriteData(ctx context.Context, database, table string, batch []*pool.Record) error {
 	if n.catalog == nil {
 		return fmt.Errorf("catalog not initialized for data writing")

@@ -34,6 +34,10 @@ func (r *RestCatalog) WriteData(ctx context.Context, database, table string, bat
 	return fmt.Errorf("REST catalog WriteData not implemented yet")
 }
 
+func (r *RestCatalog) WriteBulkBatches(ctx context.Context, database, table string, batches [][]*pool.Record) error {
+	return fmt.Errorf("REST catalog WriteBulkBatches not implemented yet")
+}
+
 func (r *RestCatalog) Close(ctx context.Context) error {
 	return nil
 }
