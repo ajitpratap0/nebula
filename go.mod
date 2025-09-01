@@ -26,13 +26,13 @@ require (
 	github.com/shubham-tomar/iceberg-go v0.2.1
 	github.com/snowflakedb/gosnowflake v1.14.1
 	github.com/spf13/cobra v1.9.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	go.mongodb.org/mongo-driver v1.17.4
-	go.opentelemetry.io/otel v1.36.0
+	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.36.0
-	go.opentelemetry.io/otel/metric v1.36.0
+	go.opentelemetry.io/otel/metric v1.38.0
 	go.opentelemetry.io/otel/sdk v1.36.0
-	go.opentelemetry.io/otel/trace v1.36.0
+	go.opentelemetry.io/otel/trace v1.38.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/net v0.40.0
 	golang.org/x/oauth2 v0.30.0
@@ -104,7 +104,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.7 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
-	github.com/go-logr/logr v1.4.2 // indirect
+	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/goccy/go-yaml v1.16.0 // indirect
