@@ -1,17 +1,17 @@
-// Package errors provides examples of structured error handling in Nebula.
-package errors_test
+// Package nebulaerrors provides examples of structured error handling in Nebula.
+package nebulaerrors_test
 
 import (
 	"fmt"
 	"io"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 )
 
 // Example demonstrates basic error creation and wrapping.
 func Example() {
 	// Create a new error with type
-	err := errors.New(errors.ErrorTypeConnection, "failed to connect to database")
+	err := nebulaerrors.New(nebulaerrors.ErrorTypeConnection, "failed to connect to database")
 
 	// Add context details
 	err = err.WithDetail("host", "localhost").
@@ -31,16 +31,16 @@ func ExampleWrap() {
 	originalErr := io.EOF
 
 	// Wrap the error with context
-	err := errors.Wrap(originalErr, errors.ErrorTypeFile, "failed to read CSV file").
+	err := nebulaerrors.Wrap(originalErr, nebulaerrors.ErrorTypeFile, "failed to read CSV file").
 		WithDetail("file", "data.csv").
 		WithDetail("line", 42)
 
 	// Check the error type
-	if errors.IsType(err, errors.ErrorTypeFile) {
+	if nebulaerrors.IsType(err, nebulaerrors.ErrorTypeFile) {
 		fmt.Println("This is a file error")
 	}
 
-	// Access the original error using Go's standard errors.Is
+	// Access the original error using Go's standard nebulaerrors.Is
 	if originalErr == io.EOF {
 		fmt.Println("Original error was EOF")
 	}
@@ -53,18 +53,18 @@ func ExampleWrap() {
 // ExampleErrorType demonstrates using different error types.
 func ExampleErrorType() {
 	// Connection error
-	connErr := errors.New(errors.ErrorTypeConnection, "connection refused")
+	connErr := nebulaerrors.New(nebulaerrors.ErrorTypeConnection, "connection refused")
 	fmt.Printf("Connection error: %v\n", connErr)
 
 	// Validation error
-	valErr := errors.New(errors.ErrorTypeValidation, "invalid batch size").
+	valErr := nebulaerrors.New(nebulaerrors.ErrorTypeValidation, "invalid batch size").
 		WithDetail("value", -1).
 		WithDetail("min", 1).
 		WithDetail("max", 10000)
 	fmt.Printf("Validation error: %v\n", valErr)
 
 	// Permission error
-	permErr := errors.New(errors.ErrorTypePermission, "access denied").
+	permErr := nebulaerrors.New(nebulaerrors.ErrorTypePermission, "access denied").
 		WithDetail("resource", "s3://bucket/file.csv").
 		WithDetail("action", "read")
 	fmt.Printf("Permission error: %v\n", permErr)
@@ -78,15 +78,15 @@ func ExampleErrorType() {
 // ExampleIsRetryable shows how to check if an error is retryable.
 func ExampleIsRetryable() {
 	// Create different types of errors
-	tempErr := errors.New(errors.ErrorTypeTimeout, "service temporarily unavailable")
-	fatalErr := errors.New(errors.ErrorTypeInternal, "critical system failure")
+	tempErr := nebulaerrors.New(nebulaerrors.ErrorTypeTimeout, "service temporarily unavailable")
+	fatalErr := nebulaerrors.New(nebulaerrors.ErrorTypeInternal, "critical system failure")
 
 	// Check if errors are retryable
-	if errors.IsRetryable(tempErr) {
+	if nebulaerrors.IsRetryable(tempErr) {
 		fmt.Println("Timeout error is retryable")
 	}
 
-	if !errors.IsRetryable(fatalErr) {
+	if !nebulaerrors.IsRetryable(fatalErr) {
 		fmt.Println("Fatal error is not retryable")
 	}
 
@@ -95,10 +95,10 @@ func ExampleIsRetryable() {
 	// Fatal error is not retryable
 }
 
-// Example_withDetails demonstrates adding multiple details to errors.
+// Example_withDetails demonstrates adding multiple details to nebulaerrors.
 func Example_withDetails() {
 	// Create an error with multiple context details
-	err := errors.New(errors.ErrorTypeData, "failed to process record").
+	err := nebulaerrors.New(nebulaerrors.ErrorTypeData, "failed to process record").
 		WithDetail("record_id", "rec-789").
 		WithDetail("batch_id", "batch-123").
 		WithDetail("attempt", 3)
@@ -116,10 +116,10 @@ func Example_errorChain() {
 	err := connectToDatabase()
 	if err != nil {
 		// Wrap with additional context at each level
-		err = errors.Wrap(err, errors.ErrorTypeData, "failed to fetch user data").
+		err = nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to fetch user data").
 			WithDetail("operation", "user_fetch")
 
-		err = errors.Wrap(err, errors.ErrorTypeInternal, "request handler failed").
+		err = nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "request handler failed").
 			WithDetail("endpoint", "/api/users").
 			WithDetail("method", "GET")
 
@@ -132,7 +132,7 @@ func Example_errorChain() {
 
 // connectToDatabase simulates a database connection error
 func connectToDatabase() error {
-	return errors.New(errors.ErrorTypeConnection, "connection timeout").
+	return nebulaerrors.New(nebulaerrors.ErrorTypeConnection, "connection timeout").
 		WithDetail("host", "db.example.com").
 		WithDetail("port", 5432)
 }
@@ -147,10 +147,10 @@ func Example_errorHandling() {
 		if err != nil {
 			// Check error type for appropriate handling
 			switch {
-			case errors.IsType(err, errors.ErrorTypeValidation):
+			case nebulaerrors.IsType(err, nebulaerrors.ErrorTypeValidation):
 				fmt.Printf("Skipping invalid record at index %d: %v\n", i, err)
 				continue
-			case errors.IsRetryable(err):
+			case nebulaerrors.IsRetryable(err):
 				fmt.Printf("Retrying record at index %d: %v\n", i, err)
 				// Implement retry logic here
 			default:
@@ -167,7 +167,7 @@ func Example_errorHandling() {
 // processRecord simulates record processing that can fail
 func processRecord(record string) error {
 	if record == "invalid" {
-		return errors.New(errors.ErrorTypeValidation, "invalid record format").
+		return nebulaerrors.New(nebulaerrors.ErrorTypeValidation, "invalid record format").
 			WithDetail("record", record)
 	}
 	return nil
@@ -176,19 +176,19 @@ func processRecord(record string) error {
 // ExampleIsType demonstrates checking error types.
 func ExampleIsType() {
 	// Create errors of different types
-	connErr := errors.New(errors.ErrorTypeConnection, "connection failed")
-	valErr := errors.New(errors.ErrorTypeValidation, "invalid input")
+	connErr := nebulaerrors.New(nebulaerrors.ErrorTypeConnection, "connection failed")
+	valErr := nebulaerrors.New(nebulaerrors.ErrorTypeValidation, "invalid input")
 
 	// Wrap an error
-	wrappedErr := errors.Wrap(connErr, errors.ErrorTypeData, "processing failed")
+	wrappedErr := nebulaerrors.Wrap(connErr, nebulaerrors.ErrorTypeData, "processing failed")
 
 	// Check error types
-	fmt.Printf("Is connection error: %v\n", errors.IsType(connErr, errors.ErrorTypeConnection))
-	fmt.Printf("Is validation error: %v\n", errors.IsType(valErr, errors.ErrorTypeValidation))
+	fmt.Printf("Is connection error: %v\n", nebulaerrors.IsType(connErr, nebulaerrors.ErrorTypeConnection))
+	fmt.Printf("Is validation error: %v\n", nebulaerrors.IsType(valErr, nebulaerrors.ErrorTypeValidation))
 
 	// IsType works through wrapped errors
-	fmt.Printf("Wrapped error is data type: %v\n", errors.IsType(wrappedErr, errors.ErrorTypeData))
-	fmt.Printf("Wrapped error contains connection type: %v\n", errors.IsType(wrappedErr, errors.ErrorTypeConnection))
+	fmt.Printf("Wrapped error is data type: %v\n", nebulaerrors.IsType(wrappedErr, nebulaerrors.ErrorTypeData))
+	fmt.Printf("Wrapped error contains connection type: %v\n", nebulaerrors.IsType(wrappedErr, nebulaerrors.ErrorTypeConnection))
 
 	// Output:
 	// Is connection error: true
@@ -206,7 +206,7 @@ func Example_customErrorHandling() {
 		}
 
 		// Extract error details
-		if nebulaErr, ok := err.(*errors.Error); ok {
+		if nebulaErr, ok := err.(*nebulaerrors.Error); ok {
 			fmt.Printf("Error Type: %s\n", nebulaErr.Type)
 			fmt.Printf("Message: %s\n", nebulaErr.Message)
 
@@ -227,7 +227,7 @@ func Example_customErrorHandling() {
 	}
 
 	// Create and handle an error
-	err := errors.New(errors.ErrorTypeRateLimit, "API rate limit exceeded").
+	err := nebulaerrors.New(nebulaerrors.ErrorTypeRateLimit, "API rate limit exceeded").
 		WithDetail("limit", 1000).
 		WithDetail("window", "1h").
 		WithDetail("retry_after", 300)

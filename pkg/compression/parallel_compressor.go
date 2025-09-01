@@ -9,7 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/klauspost/compress/gzip"
 	"github.com/klauspost/compress/s2"
@@ -184,7 +184,7 @@ func (pc *ParallelCompressor) DecompressData(data []byte) ([]byte, error) {
 
 	for i := 0; i < numChunks; i++ {
 		if offset+4 > len(data) {
-			return nil, errors.New(errors.ErrorTypeData, "corrupted compressed data")
+			return nil, nebulaerrors.New(nebulaerrors.ErrorTypeData, "corrupted compressed data")
 		}
 
 		// Read chunk size
@@ -193,7 +193,7 @@ func (pc *ParallelCompressor) DecompressData(data []byte) ([]byte, error) {
 		offset += 4
 
 		if offset+chunkSize > len(data) {
-			return nil, errors.New(errors.ErrorTypeData, "corrupted compressed data")
+			return nil, nebulaerrors.New(nebulaerrors.ErrorTypeData, "corrupted compressed data")
 		}
 
 		chunks = append(chunks, struct {
@@ -356,7 +356,7 @@ func (pc *ParallelCompressor) compressChunk(data []byte) ([]byte, error) {
 		return buf.Bytes(), err
 
 	default:
-		return nil, errors.New(errors.ErrorTypeConfig,
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig,
 			"unsupported compression algorithm for parallel compression")
 	}
 }
@@ -397,7 +397,7 @@ func (pc *ParallelCompressor) decompressChunk(data []byte) ([]byte, error) {
 		return io.ReadAll(r)
 
 	default:
-		return nil, errors.New(errors.ErrorTypeConfig,
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig,
 			"unsupported compression algorithm for parallel decompression")
 	}
 }

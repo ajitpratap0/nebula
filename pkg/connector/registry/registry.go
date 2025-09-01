@@ -6,7 +6,7 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -45,7 +45,7 @@ func (r *Registry) RegisterSource(name string, factory SourceFactory) error {
 	defer r.mu.Unlock()
 
 	if _, exists := r.sources[name]; exists {
-		return errors.New(errors.ErrorTypeConfig, fmt.Sprintf("source connector %s already registered", name))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("source connector %s already registered", name))
 	}
 
 	r.sources[name] = factory
@@ -59,7 +59,7 @@ func (r *Registry) RegisterDestination(name string, factory DestinationFactory) 
 	defer r.mu.Unlock()
 
 	if _, exists := r.destinations[name]; exists {
-		return errors.New(errors.ErrorTypeConfig, fmt.Sprintf("destination connector %s already registered", name))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("destination connector %s already registered", name))
 	}
 
 	r.destinations[name] = factory
@@ -74,12 +74,12 @@ func (r *Registry) CreateSource(name string, config *config.BaseConfig) (core.So
 	r.mu.RUnlock()
 
 	if !exists {
-		return nil, errors.New(errors.ErrorTypeConfig, fmt.Sprintf("source connector %s not found", name))
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("source connector %s not found", name))
 	}
 
 	source, err := factory(config)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConfig, fmt.Sprintf("failed to create source connector %s", name))
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, fmt.Sprintf("failed to create source connector %s", name))
 	}
 
 	return source, nil
@@ -92,12 +92,12 @@ func (r *Registry) CreateDestination(name string, config *config.BaseConfig) (co
 	r.mu.RUnlock()
 
 	if !exists {
-		return nil, errors.New(errors.ErrorTypeConfig, fmt.Sprintf("destination connector %s not found", name))
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("destination connector %s not found", name))
 	}
 
 	destination, err := factory(config)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConfig, fmt.Sprintf("failed to create destination connector %s", name))
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, fmt.Sprintf("failed to create destination connector %s", name))
 	}
 
 	return destination, nil
@@ -274,7 +274,7 @@ func (c *ConnectorCatalog) Register(info *ConnectorInfo) error {
 	defer c.mu.Unlock()
 
 	if _, exists := c.connectors[info.Name]; exists {
-		return errors.New(errors.ErrorTypeConfig, fmt.Sprintf("connector %s already in catalog", info.Name))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("connector %s already in catalog", info.Name))
 	}
 
 	c.connectors[info.Name] = info
@@ -288,7 +288,7 @@ func (c *ConnectorCatalog) Get(name string) (*ConnectorInfo, error) {
 
 	info, exists := c.connectors[name]
 	if !exists {
-		return nil, errors.New(errors.ErrorTypeConfig, fmt.Sprintf("connector %s not found in catalog", name))
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("connector %s not found in catalog", name))
 	}
 
 	return info, nil

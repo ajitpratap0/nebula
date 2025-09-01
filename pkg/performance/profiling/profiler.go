@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/metrics"
 	"go.uber.org/zap"
 )
@@ -147,7 +147,7 @@ func (p *Profiler) Start(ctx context.Context) error {
 
 	// Create output directory
 	if err := os.MkdirAll(p.config.OutputDir, 0755); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create profile directory")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create profile directory")
 	}
 
 	// Configure profile rates
@@ -279,14 +279,14 @@ func (p *Profiler) startCPUProfile() error {
 	filename := fmt.Sprintf("%s/cpu_%s.prof", p.config.OutputDir, p.timestamp())
 	file, err := os.Create(filename)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create CPU profile file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create CPU profile file")
 	}
 
 	p.cpuFile = file
 
 	if err := pprof.StartCPUProfile(file); err != nil {
 _ = 		file.Close() // Ignore close error
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to start CPU profiling")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to start CPU profiling")
 	}
 
 	// Stop CPU profiling after duration
@@ -303,14 +303,14 @@ func (p *Profiler) startTrace() error {
 	filename := fmt.Sprintf("%s/trace_%s.out", p.config.OutputDir, p.timestamp())
 	file, err := os.Create(filename)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create trace file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create trace file")
 	}
 
 	p.traceFile = file
 
 	if err := trace.Start(file); err != nil {
 _ = 		file.Close() // Ignore close error
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to start tracing")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to start tracing")
 	}
 
 	return nil
@@ -320,13 +320,13 @@ func (p *Profiler) saveMemoryProfile() error {
 	filename := fmt.Sprintf("%s/memory_%s.prof", p.config.OutputDir, p.timestamp())
 	file, err := os.Create(filename)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create memory profile file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create memory profile file")
 	}
 	defer file.Close() // Ignore close error
 
 	runtime.GC() // Force GC before heap profile
 	if err := pprof.WriteHeapProfile(file); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to write memory profile")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to write memory profile")
 	}
 
 	p.logger.Info("memory profile saved", zap.String("file", filename))
@@ -337,12 +337,12 @@ func (p *Profiler) saveBlockProfile() error {
 	filename := fmt.Sprintf("%s/block_%s.prof", p.config.OutputDir, p.timestamp())
 	file, err := os.Create(filename)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create block profile file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create block profile file")
 	}
 	defer file.Close() // Ignore close error
 
 	if err := pprof.Lookup("block").WriteTo(file, 0); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to write block profile")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to write block profile")
 	}
 
 	p.logger.Info("block profile saved", zap.String("file", filename))
@@ -353,12 +353,12 @@ func (p *Profiler) saveMutexProfile() error {
 	filename := fmt.Sprintf("%s/mutex_%s.prof", p.config.OutputDir, p.timestamp())
 	file, err := os.Create(filename)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create mutex profile file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create mutex profile file")
 	}
 	defer file.Close() // Ignore close error
 
 	if err := pprof.Lookup("mutex").WriteTo(file, 0); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to write mutex profile")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to write mutex profile")
 	}
 
 	p.logger.Info("mutex profile saved", zap.String("file", filename))
@@ -369,12 +369,12 @@ func (p *Profiler) saveGoroutineProfile() error {
 	filename := fmt.Sprintf("%s/goroutine_%s.prof", p.config.OutputDir, p.timestamp())
 	file, err := os.Create(filename)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create goroutine profile file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create goroutine profile file")
 	}
 	defer file.Close() // Ignore close error
 
 	if err := pprof.Lookup("goroutine").WriteTo(file, 2); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to write goroutine profile")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to write goroutine profile")
 	}
 
 	p.logger.Info("goroutine profile saved", zap.String("file", filename))
@@ -443,7 +443,7 @@ func (p *Profiler) generateReport() error {
 	filename := fmt.Sprintf("%s/report_%s.txt", p.config.OutputDir, p.timestamp())
 	file, err := os.Create(filename)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create report file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create report file")
 	}
 	defer file.Close() // Ignore close error
 

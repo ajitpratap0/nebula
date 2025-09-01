@@ -13,7 +13,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 )
 
 // SchemaDiscovery provides automated schema discovery capabilities
@@ -107,13 +107,13 @@ func (psd *PostgreSQLSchemaDiscovery) DiscoverTableSchema(ctx context.Context, t
 
 	conn, err := psd.pool.Acquire(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "failed to acquire connection")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to acquire connection")
 	}
 	defer conn.Release()
 
 	rows, err := conn.Query(ctx, query, tableName)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeQuery, "failed to query table schema")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "failed to query table schema")
 	}
 	defer rows.Close() // Ignore close error
 
@@ -143,7 +143,7 @@ func (psd *PostgreSQLSchemaDiscovery) DiscoverTableSchema(ctx context.Context, t
 			&udtName,
 		)
 		if err != nil {
-			return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to scan column metadata")
+			return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to scan column metadata")
 		}
 
 		field := core.Field{
@@ -170,7 +170,7 @@ func (psd *PostgreSQLSchemaDiscovery) DiscoverTableSchema(ctx context.Context, t
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeData, "error reading schema rows")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "error reading schema rows")
 	}
 
 	schema := &core.Schema{
@@ -200,13 +200,13 @@ func (psd *PostgreSQLSchemaDiscovery) DiscoverDatabaseSchema(ctx context.Context
 
 	conn, err := psd.pool.Acquire(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "failed to acquire connection")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to acquire connection")
 	}
 	defer conn.Release()
 
 	rows, err := conn.Query(ctx, query, schemaName)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeQuery, "failed to query database tables")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "failed to query database tables")
 	}
 	defer rows.Close() // Ignore close error
 
@@ -214,7 +214,7 @@ func (psd *PostgreSQLSchemaDiscovery) DiscoverDatabaseSchema(ctx context.Context
 	for rows.Next() {
 		var tableName string
 		if err := rows.Scan(&tableName); err != nil {
-			return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to scan table name")
+			return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to scan table name")
 		}
 
 		tableSchema, err := psd.DiscoverTableSchema(ctx, tableName)
@@ -279,7 +279,7 @@ func NewDataSampleInference(samples []map[string]interface{}) *DataSampleInferen
 // InferSchema infers schema from data samples
 func (dsi *DataSampleInference) InferSchema(schemaName string) (*core.Schema, error) {
 	if len(dsi.samples) == 0 {
-		return nil, errors.New(errors.ErrorTypeData, "no data samples provided for inference")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeData, "no data samples provided for inference")
 	}
 
 	// Collect all field names
@@ -344,7 +344,7 @@ func (dsi *DataSampleInference) inferFieldType(fieldName string) (core.Field, er
 	}
 
 	if len(values) == 0 {
-		return core.Field{}, errors.New(errors.ErrorTypeData, fmt.Sprintf("no non-null values found for field %s", fieldName))
+		return core.Field{}, nebulaerrors.New(nebulaerrors.ErrorTypeData, fmt.Sprintf("no non-null values found for field %s", fieldName))
 	}
 
 	// Determine type based on value analysis

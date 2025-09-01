@@ -14,7 +14,7 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 )
@@ -91,31 +91,31 @@ func NewPostgreSQLSource(config *config.BaseConfig) (core.Source, error) {
 func (s *PostgreSQLSource) Initialize(ctx context.Context, config *config.BaseConfig) error {
 	// Initialize base connector first
 	if err := s.BaseConnector.Initialize(ctx, config); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize base connector")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to initialize base connector")
 	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if s.isInitialized {
-		return errors.New(errors.ErrorTypeValidation, "source already initialized")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeValidation, "source already initialized")
 	}
 
 	// Parse configuration
 	if err := s.parseConfig(config); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to parse config")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to parse config")
 	}
 
 	// Setup connection pool with circuit breaker protection
 	if err := s.ExecuteWithCircuitBreaker(func() error {
 		return s.setupConnectionPool(ctx)
 	}); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to setup connection pool")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to setup connection pool")
 	}
 
 	// Discover schema
 	if err := s.discoverSchema(ctx); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to discover schema")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to discover schema")
 	}
 
 	s.isInitialized = true
@@ -139,7 +139,7 @@ func (s *PostgreSQLSource) Initialize(ctx context.Context, config *config.BaseCo
 func (s *PostgreSQLSource) parseConfig(config *config.BaseConfig) error {
 	// Connection string (required)
 	if config.Security.Credentials == nil || config.Security.Credentials["connection_string"] == "" {
-		return errors.New(errors.ErrorTypeConfig, "connection_string is required in security.credentials")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "connection_string is required in security.credentials")
 	}
 	s.connectionStr = config.Security.Credentials["connection_string"]
 
@@ -153,7 +153,7 @@ func (s *PostgreSQLSource) parseConfig(config *config.BaseConfig) error {
 	}
 
 	if s.tableName == "" && s.query == "" {
-		return errors.New(errors.ErrorTypeConfig, "either table name or query is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "either table name or query is required")
 	}
 
 	// Batch size (optional)
@@ -171,7 +171,7 @@ func (s *PostgreSQLSource) setupConnectionPool(ctx context.Context) error {
 	// Parse connection config
 	s.poolConfig, err = pgxpool.ParseConfig(s.connectionStr)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to parse connection string")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to parse connection string")
 	}
 
 	// Configure connection pool settings using BaseConfig
@@ -210,7 +210,7 @@ func (s *PostgreSQLSource) setupConnectionPool(ctx context.Context) error {
 	// Create connection pool
 	s.pool, err = pgxpool.NewWithConfig(ctx, s.poolConfig)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to create connection pool")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to create connection pool")
 	}
 
 	// Warm up the connection pool by establishing minimum connections
@@ -222,7 +222,7 @@ func (s *PostgreSQLSource) setupConnectionPool(ctx context.Context) error {
 	// Test connection and get version
 	var version string
 	if err := s.validateConnection(ctx, &version); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to validate connection")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to validate connection")
 	}
 
 	s.GetLogger().Info("Connected to PostgreSQL",
@@ -250,7 +250,7 @@ func (s *PostgreSQLSource) discoverSchema(ctx context.Context) error {
 func (s *PostgreSQLSource) discoverSchemaFromTable(ctx context.Context) error {
 	conn, err := s.pool.Acquire(ctx)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to acquire connection")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to acquire connection")
 	}
 	defer conn.Release()
 
@@ -273,7 +273,7 @@ func (s *PostgreSQLSource) discoverSchemaFromTable(ctx context.Context) error {
 
 	rows, err := conn.Query(ctx, query, schemaName, tableName)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeQuery, "failed to query table schema")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "failed to query table schema")
 	}
 	defer rows.Close() // Ignore close error
 
@@ -286,7 +286,7 @@ func (s *PostgreSQLSource) discoverSchemaFromTable(ctx context.Context) error {
 		var columnDefault *string
 
 		if err := rows.Scan(&columnName, &dataType, &isNullable, &columnDefault); err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, "failed to scan schema row")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to scan schema row")
 		}
 
 		columns = append(columns, columnName)
@@ -306,11 +306,11 @@ func (s *PostgreSQLSource) discoverSchemaFromTable(ctx context.Context) error {
 	}
 
 	if err := rows.Err(); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "error iterating schema rows")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "error iterating schema rows")
 	}
 
 	if len(columns) == 0 {
-		return errors.New(errors.ErrorTypeData, stringpool.Sprintf("table %s not found or has no columns", s.tableName))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeData, stringpool.Sprintf("table %s not found or has no columns", s.tableName))
 	}
 
 	s.columns = columns
@@ -333,7 +333,7 @@ func (s *PostgreSQLSource) discoverSchemaFromTable(ctx context.Context) error {
 func (s *PostgreSQLSource) discoverSchemaFromQuery(ctx context.Context) error {
 	conn, err := s.pool.Acquire(ctx)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to acquire connection")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to acquire connection")
 	}
 	defer conn.Release()
 
@@ -347,7 +347,7 @@ func (s *PostgreSQLSource) discoverSchemaFromQuery(ctx context.Context) error {
 
 	rows, err := conn.Query(ctx, limitQuery)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeQuery, "failed to execute schema discovery query")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "failed to execute schema discovery query")
 	}
 	defer rows.Close() // Ignore close error
 
@@ -390,7 +390,7 @@ func (s *PostgreSQLSource) Discover(ctx context.Context) (*core.Schema, error) {
 	defer s.mu.RUnlock()
 
 	if s.schema == nil {
-		return nil, errors.New(errors.ErrorTypeData, "schema not discovered yet")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeData, "schema not discovered yet")
 	}
 
 	return s.schema, nil
@@ -401,7 +401,7 @@ func (s *PostgreSQLSource) Read(ctx context.Context) (*core.RecordStream, error)
 	s.mu.RLock()
 	if !s.isInitialized {
 		s.mu.RUnlock()
-		return nil, errors.New(errors.ErrorTypeValidation, "source not initialized")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeValidation, "source not initialized")
 	}
 	s.mu.RUnlock()
 
@@ -447,7 +447,7 @@ func (s *PostgreSQLSource) ReadBatch(ctx context.Context, batchSize int) (*core.
 	s.mu.RLock()
 	if !s.isInitialized {
 		s.mu.RUnlock()
-		return nil, errors.New(errors.ErrorTypeValidation, "source not initialized")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeValidation, "source not initialized")
 	}
 	s.mu.RUnlock()
 
@@ -492,13 +492,13 @@ func (s *PostgreSQLSource) ReadBatch(ctx context.Context, batchSize int) (*core.
 func (s *PostgreSQLSource) streamRecords(ctx context.Context, query string, recordChan chan<- *models.Record, errorChan chan<- error) error {
 	conn, err := s.pool.Acquire(ctx)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to acquire connection")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to acquire connection")
 	}
 	defer conn.Release()
 
 	rows, err := conn.Query(ctx, query)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeQuery, "failed to execute query")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "failed to execute query")
 	}
 	defer rows.Close() // Ignore close error
 
@@ -509,7 +509,7 @@ func (s *PostgreSQLSource) streamRecords(ctx context.Context, query string, reco
 		default:
 			record, err := s.scanRowToRecord(rows)
 			if err != nil {
-				return errors.Wrap(err, errors.ErrorTypeData, "failed to scan row")
+				return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to scan row")
 			}
 
 			s.mu.Lock()
@@ -532,13 +532,13 @@ func (s *PostgreSQLSource) streamRecords(ctx context.Context, query string, reco
 func (s *PostgreSQLSource) streamBatches(ctx context.Context, query string, batchSize int, batchChan chan<- []*models.Record, errorChan chan<- error) error {
 	conn, err := s.pool.Acquire(ctx)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to acquire connection")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to acquire connection")
 	}
 	defer conn.Release()
 
 	rows, err := conn.Query(ctx, query)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeQuery, "failed to execute query")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "failed to execute query")
 	}
 	defer rows.Close() // Ignore close error
 
@@ -553,7 +553,7 @@ func (s *PostgreSQLSource) streamBatches(ctx context.Context, query string, batc
 		default:
 			record, err := s.scanRowToRecord(rows)
 			if err != nil {
-				return errors.Wrap(err, errors.ErrorTypeData, "failed to scan row")
+				return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to scan row")
 			}
 
 			batch = append(batch, record)
@@ -590,7 +590,7 @@ func (s *PostgreSQLSource) streamBatches(ctx context.Context, query string, batc
 func (s *PostgreSQLSource) scanRowToRecord(rows pgx.Rows) (*models.Record, error) {
 	values, err := rows.Values()
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to get row values")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to get row values")
 	}
 
 	record := models.NewRecordFromPool("postgresql")
@@ -643,7 +643,7 @@ func (s *PostgreSQLSource) SetPosition(position core.Position) error {
 		s.mu.Unlock()
 		return nil
 	}
-	return errors.New(errors.ErrorTypeValidation, "invalid position type")
+	return nebulaerrors.New(nebulaerrors.ErrorTypeValidation, "invalid position type")
 }
 
 func (s *PostgreSQLSource) GetState() core.State {
@@ -690,26 +690,26 @@ func (s *PostgreSQLSource) SupportsBatch() bool {
 
 // Real-time methods (not supported)
 func (s *PostgreSQLSource) Subscribe(ctx context.Context, tables []string) (*core.ChangeStream, error) {
-	return nil, errors.New(errors.ErrorTypeValidation, "real-time subscription not supported - use postgresql_cdc connector")
+	return nil, nebulaerrors.New(nebulaerrors.ErrorTypeValidation, "real-time subscription not supported - use postgresql_cdc connector")
 }
 
 // Health returns the health status
 func (s *PostgreSQLSource) Health(ctx context.Context) error {
 	if s.pool == nil {
-		return errors.New(errors.ErrorTypeConnection, "connection pool not initialized")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConnection, "connection pool not initialized")
 	}
 
 	// Test connection
 	conn, err := s.pool.Acquire(ctx)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to acquire connection")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to acquire connection")
 	}
 	defer conn.Release()
 
 	var result int
 	err = conn.QueryRow(ctx, "SELECT 1").Scan(&result)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeQuery, "health check query failed")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "health check query failed")
 	}
 
 	return nil
@@ -819,7 +819,7 @@ func (s *PostgreSQLSource) warmUpConnectionPool(ctx context.Context) error {
 			for _, c := range conns {
 				c.Release()
 			}
-			return errors.Wrap(err, errors.ErrorTypeConnection,
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection,
 				stringpool.Sprintf("failed to warm up connection %d/%d", i+1, s.poolConfig.MinConns))
 		}
 		conns = append(conns, *conn)
@@ -840,7 +840,7 @@ func (s *PostgreSQLSource) warmUpConnectionPool(ctx context.Context) error {
 func (s *PostgreSQLSource) validateConnection(ctx context.Context, version *string) error {
 	conn, err := s.pool.Acquire(ctx)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to acquire connection for validation")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to acquire connection for validation")
 	}
 	defer conn.Release()
 
@@ -848,14 +848,14 @@ func (s *PostgreSQLSource) validateConnection(ctx context.Context, version *stri
 	var result int
 	err = conn.QueryRow(ctx, "SELECT 1").Scan(&result)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeQuery, "validation query failed")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "validation query failed")
 	}
 
 	// Get version if requested
 	if version != nil {
 		err = conn.QueryRow(ctx, "SELECT version()").Scan(version)
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeQuery, "failed to get server version")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "failed to get server version")
 		}
 	}
 

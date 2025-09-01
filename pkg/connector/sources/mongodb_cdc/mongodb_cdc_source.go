@@ -11,7 +11,7 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"go.uber.org/zap"
@@ -60,18 +60,18 @@ func NewMongoDBCDCSource(cfg *config.BaseConfig) (core.Source, error) {
 func (s *MongoDBCDCSource) Initialize(ctx context.Context, cfg *config.BaseConfig) error {
 	// Initialize base connector first
 	if err := s.BaseConnector.Initialize(ctx, cfg); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize base connector")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to initialize base connector")
 	}
 
 	// Extract CDC configuration from Security credentials
 	connectionStr, ok := cfg.Security.Credentials["connection_string"]
 	if !ok || connectionStr == "" {
-		return errors.New(errors.ErrorTypeConfig, "missing required property: connection_string in security.credentials")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "missing required property: connection_string in security.credentials")
 	}
 
 	database, ok := cfg.Security.Credentials["database"]
 	if !ok || database == "" {
-		return errors.New(errors.ErrorTypeConfig, "missing required property: database in security.credentials")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "missing required property: database in security.credentials")
 	}
 	s.database = database
 
@@ -151,12 +151,12 @@ func (s *MongoDBCDCSource) Initialize(ctx context.Context, cfg *config.BaseConfi
 	if err := s.ExecuteWithCircuitBreaker(func() error {
 		return s.cdcConnector.Connect(s.cdcConfig)
 	}); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to connect to MongoDB")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to connect to MongoDB")
 	}
 
 	// Subscribe to collections
 	if err := s.cdcConnector.Subscribe(s.collections); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to subscribe to collections")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to subscribe to collections")
 	}
 
 	s.UpdateHealth(true, map[string]interface{}{
@@ -230,7 +230,7 @@ func (s *MongoDBCDCSource) Read(ctx context.Context) (*core.RecordStream, error)
 	s.runningMu.Lock()
 	if s.running {
 		s.runningMu.Unlock()
-		return nil, errors.New(errors.ErrorTypeConnection, "CDC reader already running")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConnection, "CDC reader already running")
 	}
 	s.running = true
 	s.runningMu.Unlock()
@@ -257,7 +257,7 @@ func (s *MongoDBCDCSource) Read(ctx context.Context) (*core.RecordStream, error)
 		// Start CDC event reading
 		changesChan, err := s.cdcConnector.ReadChanges(ctx)
 		if err != nil {
-			errorsChan <- errors.Wrap(err, errors.ErrorTypeConnection, "failed to start reading changes")
+			errorsChan <- nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to start reading changes")
 			return
 		}
 
@@ -456,12 +456,12 @@ func (s *MongoDBCDCSource) SupportsBatch() bool {
 // Subscribe enables real-time change streaming for specified collections
 func (s *MongoDBCDCSource) Subscribe(ctx context.Context, collections []string) (*core.ChangeStream, error) {
 	if s.cdcConnector == nil {
-		return nil, errors.New(errors.ErrorTypeConnection, "CDC connector not initialized")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConnection, "CDC connector not initialized")
 	}
 
 	// Subscribe to collections via CDC connector
 	if err := s.cdcConnector.Subscribe(collections); err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConfig, "failed to subscribe to collections")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to subscribe to collections")
 	}
 
 	// Create change stream
@@ -484,12 +484,12 @@ func (s *MongoDBCDCSource) Subscribe(ctx context.Context, collections []string) 
 // Health returns the health status of the CDC connector
 func (s *MongoDBCDCSource) Health(ctx context.Context) error {
 	if s.cdcConnector == nil {
-		return errors.New(errors.ErrorTypeConnection, "CDC connector not initialized")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConnection, "CDC connector not initialized")
 	}
 
 	health := s.cdcConnector.Health()
 	if health.Status != "running" && health.Status != "connected" {
-		return errors.New(errors.ErrorTypeConnection, health.Message)
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConnection, health.Message)
 	}
 
 	return nil
@@ -521,7 +521,7 @@ func (s *MongoDBCDCSource) convertCDCEventToRecord(event cdc.ChangeEvent) (*mode
 	// Use the built-in ConvertToRecord method
 	record, err := event.ConvertToRecord()
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to convert CDC event to record")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to convert CDC event to record")
 	}
 
 	// Add additional metadata specific to MongoDB
@@ -575,7 +575,7 @@ func (s *MongoDBCDCSource) streamChangeEvents(ctx context.Context, changeCh chan
 	// Get CDC event stream
 	eventStream, err := s.cdcConnector.ReadChanges(ctx)
 	if err != nil {
-		errorCh <- errors.Wrap(err, errors.ErrorTypeData, "failed to read CDC changes")
+		errorCh <- nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to read CDC changes")
 		return
 	}
 

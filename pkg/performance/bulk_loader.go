@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/ajitpratap0/nebula/pkg/compression"
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/formats/columnar"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	"github.com/ajitpratap0/nebula/pkg/pool"
@@ -228,7 +228,7 @@ func (bl *BulkLoader) Load(ctx context.Context, records []*models.Record) error 
 	}
 
 	if len(loadErrors) > 0 {
-		return errors.New(errors.ErrorTypeData, stringpool.Sprintf("bulk load errors: %v", loadErrors))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeData, stringpool.Sprintf("bulk load errors: %v", loadErrors))
 	}
 
 	return nil
@@ -242,14 +242,14 @@ func (bl *BulkLoader) loadBatch(ctx context.Context, records []*models.Record) e
 		var err error
 		processed, err = stage.Process(ctx, processed)
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, stringpool.Sprintf("stage %s failed", stage.Name()))
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, stringpool.Sprintf("stage %s failed", stage.Name()))
 		}
 	}
 
 	// Create files
 	files, err := bl.createFiles(processed)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeFile, "file creation failed")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "file creation failed")
 	}
 
 	// Upload files with retries
@@ -320,7 +320,7 @@ func (bl *BulkLoader) createFiles(records []*models.Record) ([]*LoadFile, error)
 	case "json":
 		files = append(files, bl.createJSONFile(records))
 	default:
-		return nil, errors.New(errors.ErrorTypeConfig, stringpool.Sprintf("unsupported format: %s", bl.config.FileFormat))
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig, stringpool.Sprintf("unsupported format: %s", bl.config.FileFormat))
 	}
 
 	return files, nil
@@ -478,7 +478,7 @@ func (bl *BulkLoader) uploadFileWithRetry(ctx context.Context, file *LoadFile) e
 		lastErr = err
 	}
 
-	return errors.Wrap(lastErr, errors.ErrorTypeConnection, stringpool.Sprintf("upload failed after %d attempts", bl.config.RetryAttempts))
+	return nebulaerrors.Wrap(lastErr, nebulaerrors.ErrorTypeConnection, stringpool.Sprintf("upload failed after %d attempts", bl.config.RetryAttempts))
 }
 
 // uploadFile uploads file to warehouse

@@ -10,7 +10,7 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	"go.uber.org/zap"
@@ -132,7 +132,7 @@ func (p *PipelineProfiler) Start(ctx context.Context) error {
 
 	// Start system profiling
 	if err := p.profiler.Start(ctx); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to start profiler")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to start profiler")
 	}
 
 	p.logger.Info("pipeline profiling started")

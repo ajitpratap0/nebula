@@ -8,7 +8,7 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/logger"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	"github.com/ajitpratap0/nebula/pkg/pool"
@@ -78,7 +78,7 @@ func DefaultEvolutionConfig() *EvolutionConfig {
 // NewSchemaEvolutionDestination creates a new destination with schema evolution
 func NewSchemaEvolutionDestination(dest core.Destination, config *EvolutionConfig) (*SchemaEvolutionDestination, error) {
 	if dest == nil {
-		return nil, errors.New(errors.ErrorTypeConfig, "destination cannot be nil")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "destination cannot be nil")
 	}
 
 	if config == nil {
@@ -106,7 +106,7 @@ func NewSchemaEvolutionDestination(dest core.Destination, config *EvolutionConfi
 func (sed *SchemaEvolutionDestination) Initialize(ctx context.Context, config *config.BaseConfig) error {
 	// Initialize the wrapped destination
 	if err := sed.destination.Initialize(ctx, config); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize destination")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to initialize destination")
 	}
 
 	// Check if schema evolution is enabled in Advanced config
@@ -133,12 +133,12 @@ func (sed *SchemaEvolutionDestination) CreateSchema(ctx context.Context, schema 
 	// Register schema in registry
 	version, err := sed.schemaRegistry.RegisterSchema(ctx, modelsSchema.Name, modelsSchema)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to register schema")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to register schema")
 	}
 
 	// Create schema in destination
 	if err := sed.destination.CreateSchema(ctx, schema); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to create schema in destination")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to create schema in destination")
 	}
 
 	sed.currentSchema = modelsSchema
@@ -164,7 +164,7 @@ func (sed *SchemaEvolutionDestination) AlterSchema(ctx context.Context, oldSchem
 	// Check compatibility
 	if err := sed.evolutionManager.CheckCompatibility(oldModelsSchema, newModelsSchema, sed.config.CompatibilityMode); err != nil {
 		if sed.config.FailOnIncompatible {
-			return errors.Wrap(err, errors.ErrorTypeValidation, "schema incompatible")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeValidation, "schema incompatible")
 		}
 		sed.logger.Warn("schema compatibility check failed, proceeding anyway",
 			zap.Error(err))
@@ -174,12 +174,12 @@ func (sed *SchemaEvolutionDestination) AlterSchema(ctx context.Context, oldSchem
 	oldVersion, _ := sed.schemaRegistry.GetLatestSchema(oldModelsSchema.Name)
 	newVersion, err := sed.schemaRegistry.RegisterSchema(ctx, newModelsSchema.Name, newModelsSchema)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to register new schema version")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to register new schema version")
 	}
 
 	migrationPlan, err := sed.evolutionManager.GetMigrationPlan(oldVersion, newVersion)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to create migration plan")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to create migration plan")
 	}
 
 	// Log migration plan
@@ -191,7 +191,7 @@ func (sed *SchemaEvolutionDestination) AlterSchema(ctx context.Context, oldSchem
 
 	// Apply schema changes to destination
 	if err := sed.destination.AlterSchema(ctx, oldSchema, newSchema); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to alter schema in destination")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to alter schema in destination")
 	}
 
 	sed.currentSchema = newModelsSchema
@@ -457,7 +457,7 @@ func (sed *SchemaEvolutionDestination) evolveSchemaFromBatch(ctx context.Context
 	// Evolve schema
 	evolved, err := sed.evolutionManager.EvolveSchema(currentSchema, data)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to evolve schema")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to evolve schema")
 	}
 
 	// If schema changed, update destination

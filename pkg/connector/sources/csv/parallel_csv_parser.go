@@ -11,7 +11,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
@@ -204,7 +204,7 @@ func (p *ParallelCSVParser) processChunk(workerID int, chunk *CSVChunk, recordCh
 		if err != nil {
 			atomic.AddInt64(&p.errors, 1)
 			select {
-			case errorChan <- errors.Wrap(err, errors.ErrorTypeData,
+			case errorChan <- nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData,
 				stringpool.Sprintf("failed to parse line %d", chunk.StartRow+i+1)):
 			case <-p.ctx.Done():
 				return

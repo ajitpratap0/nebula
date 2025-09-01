@@ -70,7 +70,7 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"go.uber.org/zap"
@@ -138,7 +138,7 @@ func NewCSVSource(config *config.BaseConfig) (core.Source, error) {
 func (s *CSVSource) Initialize(ctx context.Context, config *config.BaseConfig) error {
 	// Initialize base connector first
 	if err := s.BaseConnector.Initialize(ctx, config); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize base connector")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to initialize base connector")
 	}
 
 	// Validate configuration
@@ -153,12 +153,12 @@ func (s *CSVSource) Initialize(ctx context.Context, config *config.BaseConfig) e
 	if err := s.ExecuteWithCircuitBreaker(func() error {
 		return s.openFile(config)
 	}); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to open CSV file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to open CSV file")
 	}
 
 	// Discover schema
 	if err := s.discoverSchema(); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to discover schema")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to discover schema")
 	}
 
 	// Count total rows for progress tracking
@@ -184,7 +184,7 @@ func (s *CSVSource) Initialize(ctx context.Context, config *config.BaseConfig) e
 // Discover returns the schema of the CSV file
 func (s *CSVSource) Discover(ctx context.Context) (*core.Schema, error) {
 	if s.schema == nil {
-		return nil, errors.New(errors.ErrorTypeData, "schema not discovered yet")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeData, "schema not discovered yet")
 	}
 
 	return s.schema, nil
@@ -262,7 +262,7 @@ func (s *CSVSource) SupportsBatch() bool {
 
 // Subscribe is not supported by CSV files (CDC-only method)
 func (s *CSVSource) Subscribe(ctx context.Context, tables []string) (*core.ChangeStream, error) {
-	return nil, errors.New(errors.ErrorTypeCapability, "CSV source does not support real-time subscriptions")
+	return nil, nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "CSV source does not support real-time subscriptions")
 }
 
 // Close closes the CSV source connector
@@ -452,7 +452,7 @@ func (s *CSVSource) readRecords(ctx context.Context, recordChan chan<- *models.R
 	// Skip header if present and not already skipped
 	if s.hasHeader && s.currentRow == 0 {
 		if _, err := s.reader.Read(); err != nil {
-			errorChan <- errors.Wrap(err, errors.ErrorTypeData, "failed to skip header row")
+			errorChan <- nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to skip header row")
 			return
 		}
 		s.currentRow++
@@ -525,7 +525,7 @@ func (s *CSVSource) readBatches(ctx context.Context, batchSize int, batchChan ch
 	// Skip header if present and not already skipped
 	if s.hasHeader && s.currentRow == 0 {
 		if _, err := s.reader.Read(); err != nil {
-			errorChan <- errors.Wrap(err, errors.ErrorTypeData, "failed to skip header row")
+			errorChan <- nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to skip header row")
 			return
 		}
 		s.currentRow++

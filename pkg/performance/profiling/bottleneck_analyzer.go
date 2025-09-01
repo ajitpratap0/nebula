@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"go.uber.org/zap"
 )
 
@@ -112,7 +112,7 @@ func (b *BottleneckAnalyzer) analyzeCPU() error {
 
 	file, err := os.Open(cpuProfile)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to open CPU profile")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to open CPU profile")
 	}
 	defer func() { _ = file.Close() }() // Ignore close error
 
@@ -466,7 +466,7 @@ func (b *BottleneckAnalyzer) saveAnalysisReport(result *AnalysisResult) error {
 	filename := fmt.Sprintf("%s/bottleneck_analysis_%s.txt", b.profileDir, time.Now().Format("20060102_150405"))
 	file, err := os.Create(filename)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create analysis report")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create analysis report")
 	}
 	defer func() { _ = file.Close() }() // Ignore close error
 

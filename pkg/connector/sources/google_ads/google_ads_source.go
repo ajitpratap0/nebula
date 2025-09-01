@@ -11,7 +11,7 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	"github.com/ajitpratap0/nebula/pkg/pool"
@@ -122,7 +122,7 @@ func NewGoogleAdsSource(name string, config *config.BaseConfig) (core.Source, er
 func (s *GoogleAdsSource) Initialize(ctx context.Context, config *config.BaseConfig) error {
 	// Initialize base connector first (circuit breakers, rate limiting, health checks)
 	if err := s.BaseConnector.Initialize(ctx, config); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize base connector")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to initialize base connector")
 	}
 
 	// Validate and extract configuration
@@ -134,12 +134,12 @@ func (s *GoogleAdsSource) Initialize(ctx context.Context, config *config.BaseCon
 	if err := s.ExecuteWithCircuitBreaker(func() error {
 		return s.initializeAuthentication(ctx)
 	}); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to initialize authentication")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to initialize authentication")
 	}
 
 	// Discover schema based on GAQL query
 	if err := s.discoverSchema(ctx); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to discover schema")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to discover schema")
 	}
 
 	// Update health status
@@ -162,13 +162,13 @@ func (s *GoogleAdsSource) Initialize(ctx context.Context, config *config.BaseCon
 // validateAndExtractConfig validates and extracts Google Ads configuration
 func (s *GoogleAdsSource) validateAndExtractConfig(config *config.BaseConfig) error {
 	if config == nil {
-		return errors.New(errors.ErrorTypeConfig, "configuration is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "configuration is required")
 	}
 
 	// For now, we'll use a simple approach and expect properties in Security.Credentials
 	properties := config.Security.Credentials
 	if properties == nil {
-		return errors.New(errors.ErrorTypeConfig, "credentials are required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "credentials are required")
 	}
 
 	// Extract configuration with validation
@@ -178,25 +178,25 @@ func (s *GoogleAdsSource) validateAndExtractConfig(config *config.BaseConfig) er
 	if developerToken, ok := properties["developer_token"]; ok && developerToken != "" {
 		googleAdsConfig.DeveloperToken = developerToken
 	} else {
-		return errors.New(errors.ErrorTypeConfig, "developer_token is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "developer_token is required")
 	}
 
 	if clientID, ok := properties["client_id"]; ok && clientID != "" {
 		googleAdsConfig.ClientID = clientID
 	} else {
-		return errors.New(errors.ErrorTypeConfig, "client_id is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "client_id is required")
 	}
 
 	if clientSecret, ok := properties["client_secret"]; ok && clientSecret != "" {
 		googleAdsConfig.ClientSecret = clientSecret
 	} else {
-		return errors.New(errors.ErrorTypeConfig, "client_secret is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "client_secret is required")
 	}
 
 	if refreshToken, ok := properties["refresh_token"]; ok && refreshToken != "" {
 		googleAdsConfig.RefreshToken = refreshToken
 	} else {
-		return errors.New(errors.ErrorTypeConfig, "refresh_token is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "refresh_token is required")
 	}
 
 	// Optional access token
@@ -207,7 +207,7 @@ func (s *GoogleAdsSource) validateAndExtractConfig(config *config.BaseConfig) er
 	if query, ok := properties["query"]; ok && query != "" {
 		googleAdsConfig.Query = query
 	} else {
-		return errors.New(errors.ErrorTypeConfig, "GAQL query is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "GAQL query is required")
 	}
 
 	// Customer IDs - for simplicity, expect comma-separated string
@@ -219,7 +219,7 @@ func (s *GoogleAdsSource) validateAndExtractConfig(config *config.BaseConfig) er
 	}
 
 	if len(googleAdsConfig.CustomerIDs) == 0 {
-		return errors.New(errors.ErrorTypeConfig, "at least one customer_id is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "at least one customer_id is required")
 	}
 
 	// Optional fields with defaults
@@ -314,7 +314,7 @@ func (s *GoogleAdsSource) refreshAccessToken(ctx context.Context) error {
 	tokenSource := s.oauth2Config.TokenSource(ctx, token)
 	newToken, err := tokenSource.Token()
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeAuthentication, "failed to refresh access token")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeAuthentication, "failed to refresh access token")
 	}
 
 	s.accessToken = newToken.AccessToken
@@ -567,7 +567,7 @@ func (s *GoogleAdsSource) readCustomerRecords(ctx context.Context, customerID st
 			response, err = s.makeAPIRequest(ctx, customerID, pageToken)
 			return err
 		}); err != nil {
-			return errors.Wrap(err, errors.ErrorTypeConnection,
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection,
 				stringpool.Sprintf("API request failed for customer %s", customerID))
 		}
 
@@ -624,13 +624,13 @@ func (s *GoogleAdsSource) makeAPIRequest(ctx context.Context, customerID, pageTo
 
 	// Serialize request body directly to pooled buffer
 	if err := jsonpool.MarshalToWriter(requestBuffer, requestBody); err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to marshal request body")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to marshal request body")
 	}
 
 	// Create HTTP request using buffer directly (avoiding string conversion)
 	req, err := http.NewRequestWithContext(ctx, "POST", baseURL, strings.NewReader(requestBuffer.String()))
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "failed to create HTTP request")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to create HTTP request")
 	}
 
 	// Set headers
@@ -645,7 +645,7 @@ func (s *GoogleAdsSource) makeAPIRequest(ctx context.Context, customerID, pageTo
 	// Make request
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "HTTP request failed")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "HTTP request failed")
 	}
 	defer func() { _ = resp.Body.Close() }() // Ignore close error
 
@@ -659,18 +659,18 @@ func (s *GoogleAdsSource) makeAPIRequest(ctx context.Context, customerID, pageTo
 
 	// Read response body into pooled buffer
 	if _, err := io.Copy(responseBuffer, resp.Body); err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to read response body")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to read response body")
 	}
 
 	// Check for HTTP errors
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(errors.ErrorTypeConnection,
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConnection,
 			stringpool.Sprintf("API returned status %d: %s", resp.StatusCode, responseBuffer.String()))
 	}
 
 	// Unmarshal response from pooled buffer
 	if err := jsonpool.Unmarshal(stringpool.StringToBytes(responseBuffer.String()), responseData); err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to decode API response")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to decode API response")
 	}
 
 	// Return a copy since we're putting the original back in the pool
@@ -843,14 +843,14 @@ func (s *GoogleAdsSource) SupportsBatch() bool {
 
 // Subscribe implements CDC/real-time subscription (not supported for Google Ads)
 func (s *GoogleAdsSource) Subscribe(ctx context.Context, tables []string) (*core.ChangeStream, error) {
-	return nil, errors.New(errors.ErrorTypeCapability, "Google Ads does not support real-time subscriptions")
+	return nil, nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "Google Ads does not support real-time subscriptions")
 }
 
 // Health performs health check
 func (s *GoogleAdsSource) Health(ctx context.Context) error {
 	// Check if access token is valid by making a simple API call
 	if s.accessToken == "" {
-		return errors.New(errors.ErrorTypeAuthentication, "no access token available")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeAuthentication, "no access token available")
 	}
 
 	// Try to refresh token to verify connectivity

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
@@ -318,7 +318,7 @@ func (oc *OAuth2Client) requestTokenWithURL(ctx context.Context, tokenURL string
 	}
 
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "token request failed")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "token request failed")
 	}
 	defer func() { _ = resp.Body.Close() }() // Ignore close error - Response body close errors in defer are usually not actionable
 
@@ -330,14 +330,14 @@ func (oc *OAuth2Client) requestTokenWithURL(ctx context.Context, tokenURL string
 		if err := decoder.Decode(&errResp); err == nil {
 			return nil, &errResp
 		}
-		return nil, errors.New(errors.ErrorTypeConnection, stringpool.Sprintf("token request failed with status %d", resp.StatusCode))
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConnection, stringpool.Sprintf("token request failed with status %d", resp.StatusCode))
 	}
 
 	var tokenResp tokenResponse
 	decoder := jsonpool.GetDecoder(resp.Body)
 	defer jsonpool.PutDecoder(decoder)
 	if err := decoder.Decode(&tokenResp); err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to decode token response")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to decode token response")
 	}
 
 	// Convert to Token
@@ -388,7 +388,7 @@ func (tm *TokenManager) GetToken(ctx context.Context) (*Token, error) {
 	tm.mu.RUnlock()
 
 	if token == nil {
-		return nil, errors.New(errors.ErrorTypeAuthentication, "no token available")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeAuthentication, "no token available")
 	}
 
 	// Check if token needs refresh
@@ -481,7 +481,7 @@ func (tm *TokenManager) refreshToken(ctx context.Context, oldToken *Token) (*Tok
 	switch tm.config.GrantType {
 	case "refresh_token":
 		if oldToken.RefreshToken == "" {
-			return nil, errors.New(errors.ErrorTypeAuthentication, "no refresh token available")
+			return nil, nebulaerrors.New(nebulaerrors.ErrorTypeAuthentication, "no refresh token available")
 		}
 
 		// Create a temporary OAuth2Client to avoid circular dependency
@@ -504,7 +504,7 @@ func (tm *TokenManager) refreshToken(ctx context.Context, oldToken *Token) (*Tok
 		newToken, err = client.GetClientCredentialsToken(ctx)
 
 	default:
-		return nil, errors.New(errors.ErrorTypeCapability, stringpool.Sprintf("refresh not supported for grant type: %s", tm.config.GrantType))
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeCapability, stringpool.Sprintf("refresh not supported for grant type: %s", tm.config.GrantType))
 	}
 
 	if err != nil {

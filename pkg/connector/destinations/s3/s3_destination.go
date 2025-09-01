@@ -13,7 +13,7 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/formats/columnar"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
@@ -83,12 +83,12 @@ func NewS3Destination(name string, config *config.BaseConfig) (*S3Destination, e
 
 	// Parse configuration
 	if config.Security.Credentials == nil {
-		return nil, errors.New(errors.ErrorTypeConfig, "security credentials are required")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "security credentials are required")
 	}
 
 	bucket := config.Security.Credentials["bucket"]
 	if bucket == "" {
-		return nil, errors.New(errors.ErrorTypeConfig, "bucket is required")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "bucket is required")
 	}
 
 	prefix := config.Security.Credentials["prefix"]
@@ -156,17 +156,17 @@ func (d *S3Destination) Initialize(ctx context.Context, config *config.BaseConfi
 
 	// Initialize AWS clients
 	if err := d.initializeAWSClients(ctx); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to initialize AWS clients")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to initialize AWS clients")
 	}
 
 	// Initialize columnar writer based on format
 	if err := d.initializeColumnarWriter(); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize columnar writer")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to initialize columnar writer")
 	}
 
 	// Test bucket access
 	if err := d.testBucketAccess(ctx); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to access S3 bucket")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to access S3 bucket")
 	}
 
 	d.GetLogger().Info("S3 destination initialized",
@@ -181,7 +181,7 @@ func (d *S3Destination) Initialize(ctx context.Context, config *config.BaseConfi
 // Write writes a stream of records to S3
 func (d *S3Destination) Write(ctx context.Context, stream *core.RecordStream) error {
 	if stream == nil {
-		return errors.New(errors.ErrorTypeValidation, "stream cannot be nil")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeValidation, "stream cannot be nil")
 	}
 
 	// Process records from stream
@@ -218,7 +218,7 @@ func (d *S3Destination) Write(ctx context.Context, stream *core.RecordStream) er
 // WriteBatch writes a batch of records to S3
 func (d *S3Destination) WriteBatch(ctx context.Context, stream *core.BatchStream) error {
 	if stream == nil {
-		return errors.New(errors.ErrorTypeValidation, "stream cannot be nil")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeValidation, "stream cannot be nil")
 	}
 
 	for {
@@ -259,7 +259,7 @@ func (d *S3Destination) CreateSchema(ctx context.Context, schema *core.Schema) e
 	// Write schema metadata file
 	schemaJSON, err := jsonpool.MarshalIndent(schema, "", "  ")
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to marshal schema")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to marshal schema")
 	}
 
 	// Build S3 key using URLBuilder for optimized string handling
@@ -275,7 +275,7 @@ func (d *S3Destination) CreateSchema(ctx context.Context, schema *core.Schema) e
 	})
 
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to write schema metadata")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to write schema metadata")
 	}
 
 	d.GetLogger().Info("schema metadata created", zap.String("key", key))
@@ -340,17 +340,17 @@ func (d *S3Destination) SupportsStreaming() bool {
 
 // BulkLoad performs bulk loading of data (not implemented for S3)
 func (d *S3Destination) BulkLoad(ctx context.Context, reader interface{}, format string) error {
-	return errors.New(errors.ErrorTypeConfig, "bulk load not implemented for S3 destination")
+	return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "bulk load not implemented for S3 destination")
 }
 
 // BeginTransaction begins a transaction (not supported by S3)
 func (d *S3Destination) BeginTransaction(ctx context.Context) (core.Transaction, error) {
-	return nil, errors.New(errors.ErrorTypeConfig, "transactions not supported by S3")
+	return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "transactions not supported by S3")
 }
 
 // Upsert performs upsert operations (not supported by S3)
 func (d *S3Destination) Upsert(ctx context.Context, records []*models.Record, keys []string) error {
-	return errors.New(errors.ErrorTypeConfig, "upsert not supported by S3 (append-only)")
+	return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "upsert not supported by S3 (append-only)")
 }
 
 // DropSchema drops the schema (not applicable for S3)
@@ -421,7 +421,7 @@ func (d *S3Destination) initializeColumnarWriter() error {
 		d.columnarWriter = nil
 
 	default:
-		return errors.New(errors.ErrorTypeConfig, stringpool.Sprintf("unsupported file format: %s", d.fileFormat))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, stringpool.Sprintf("unsupported file format: %s", d.fileFormat))
 	}
 
 	return nil
@@ -521,7 +521,7 @@ func (d *S3Destination) uploadBatch(ctx context.Context, batch []*models.Record)
 		// For now, convert to JSON as placeholder
 		content, err := d.batchToJSON(batch)
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, "failed to convert to columnar format")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to convert to columnar format")
 		}
 		data = bytes.NewReader(content)
 		size = int64(len(content))
@@ -536,11 +536,11 @@ func (d *S3Destination) uploadBatch(ctx context.Context, batch []*models.Record)
 		case "jsonl":
 			content, err = d.batchToJSONL(batch)
 		default:
-			return errors.New(errors.ErrorTypeConfig, stringpool.Sprintf("unsupported format: %s", d.fileFormat))
+			return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, stringpool.Sprintf("unsupported format: %s", d.fileFormat))
 		}
 
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, "failed to convert batch")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to convert batch")
 		}
 
 		// Apply compression if needed
@@ -566,11 +566,11 @@ func (d *S3Destination) uploadBatch(ctx context.Context, batch []*models.Record)
 				}
 				compressor, err := compression.NewCompressor(config)
 				if err != nil {
-					return errors.Wrap(err, errors.ErrorTypeData, "failed to create compressor")
+					return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to create compressor")
 				}
 				content, err = compressor.Compress(content)
 				if err != nil {
-					return errors.Wrap(err, errors.ErrorTypeData, "failed to compress data")
+					return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to compress data")
 				}
 			}
 		}
@@ -594,7 +594,7 @@ func (d *S3Destination) uploadBatch(ctx context.Context, batch []*models.Record)
 	})
 
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to upload to S3")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to upload to S3")
 	}
 
 	// Update metrics
@@ -776,6 +776,6 @@ func (d *S3Destination) checkUploadErrors() error {
 		errMsgs = append(errMsgs, err.Error())
 	}
 
-	return errors.New(errors.ErrorTypeData,
+	return nebulaerrors.New(nebulaerrors.ErrorTypeData,
 		stringpool.Sprintf("upload errors: %s", stringpool.JoinPooled(errMsgs, "; ")))
 }

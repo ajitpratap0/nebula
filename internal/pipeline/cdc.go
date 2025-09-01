@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
 )
@@ -457,7 +457,7 @@ func (mcs *MemoryCheckpointStorage) Load(ctx context.Context) (*Checkpoint, erro
 	defer mcs.mu.RUnlock()
 
 	if len(mcs.checkpoints) == 0 {
-		return nil, errors.New(errors.ErrorTypeData, "no checkpoints found")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeData, "no checkpoints found")
 	}
 
 	// Return the latest checkpoint

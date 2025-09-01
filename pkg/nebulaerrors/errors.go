@@ -1,10 +1,10 @@
-// Package errors provides structured error handling for Nebula with rich context,
+// Package nebulaerrors provides structured error handling for Nebula with rich context,
 // stack traces, and error categorization. It enables consistent error handling
 // patterns across the entire codebase.
 //
 // # Overview
 //
-// The errors package extends Go's standard error handling with:
+// The nebulaerrors package extends Go's standard error handling with:
 //   - Error categorization through ErrorType
 //   - Structured context with key-value details
 //   - Automatic stack trace capture
@@ -14,7 +14,7 @@
 // # Basic Usage
 //
 //	// Create a new error
-//	err := errors.New(errors.ErrorTypeValidation, "invalid input")
+//	err := nebulaerrors.New(nebulaerrors.ErrorTypeValidation, "invalid input")
 //
 //	// Add context
 //	err = err.WithDetail("field", "email").
@@ -22,7 +22,7 @@
 //
 //	// Wrap existing errors
 //	if err := db.Query(sql); err != nil {
-//	    return errors.Wrap(err, errors.ErrorTypeConnection, "database query failed").
+//	    return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "database query failed").
 //	        WithDetail("query", sql).
 //	        WithDetail("table", "users")
 //	}
@@ -44,7 +44,7 @@
 //
 // Error instances are not thread-safe for modification. Create new
 // instances or use WithDetail before sharing across goroutines.
-package errors
+package nebulaerrors
 
 import (
 	"errors"

@@ -12,7 +12,7 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/formats/columnar"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
@@ -79,18 +79,18 @@ func NewGCSDestination(name string, config *config.BaseConfig) (*GCSDestination,
 
 	// Parse configuration
 	if config.Security.Credentials == nil {
-		return nil, errors.New(errors.ErrorTypeConfig, "security credentials are required")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "security credentials are required")
 	}
 
 	bucket := config.Security.Credentials["bucket"]
 	if bucket == "" {
-		return nil, errors.New(errors.ErrorTypeConfig, "bucket is required")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "bucket is required")
 	}
 
 	prefix := config.Security.Credentials["prefix"]
 	projectID := config.Security.Credentials["project_id"]
 	if projectID == "" {
-		return nil, errors.New(errors.ErrorTypeConfig, "project_id is required")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "project_id is required")
 	}
 
 	credentialsFile := config.Security.Credentials["credentials_file"]
@@ -154,17 +154,17 @@ func (d *GCSDestination) Initialize(ctx context.Context, config *config.BaseConf
 
 	// Initialize GCS client
 	if err := d.initializeGCSClient(ctx); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to initialize GCS client")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to initialize GCS client")
 	}
 
 	// Initialize columnar writer based on format
 	if err := d.initializeColumnarWriter(); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize columnar writer")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to initialize columnar writer")
 	}
 
 	// Test bucket access
 	if err := d.testBucketAccess(ctx); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to access GCS bucket")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to access GCS bucket")
 	}
 
 	d.GetLogger().Info("GCS destination initialized",
@@ -179,7 +179,7 @@ func (d *GCSDestination) Initialize(ctx context.Context, config *config.BaseConf
 // Write writes a stream of records to GCS
 func (d *GCSDestination) Write(ctx context.Context, stream *core.RecordStream) error {
 	if stream == nil {
-		return errors.New(errors.ErrorTypeValidation, "stream cannot be nil")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeValidation, "stream cannot be nil")
 	}
 
 	// Process records from stream
@@ -216,7 +216,7 @@ func (d *GCSDestination) Write(ctx context.Context, stream *core.RecordStream) e
 // WriteBatch writes a batch of records to GCS
 func (d *GCSDestination) WriteBatch(ctx context.Context, stream *core.BatchStream) error {
 	if stream == nil {
-		return errors.New(errors.ErrorTypeValidation, "stream cannot be nil")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeValidation, "stream cannot be nil")
 	}
 
 	for {
@@ -257,7 +257,7 @@ func (d *GCSDestination) CreateSchema(ctx context.Context, schema *core.Schema) 
 	// Write schema metadata file
 	schemaJSON, err := jsonpool.MarshalIndent(schema, "", "  ")
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to marshal schema")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to marshal schema")
 	}
 
 	// Build GCS object name using URLBuilder for optimized string handling
@@ -272,11 +272,11 @@ func (d *GCSDestination) CreateSchema(ctx context.Context, schema *core.Schema) 
 	_, err = writer.Write(schemaJSON) // Ignore write error
 	if err != nil {
 		_ = writer.Close() // Ignore close error
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to write schema metadata")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to write schema metadata")
 	}
 
 	if err = _ = writer.Close(); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to close schema writer")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to close schema writer")
 	}
 
 	d.GetLogger().Info("schema metadata created", zap.String("object", objectName))
@@ -348,17 +348,17 @@ func (d *GCSDestination) SupportsStreaming() bool {
 
 // BulkLoad performs bulk loading of data (not implemented for GCS)
 func (d *GCSDestination) BulkLoad(ctx context.Context, reader interface{}, format string) error {
-	return errors.New(errors.ErrorTypeConfig, "bulk load not implemented for GCS destination")
+	return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "bulk load not implemented for GCS destination")
 }
 
 // BeginTransaction begins a transaction (not supported by GCS)
 func (d *GCSDestination) BeginTransaction(ctx context.Context) (core.Transaction, error) {
-	return nil, errors.New(errors.ErrorTypeConfig, "transactions not supported by GCS")
+	return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "transactions not supported by GCS")
 }
 
 // Upsert performs upsert operations (not supported by GCS)
 func (d *GCSDestination) Upsert(ctx context.Context, records []*models.Record, keys []string) error {
-	return errors.New(errors.ErrorTypeConfig, "upsert not supported by GCS (append-only)")
+	return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "upsert not supported by GCS (append-only)")
 }
 
 // DropSchema drops the schema (not applicable for GCS)
@@ -424,7 +424,7 @@ func (d *GCSDestination) initializeColumnarWriter() error {
 		d.columnarWriter = nil
 
 	default:
-		return errors.New(errors.ErrorTypeConfig, stringpool.Sprintf("unsupported file format: %s", d.fileFormat))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, stringpool.Sprintf("unsupported file format: %s", d.fileFormat))
 	}
 
 	return nil
@@ -434,7 +434,7 @@ func (d *GCSDestination) testBucketAccess(ctx context.Context) error {
 	// Test bucket access by getting bucket attributes
 	_, err := d.bucketHandle.Attrs(ctx)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, stringpool.Sprintf("failed to access GCS bucket %s", d.bucket))
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, stringpool.Sprintf("failed to access GCS bucket %s", d.bucket))
 	}
 
 	d.GetLogger().Info("GCS bucket access verified", zap.String("bucket", d.bucket))
@@ -508,7 +508,7 @@ func (d *GCSDestination) uploadBatch(ctx context.Context, batch []*models.Record
 		// For now, convert to JSON as placeholder
 		content, err := d.batchToJSON(batch)
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, "failed to convert to columnar format")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to convert to columnar format")
 		}
 		data = bytes.NewReader(content)
 		size = int64(len(content))
@@ -523,11 +523,11 @@ func (d *GCSDestination) uploadBatch(ctx context.Context, batch []*models.Record
 		case "jsonl":
 			content, err = d.batchToJSONL(batch)
 		default:
-			return errors.New(errors.ErrorTypeConfig, stringpool.Sprintf("unsupported format: %s", d.fileFormat))
+			return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, stringpool.Sprintf("unsupported format: %s", d.fileFormat))
 		}
 
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, "failed to convert batch")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to convert batch")
 		}
 
 		// Apply compression if needed
@@ -553,11 +553,11 @@ func (d *GCSDestination) uploadBatch(ctx context.Context, batch []*models.Record
 				}
 				compressor, err := compression.NewCompressor(config)
 				if err != nil {
-					return errors.Wrap(err, errors.ErrorTypeData, "failed to create compressor")
+					return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to create compressor")
 				}
 				content, err = compressor.Compress(content)
 				if err != nil {
-					return errors.Wrap(err, errors.ErrorTypeData, "failed to compress data")
+					return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to compress data")
 				}
 			}
 		}
@@ -581,11 +581,11 @@ func (d *GCSDestination) uploadBatch(ctx context.Context, batch []*models.Record
 	_, err = io.Copy(writer, data)
 	if err != nil {
 		_ = writer.Close() // Ignore close error
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to write to GCS")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to write to GCS")
 	}
 
 	if err = _ = writer.Close(); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to close GCS writer")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to close GCS writer")
 	}
 
 	// Update metrics
@@ -767,6 +767,6 @@ func (d *GCSDestination) checkUploadErrors() error {
 		errMsgs = append(errMsgs, err.Error())
 	}
 
-	return errors.New(errors.ErrorTypeData,
+	return nebulaerrors.New(nebulaerrors.ErrorTypeData,
 		stringpool.Sprintf("upload errors: %s", stringpool.JoinPooled(errMsgs, "; ")))
 }

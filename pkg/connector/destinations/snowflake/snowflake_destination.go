@@ -13,7 +13,7 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	"github.com/ajitpratap0/nebula/pkg/pool"
@@ -157,7 +157,7 @@ func NewSnowflakeOptimizedDestination(name string, config *config.BaseConfig) (c
 func (s *SnowflakeOptimizedDestination) Initialize(ctx context.Context, config *config.BaseConfig) error {
 	// Initialize base connector first
 	if err := s.BaseConnector.Initialize(ctx, config); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize base connector")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to initialize base connector")
 	}
 
 	// Validate and extract configuration
@@ -178,14 +178,14 @@ func (s *SnowflakeOptimizedDestination) Initialize(ctx context.Context, config *
 	if err := s.ExecuteWithCircuitBreaker(func() error {
 		return s.initializeConnectionPool(ctx)
 	}); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to initialize connection pool")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to initialize connection pool")
 	}
 
 	// Initialize stage
 	if err := s.ExecuteWithCircuitBreaker(func() error {
 		return s.initializeStage(ctx)
 	}); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to initialize stage")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to initialize stage")
 	}
 
 	// Start upload workers
@@ -225,7 +225,7 @@ func (s *SnowflakeOptimizedDestination) CreateSchema(ctx context.Context, schema
 	if err := s.ExecuteWithCircuitBreaker(func() error {
 		return s.executeSQL(ctx, createTableSQL)
 	}); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to create schema")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to create schema")
 	}
 
 	s.GetLogger().Info("schema created",
@@ -247,7 +247,7 @@ func (s *SnowflakeOptimizedDestination) AlterSchema(ctx context.Context, oldSche
 		if err := s.ExecuteWithCircuitBreaker(func() error {
 			return s.executeSQL(ctx, stmt)
 		}); err != nil {
-			return errors.Wrap(err, errors.ErrorTypeConnection, "failed to alter schema")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to alter schema")
 		}
 	}
 
@@ -300,7 +300,7 @@ func (s *SnowflakeOptimizedDestination) Write(ctx context.Context, stream *core.
 
 		case err := <-stream.Errors:
 			if err != nil {
-				return errors.Wrap(err, errors.ErrorTypeData, "error in record stream")
+				return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "error in record stream")
 			}
 
 		case <-ctx.Done():
@@ -355,7 +355,7 @@ func (s *SnowflakeOptimizedDestination) WriteBatch(ctx context.Context, stream *
 
 		case err := <-stream.Errors:
 			if err != nil {
-				return errors.Wrap(err, errors.ErrorTypeData, "error in batch stream")
+				return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "error in batch stream")
 			}
 
 		case <-ctx.Done():
@@ -433,7 +433,7 @@ func (s *SnowflakeOptimizedDestination) SupportsStreaming() bool {
 // BulkLoad loads data in bulk using COPY command with optimized staging
 func (s *SnowflakeOptimizedDestination) BulkLoad(ctx context.Context, reader interface{}, format string) error {
 	if s.currentTable == "" {
-		return errors.New(errors.ErrorTypeConfig, "no table configured for bulk load")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "no table configured for bulk load")
 	}
 
 	// Start timing for performance metrics
@@ -452,15 +452,15 @@ func (s *SnowflakeOptimizedDestination) BulkLoad(ctx context.Context, reader int
 	case chan *models.Record:
 		records, err = s.collectFromChannel(ctx, r)
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, "failed to collect records from channel")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to collect records from channel")
 		}
 	case *core.RecordStream:
 		records, err = s.collectFromStream(ctx, r)
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, "failed to collect records from stream")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to collect records from stream")
 		}
 	default:
-		return errors.New(errors.ErrorTypeValidation, "unsupported reader type for bulk load")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeValidation, "unsupported reader type for bulk load")
 	}
 
 	if len(records) == 0 {
@@ -611,11 +611,11 @@ func (s *SnowflakeOptimizedDestination) processBulkChunk(ctx context.Context, re
 	case "JSONL":
 		data, err = s.recordsToJSONL(records)
 	default:
-		return errors.New(errors.ErrorTypeValidation, stringpool.Sprintf("unsupported bulk load format: %s", format))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeValidation, stringpool.Sprintf("unsupported bulk load format: %s", format))
 	}
 
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to convert records to format")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to convert records to format")
 	}
 
 	// Compress data if compression is enabled
@@ -631,13 +631,13 @@ func (s *SnowflakeOptimizedDestination) processBulkChunk(ctx context.Context, re
 
 	// Upload to stage
 	if err := s.uploadToStage(ctx, filename, data); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to upload chunk to stage")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to upload chunk to stage")
 	}
 
 	// Execute COPY command for this file
 	copySQL := s.buildCopySQL(filename, format)
 	if err := s.executeSQL(ctx, copySQL); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to execute COPY command")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to execute COPY command")
 	}
 
 	// Update statistics
@@ -692,14 +692,14 @@ func (s *SnowflakeOptimizedDestination) BeginTransaction(ctx context.Context) (c
 	// Get connection from pool
 	conn, err := s.connectionPool.Conn(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "failed to get connection from pool")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to get connection from pool")
 	}
 
 	// Begin transaction
 	tx, err := conn.BeginTx(ctx, nil)
 	if err != nil {
 _ = 		conn.Close() // Ignore close error
-		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "failed to begin transaction")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to begin transaction")
 	}
 
 	return &SnowflakeTransaction{
@@ -726,7 +726,7 @@ func (s *SnowflakeOptimizedDestination) Upsert(ctx context.Context, records []*m
 // DropSchema removes the schema (table)
 func (s *SnowflakeOptimizedDestination) DropSchema(ctx context.Context, schema *core.Schema) error {
 	if s.currentTable == "" {
-		return errors.New(errors.ErrorTypeConfig, "no table configured")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "no table configured")
 	}
 
 	// Use SQLBuilder for DROP TABLE statement
@@ -742,7 +742,7 @@ func (s *SnowflakeOptimizedDestination) DropSchema(ctx context.Context, schema *
 	if err := s.ExecuteWithCircuitBreaker(func() error {
 		return s.executeSQL(ctx, dropSQL)
 	}); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to drop schema")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to drop schema")
 	}
 
 	s.GetLogger().Info("schema dropped",
@@ -777,7 +777,7 @@ func (s *SnowflakeOptimizedDestination) validateConfig(config *config.BaseConfig
 	// Simplified validation for compilation
 	// TODO: Add proper validation when connector-specific config structure is defined
 	if config == nil {
-		return errors.New(errors.ErrorTypeConfig, "configuration is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "configuration is required")
 	}
 	return nil
 }
@@ -842,7 +842,7 @@ func (s *SnowflakeOptimizedDestination) initializeCompression() error {
 	var err error
 	s.compressor, err = compression.NewCompressor(config)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize compressor")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to initialize compressor")
 	}
 
 	return nil
@@ -876,7 +876,7 @@ func (s *SnowflakeOptimizedDestination) initializeConnectionPool(ctx context.Con
 	var err error
 	s.connectionPool, err = sql.Open("snowflake", dsn)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to create connection pool")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to create connection pool")
 	}
 
 	// Configure pool
@@ -886,7 +886,7 @@ func (s *SnowflakeOptimizedDestination) initializeConnectionPool(ctx context.Con
 
 	// Test connection
 	if err := s.connectionPool.PingContext(ctx); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to ping Snowflake")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to ping Snowflake")
 	}
 
 	return nil
@@ -1026,14 +1026,14 @@ func (s *SnowflakeOptimizedDestination) flushMicroBatchLocked(ctx context.Contex
 	// Convert records to file format
 	data, err := s.convertRecordsToFileFormat(s.microBatch)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to convert records")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to convert records")
 	}
 
 	// Compress if enabled
 	if s.compressor != nil {
 		compressed, err := s.compressor.Compress(data)
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, "failed to compress data")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to compress data")
 		}
 		data = compressed
 		filename += "." + strings.ToLower(s.compressionType)
@@ -1141,7 +1141,7 @@ func (s *SnowflakeOptimizedDestination) buildMergeSQL(records []*models.Record, 
 func (s *SnowflakeOptimizedDestination) executeSQL(ctx context.Context, sql string) error {
 	_, err := s.connectionPool.ExecContext(ctx, sql)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to execute SQL")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to execute SQL")
 	}
 	return nil
 }
@@ -1222,7 +1222,7 @@ func (s *SnowflakeOptimizedDestination) convertRecordsToFileFormat(records []*mo
 		for _, record := range records {
 			data, err := jsonpool.Marshal(record.Data)
 			if err != nil {
-				return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to marshal record")
+				return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to marshal record")
 			}
 			appendBytes(data)
 			appendByte('\n')
@@ -1260,7 +1260,7 @@ func (s *SnowflakeOptimizedDestination) convertRecordsToFileFormat(records []*mo
 		for _, record := range records {
 			data, err := jsonpool.Marshal(record.Data)
 			if err != nil {
-				return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to marshal record")
+				return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to marshal record")
 			}
 			appendBytes(data)
 			appendByte('\n')
@@ -1284,7 +1284,7 @@ func (s *SnowflakeOptimizedDestination) uploadFile(ctx context.Context, upload *
 	// Create a temporary file for staging
 	tempFile := stringpool.Sprintf("/tmp/%s", upload.Filename)
 	if err := os.WriteFile(tempFile, upload.Data, 0644); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to write temp file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to write temp file")
 	}
 	defer func() { _ = os.Remove(tempFile) }() // Best effort cleanup
 
@@ -1302,7 +1302,7 @@ func (s *SnowflakeOptimizedDestination) uploadFile(ctx context.Context, upload *
 
 	// Execute PUT command
 	if _, err := s.connectionPool.ExecContext(ctx, putSQL); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to upload file to stage")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to upload file to stage")
 	}
 
 	// Update metrics
@@ -1412,19 +1412,19 @@ func (s *SnowflakeOptimizedDestination) uploadToStage(ctx context.Context, filen
 	// Create temporary file
 	tempFile, err := os.CreateTemp("", filename)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to create temporary file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to create temporary file")
 	}
 	defer func() { _ = os.Remove(tempFile.Name()) }() // Best effort cleanup
 	defer func() { _ = tempFile.Close() }() // Ignore close error
 
 	// Write data to file
 	if _, err := tempFile.Write(data); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to write data to temporary file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to write data to temporary file")
 	}
 
 	// Close file to ensure data is written
 	if err := tempFile.Close(); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to close temporary file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to close temporary file")
 	}
 
 	// Build PUT command using SQLBuilder
