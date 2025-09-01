@@ -312,7 +312,7 @@ func (pc *ParallelCompressor) compressChunk(data []byte) ([]byte, error) {
 	case None:
 		// No compression, just return original data
 		return data, nil
-		
+
 	case Gzip:
 		w, _ := gzip.NewWriterLevel(buf, pc.getGzipLevel())
 		_, err := w.Write(data)
@@ -367,7 +367,7 @@ func (pc *ParallelCompressor) decompressChunk(data []byte) ([]byte, error) {
 	case None:
 		// No decompression needed, just return original data
 		return data, nil
-		
+
 	case Gzip:
 		r, err := gzip.NewReader(bytes.NewReader(data))
 		if err != nil {

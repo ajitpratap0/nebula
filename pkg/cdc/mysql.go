@@ -519,19 +519,19 @@ func (c *MySQLConnector) processRowsEvent(header *replication.EventHeader, e *re
 	case replication.DELETE_ROWS_EVENTv0, replication.DELETE_ROWS_EVENTv1, replication.DELETE_ROWS_EVENTv2:
 		operation = OperationDelete
 	case replication.UNKNOWN_EVENT, replication.START_EVENT_V3, replication.QUERY_EVENT, replication.STOP_EVENT,
-		 replication.ROTATE_EVENT, replication.INTVAR_EVENT, replication.LOAD_EVENT, replication.SLAVE_EVENT,
-		 replication.CREATE_FILE_EVENT, replication.APPEND_BLOCK_EVENT, replication.EXEC_LOAD_EVENT,
-		 replication.DELETE_FILE_EVENT, replication.NEW_LOAD_EVENT, replication.RAND_EVENT, replication.USER_VAR_EVENT,
-		 replication.FORMAT_DESCRIPTION_EVENT, replication.XID_EVENT, replication.BEGIN_LOAD_QUERY_EVENT,
-		 replication.EXECUTE_LOAD_QUERY_EVENT, replication.TABLE_MAP_EVENT, replication.INCIDENT_EVENT,
-		 replication.HEARTBEAT_EVENT, replication.IGNORABLE_EVENT, replication.ROWS_QUERY_EVENT,
-		 replication.GTID_EVENT, replication.ANONYMOUS_GTID_EVENT, replication.PREVIOUS_GTIDS_EVENT,
-		 replication.TRANSACTION_CONTEXT_EVENT, replication.VIEW_CHANGE_EVENT, replication.XA_PREPARE_LOG_EVENT,
-		 replication.PARTIAL_UPDATE_ROWS_EVENT, replication.TRANSACTION_PAYLOAD_EVENT, replication.HEARTBEAT_LOG_EVENT_V2,
-		 replication.GTID_TAGGED_LOG_EVENT, replication.MARIADB_ANNOTATE_ROWS_EVENT, replication.MARIADB_BINLOG_CHECKPOINT_EVENT,
-		 replication.MARIADB_GTID_EVENT, replication.MARIADB_GTID_LIST_EVENT, replication.MARIADB_START_ENCRYPTION_EVENT,
-		 replication.MARIADB_QUERY_COMPRESSED_EVENT, replication.MARIADB_WRITE_ROWS_COMPRESSED_EVENT_V1,
-		 replication.MARIADB_UPDATE_ROWS_COMPRESSED_EVENT_V1, replication.MARIADB_DELETE_ROWS_COMPRESSED_EVENT_V1:
+		replication.ROTATE_EVENT, replication.INTVAR_EVENT, replication.LOAD_EVENT, replication.SLAVE_EVENT,
+		replication.CREATE_FILE_EVENT, replication.APPEND_BLOCK_EVENT, replication.EXEC_LOAD_EVENT,
+		replication.DELETE_FILE_EVENT, replication.NEW_LOAD_EVENT, replication.RAND_EVENT, replication.USER_VAR_EVENT,
+		replication.FORMAT_DESCRIPTION_EVENT, replication.XID_EVENT, replication.BEGIN_LOAD_QUERY_EVENT,
+		replication.EXECUTE_LOAD_QUERY_EVENT, replication.TABLE_MAP_EVENT, replication.INCIDENT_EVENT,
+		replication.HEARTBEAT_EVENT, replication.IGNORABLE_EVENT, replication.ROWS_QUERY_EVENT,
+		replication.GTID_EVENT, replication.ANONYMOUS_GTID_EVENT, replication.PREVIOUS_GTIDS_EVENT,
+		replication.TRANSACTION_CONTEXT_EVENT, replication.VIEW_CHANGE_EVENT, replication.XA_PREPARE_LOG_EVENT,
+		replication.PARTIAL_UPDATE_ROWS_EVENT, replication.TRANSACTION_PAYLOAD_EVENT, replication.HEARTBEAT_LOG_EVENT_V2,
+		replication.GTID_TAGGED_LOG_EVENT, replication.MARIADB_ANNOTATE_ROWS_EVENT, replication.MARIADB_BINLOG_CHECKPOINT_EVENT,
+		replication.MARIADB_GTID_EVENT, replication.MARIADB_GTID_LIST_EVENT, replication.MARIADB_START_ENCRYPTION_EVENT,
+		replication.MARIADB_QUERY_COMPRESSED_EVENT, replication.MARIADB_WRITE_ROWS_COMPRESSED_EVENT_V1,
+		replication.MARIADB_UPDATE_ROWS_COMPRESSED_EVENT_V1, replication.MARIADB_DELETE_ROWS_COMPRESSED_EVENT_V1:
 		return nil // Non-row-change events are ignored for CDC purposes
 	default:
 		return nil // Unsupported event type

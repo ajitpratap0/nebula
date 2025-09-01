@@ -253,7 +253,7 @@ func (w *StreamingColumnarWriter) Write(record *pool.Record) error {
 	w.buffer = append(w.buffer, record.Data)
 
 	if len(w.buffer) >= w.bufferSize {
-	return w.Flush() // Ignore flush error
+		return w.Flush() // Ignore flush error
 	}
 
 	return nil

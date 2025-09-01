@@ -41,7 +41,7 @@ type PooledConnection struct {
 	createdAt time.Time
 	lastUsed  time.Time
 	useCount  int64
-	isHTTP2   bool  //nolint:unused // Reserved for HTTP/2 protocol detection
+	isHTTP2   bool //nolint:unused // Reserved for HTTP/2 protocol detection
 	isHealthy bool
 }
 

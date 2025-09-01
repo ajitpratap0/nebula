@@ -45,8 +45,8 @@ type HTTPCircuitBreaker struct {
 	// Counters
 	consecutiveFailures  int32
 	consecutiveSuccesses int32
-	requestsInWindow     int32  //nolint:unused // Reserved for future window-based metrics
-	failuresInWindow     int32  //nolint:unused // Reserved for future window-based metrics
+	requestsInWindow     int32 //nolint:unused // Reserved for future window-based metrics
+	failuresInWindow     int32 //nolint:unused // Reserved for future window-based metrics
 
 	// Sliding window
 	window          *SlidingWindow

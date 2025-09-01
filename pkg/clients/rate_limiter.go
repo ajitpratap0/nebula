@@ -234,12 +234,12 @@ func (tb *TokenBucketRateLimiter) GetStats() RateLimiterStats {
 
 // tokenReservation implements the Reservation interface
 type tokenReservation struct {
-	ok        bool
-	delay     time.Duration
-	at        time.Time
-	limiter   *TokenBucketRateLimiter
+	ok       bool
+	delay    time.Duration
+	at       time.Time
+	limiter  *TokenBucketRateLimiter
 	canceled bool
-	mu        sync.Mutex
+	mu       sync.Mutex
 }
 
 func (r *tokenReservation) OK() bool {
