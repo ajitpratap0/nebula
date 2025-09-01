@@ -319,9 +319,7 @@ func (d *IcebergDestination) appendListFieldUnified(builder *array.ListBuilder, 
 				values = vals
 			} else if interfaceVals, ok := val.([]interface{}); ok {
 				values = make([]any, len(interfaceVals))
-				for i, v := range interfaceVals {
-					values[i] = v
-				}
+				copy(values, interfaceVals)
 			} else {
 				builder.AppendNull()
 				continue
@@ -436,9 +434,7 @@ func (d *IcebergDestination) appendToBuilder(dt arrow.DataType, b array.Builder,
 			// Try to convert from []interface{} for backward compatibility
 			if interfaceValues, ok := val.([]interface{}); ok {
 				values = make([]any, len(interfaceValues))
-				for i, v := range interfaceValues {
-					values[i] = v
-				}
+				copy(values, interfaceValues)
 			} else {
 				builder.AppendNull()
 				return
