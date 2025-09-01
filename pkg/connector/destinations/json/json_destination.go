@@ -391,7 +391,7 @@ func (d *JSONDestination) Close(ctx context.Context) error {
 	}
 
 	if d.writer != nil {
-		// Flush any remaining data  
+		// Flush any remaining data
 		_ = d.writer.Flush() // Error ignored during cleanup
 	}
 

@@ -275,7 +275,7 @@ func (d *GCSDestination) CreateSchema(ctx context.Context, schema *core.Schema) 
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to write schema metadata")
 	}
 
-	if err = _ = writer.Close(); err != nil {
+	if err = writer.Close(); err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to close schema writer")
 	}
 
@@ -584,7 +584,7 @@ func (d *GCSDestination) uploadBatch(ctx context.Context, batch []*models.Record
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to write to GCS")
 	}
 
-	if err = _ = writer.Close(); err != nil {
+	if err = writer.Close(); err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to close GCS writer")
 	}
 

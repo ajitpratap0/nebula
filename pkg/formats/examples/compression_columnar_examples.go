@@ -185,12 +185,12 @@ func BasicColumnarExample() {
 		log.Fatal(err)
 	}
 
-		err = writer.WriteRecords(records) // Ignore write records error
+	err = writer.WriteRecords(records) // Ignore write records error
 	if err != nil {
 		log.Fatal(err)
 	}
 
-		err = writer.Close() // Ignore close error
+	err = writer.Close() // Ignore close error
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -372,7 +372,7 @@ func CompressedColumnarPipelineExample() {
 		log.Fatal(err)
 	}
 
-		err = writer.WriteRecords(records) // Ignore write records error
+	err = writer.WriteRecords(records) // Ignore write records error
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -468,7 +468,7 @@ func FileBasedColumnarExample() {
 	}
 
 	_ = writer.Close() // Error ignored for cleanup
-	_ = file.Close() // Error ignored for cleanup
+	_ = file.Close()   // Error ignored for cleanup
 
 	// Read file info
 	info, err := os.Stat(filename)

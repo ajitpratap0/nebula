@@ -341,9 +341,9 @@ func (a *StorageAdapter) backgroundFlusher() {
 		case <-a.done:
 			return
 		case <-a.flushCh:
-_ = 			a.Flush() // Ignore flush error
+			_ = a.Flush() // Ignore flush error
 		case <-ticker.C:
-_ = 			a.Flush() // Ignore flush error
+			_ = a.Flush() // Ignore flush error
 		}
 	}
 }

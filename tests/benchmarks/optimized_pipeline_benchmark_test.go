@@ -245,6 +245,6 @@ func createTestData(b *testing.B, filename string, records int) {
 			fmt.Sprintf("%.2f", 50000+float64(i%50000)),
 			time.Now().Add(time.Duration(i) * time.Second).Format(time.RFC3339),
 		}
-	_ = writer.Write(record) // Ignore write error
+		_ = writer.Write(record) // Ignore write error
 	}
 }

@@ -306,7 +306,7 @@ func BenchmarkDirectStorageAdapter(b *testing.B) {
 					record.Release()
 				}
 
-_ = 				adapter.Flush() // Ignore flush error
+				_ = adapter.Flush() // Ignore flush error
 
 				runtime.GC()
 				runtime.ReadMemStats(&m2)

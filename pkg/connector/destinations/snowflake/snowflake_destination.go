@@ -13,9 +13,9 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
@@ -305,7 +305,7 @@ func (s *SnowflakeOptimizedDestination) Write(ctx context.Context, stream *core.
 
 		case <-ctx.Done():
 			// Flush remaining micro-batch
-_ = 			s.flushMicroBatch(ctx) // Ignore micro batch flush error
+			_ = s.flushMicroBatch(ctx) // Ignore micro batch flush error
 			return ctx.Err()
 		}
 	}
@@ -359,7 +359,7 @@ func (s *SnowflakeOptimizedDestination) WriteBatch(ctx context.Context, stream *
 			}
 
 		case <-ctx.Done():
-_ = 			s.flushMicroBatch(ctx) // Ignore micro batch flush error
+			_ = s.flushMicroBatch(ctx) // Ignore micro batch flush error
 			return ctx.Err()
 		}
 	}
@@ -698,7 +698,7 @@ func (s *SnowflakeOptimizedDestination) BeginTransaction(ctx context.Context) (c
 	// Begin transaction
 	tx, err := conn.BeginTx(ctx, nil)
 	if err != nil {
-_ = 		conn.Close() // Ignore close error
+		_ = conn.Close() // Ignore close error
 		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to begin transaction")
 	}
 
@@ -959,7 +959,7 @@ func (s *SnowflakeOptimizedDestination) uploadWorker(ctx context.Context, id int
 				s.GetLogger().Error("failed to upload file",
 					zap.String("filename", upload.Filename),
 					zap.Error(err))
-_ = 				s.HandleError(ctx, err, nil) // Ignore error handling result
+				_ = s.HandleError(ctx, err, nil) // Ignore error handling result
 			}
 		}
 	}
@@ -1345,7 +1345,7 @@ func (s *SnowflakeOptimizedDestination) executeCopyCommand(ctx context.Context) 
 	// Execute COPY command
 	if _, err := s.connectionPool.ExecContext(ctx, copySQL); err != nil {
 		s.GetLogger().Error("failed to execute COPY command", zap.Error(err))
-_ = 		s.HandleError(ctx, err, nil) // Ignore error handling result
+		_ = s.HandleError(ctx, err, nil) // Ignore error handling result
 		return
 	}
 
@@ -1415,7 +1415,7 @@ func (s *SnowflakeOptimizedDestination) uploadToStage(ctx context.Context, filen
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to create temporary file")
 	}
 	defer func() { _ = os.Remove(tempFile.Name()) }() // Best effort cleanup
-	defer func() { _ = tempFile.Close() }() // Ignore close error
+	defer func() { _ = tempFile.Close() }()           // Ignore close error
 
 	// Write data to file
 	if _, err := tempFile.Write(data); err != nil {

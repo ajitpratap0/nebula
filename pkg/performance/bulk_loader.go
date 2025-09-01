@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/ajitpratap0/nebula/pkg/compression"
-	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/formats/columnar"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 )
@@ -342,7 +342,7 @@ func (bl *BulkLoader) createParquetFile(records []*models.Record) *LoadFile {
 
 	writer, _ := columnar.NewWriter(builder, config)
 	_ = writer.WriteRecords(records) // Ignore write records error
-	_ = writer.Close() // Ignore close error
+	_ = writer.Close()               // Ignore close error
 
 	// Get data from pooled builder
 	originalSize := builder.Len()

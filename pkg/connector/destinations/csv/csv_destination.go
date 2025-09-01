@@ -71,8 +71,8 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	nerrors "github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	nerrors "github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
 )
@@ -170,7 +170,7 @@ func (d *CSVDestination) CreateSchema(ctx context.Context, schema *core.Schema) 
 		d.GetLogger().Debug("no schema provided, will auto-detect from records")
 		return nil
 	}
-	
+
 	d.schema = schema
 
 	// Extract headers from schema

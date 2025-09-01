@@ -101,12 +101,12 @@ func BenchmarkColumnarWrite(b *testing.B) {
 							b.Fatal(err)
 						}
 
-							err = writer.WriteRecords(records) // Ignore write records error
+						err = writer.WriteRecords(records) // Ignore write records error
 						if err != nil {
 							b.Fatal(err)
 						}
 
-							err = writer.Close() // Ignore close error
+						err = writer.Close() // Ignore close error
 						if err != nil {
 							b.Fatal(err)
 						}
@@ -149,12 +149,12 @@ func BenchmarkColumnarRead(b *testing.B) {
 			b.Fatal(err)
 		}
 
-							err = writer.WriteRecords(records) // Ignore write records error
+		err = writer.WriteRecords(records) // Ignore write records error
 		if err != nil {
 			b.Fatal(err)
 		}
 
-							err = writer.Close() // Ignore close error
+		err = writer.Close() // Ignore close error
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -189,7 +189,7 @@ func BenchmarkColumnarRead(b *testing.B) {
 					b.Fatalf("expected %d records, got %d", recordCount, len(readRecords))
 				}
 
-							err = reader.Close() // Ignore close error
+				err = reader.Close() // Ignore close error
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -228,12 +228,12 @@ func BenchmarkColumnarStreamingRead(b *testing.B) {
 			b.Fatal(err)
 		}
 
-							err = writer.WriteRecords(records) // Ignore write records error
+		err = writer.WriteRecords(records) // Ignore write records error
 		if err != nil {
 			b.Fatal(err)
 		}
 
-							err = writer.Close() // Ignore close error
+		err = writer.Close() // Ignore close error
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -275,7 +275,7 @@ func BenchmarkColumnarStreamingRead(b *testing.B) {
 					b.Fatalf("expected %d records, got %d", recordCount, count)
 				}
 
-							err = reader.Close() // Ignore close error
+				err = reader.Close() // Ignore close error
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -348,13 +348,13 @@ func BenchmarkColumnarFileSizes(b *testing.B) {
 				continue
 			}
 
-							err = writer.WriteRecords(records) // Ignore write records error
+			err = writer.WriteRecords(records) // Ignore write records error
 			if err != nil {
 				b.Logf("%-10s %-10s Error: %v", format, compression, err)
 				continue
 			}
 
-							err = writer.Close() // Ignore close error
+			err = writer.Close() // Ignore close error
 			if err != nil {
 				b.Logf("%-10s %-10s Error: %v", format, compression, err)
 				continue

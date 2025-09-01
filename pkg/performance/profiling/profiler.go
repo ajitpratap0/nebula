@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/metrics"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"go.uber.org/zap"
 )
 
@@ -285,7 +285,7 @@ func (p *Profiler) startCPUProfile() error {
 	p.cpuFile = file
 
 	if err := pprof.StartCPUProfile(file); err != nil {
-_ = 		file.Close() // Ignore close error
+		_ = file.Close() // Ignore close error
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to start CPU profiling")
 	}
 
@@ -309,7 +309,7 @@ func (p *Profiler) startTrace() error {
 	p.traceFile = file
 
 	if err := trace.Start(file); err != nil {
-_ = 		file.Close() // Ignore close error
+		_ = file.Close() // Ignore close error
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to start tracing")
 	}
 

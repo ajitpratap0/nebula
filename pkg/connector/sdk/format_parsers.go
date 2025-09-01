@@ -17,9 +17,9 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/compression"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 )
@@ -140,7 +140,7 @@ func (cp *CSVParser) ParseReader(ctx context.Context, reader io.Reader) (*ParseR
 			defer func() {
 				if err := pw.Close(); err != nil {
 					// Pipe writer close errors can be ignored in this context
-					// as the decompression process is completing  
+					// as the decompression process is completing
 				}
 			}()
 			err := cp.compressor.DecompressStream(pw, reader)
@@ -384,7 +384,7 @@ func (jp *JSONParser) ParseReader(ctx context.Context, reader io.Reader) (*Parse
 			defer func() {
 				if err := pw.Close(); err != nil {
 					// Pipe writer close errors can be ignored in this context
-					// as the decompression process is completing  
+					// as the decompression process is completing
 				}
 			}()
 			err := jp.compressor.DecompressStream(pw, reader)

@@ -57,7 +57,7 @@ func Example() {
 		case err := <-stream.Errors:
 			if err != nil {
 				// Don't log in example as it affects output
-				goto done  
+				goto done
 			}
 		case <-time.After(100 * time.Millisecond):
 			// Timeout to prevent hanging
@@ -341,7 +341,7 @@ metricsLoop:
 	if val, ok := metrics["errors"]; ok {
 		errorsCount = val.(int)
 	}
-	
+
 	fmt.Printf("Records read: %v\n", recordsRead)
 	fmt.Printf("Bytes read: %v\n", bytesRead)
 	fmt.Printf("Errors: %v\n", errorsCount)

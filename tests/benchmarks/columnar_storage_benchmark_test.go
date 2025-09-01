@@ -239,14 +239,14 @@ func processCSVColumnar(b *testing.B, filename string) *columnar.ColumnStore {
 		batch = append(batch, recordCopy)
 
 		if len(batch) >= batchSize {
-_ = 			converter.AddBatch(batch) // Ignore add batch error
+			_ = converter.AddBatch(batch) // Ignore add batch error
 			batch = batch[:0]
 		}
 	}
 
 	// Add remaining records
 	if len(batch) > 0 {
-_ = 		converter.AddBatch(batch) // Ignore add batch error
+		_ = converter.AddBatch(batch) // Ignore add batch error
 	}
 
 	return converter.GetStore()
@@ -324,7 +324,7 @@ func createTestDataForColumnar(b *testing.B, filename string, records int) {
 			categories[i%len(categories)],                                       // category (repetitive)
 			fmt.Sprintf("%d", i*10),                                             // value
 		}
-	_ = writer.Write(record) // Ignore write error
+		_ = writer.Write(record) // Ignore write error
 	}
 
 	writer.Flush() // Flush writes (no return value)
@@ -361,7 +361,7 @@ func createCategoricalTestData(b *testing.B, filename string, records, categorie
 			catValues[(i*3)%len(catValues)],
 			fmt.Sprintf("%d", i),
 		}
-	_ = writer.Write(record) // Ignore write error
+		_ = writer.Write(record) // Ignore write error
 	}
 
 	writer.Flush() // Flush writes (no return value)

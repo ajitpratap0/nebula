@@ -377,7 +377,7 @@ func BenchmarkMetaAdsMockAPI(b *testing.B) {
 				if err != nil {
 					b.Fatal(err)
 				}
-_ = 				resp.Body.Close() // Ignore close error
+				_ = resp.Body.Close() // Ignore close error
 
 				// Simulate processing the response
 				recordCount := int64(200) // Mock record count from pagination

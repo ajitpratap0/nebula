@@ -235,9 +235,9 @@ func IsRetryable(err error) bool {
 	switch e.Type {
 	case ErrorTypeRateLimit, ErrorTypeTimeout, ErrorTypeConnection:
 		return true
-	case ErrorTypeInternal, ErrorTypeValidation, ErrorTypeNotFound, ErrorTypeConflict, 
-		 ErrorTypeAuthentication, ErrorTypePermission, ErrorTypeConfig, ErrorTypeData, 
-		 ErrorTypeCapability, ErrorTypeHealth, ErrorTypeFile, ErrorTypeQuery:
+	case ErrorTypeInternal, ErrorTypeValidation, ErrorTypeNotFound, ErrorTypeConflict,
+		ErrorTypeAuthentication, ErrorTypePermission, ErrorTypeConfig, ErrorTypeData,
+		ErrorTypeCapability, ErrorTypeHealth, ErrorTypeFile, ErrorTypeQuery:
 		return false
 	default:
 		return false
