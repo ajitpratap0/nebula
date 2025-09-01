@@ -5,12 +5,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/apache/arrow-go/v18/arrow"
-	"github.com/apache/arrow-go/v18/arrow/array"
-	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/pool"
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	icebergGo "github.com/shubham-tomar/iceberg-go"
 	"go.uber.org/zap"
 )
@@ -65,19 +65,19 @@ func (d *IcebergDestination) icebergToArrowSchema(icebergSchema *icebergGo.Schem
 	if d.schemaValidator != nil && d.schemaValidator.validated && d.schemaValidator.arrowSchema != nil {
 		return d.schemaValidator.arrowSchema, nil
 	}
-	
-	d.logger.Debug("Converting Iceberg to Arrow schema", 
+
+	d.logger.Debug("Converting Iceberg to Arrow schema",
 		zap.Int("schema_id", icebergSchema.ID),
 		zap.Int("field_count", len(icebergSchema.Fields())))
-	
+
 	fields := make([]arrow.Field, 0, len(icebergSchema.Fields()))
-	
+
 	for _, field := range icebergSchema.Fields() {
 		arrowType, err := d.icebergTypeToArrowType(field.Type)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert field %s: %w", field.Name, err)
 		}
-		
+
 		arrowField := arrow.Field{
 			Name:     field.Name,
 			Type:     arrowType,
@@ -85,19 +85,18 @@ func (d *IcebergDestination) icebergToArrowSchema(icebergSchema *icebergGo.Schem
 		}
 		fields = append(fields, arrowField)
 	}
-	
+
 	arrowSchema := arrow.NewSchema(fields, nil)
-	
+
 	// Store for reuse during this CLI run
 	if d.schemaValidator != nil {
 		d.schemaValidator.icebergSchema = icebergSchema
 		d.schemaValidator.arrowSchema = arrowSchema
 		d.schemaValidator.validated = true
 	}
-	
+
 	return arrowSchema, nil
 }
-
 
 func (d *IcebergDestination) icebergTypeToArrowType(icebergType icebergGo.Type) (arrow.DataType, error) {
 	switch t := icebergType.(type) {
@@ -114,7 +113,7 @@ func (d *IcebergDestination) icebergTypeToArrowType(icebergType icebergGo.Type) 
 	case icebergGo.StringType:
 		return arrow.BinaryTypes.String, nil
 	case icebergGo.TimestampType:
-		d.logger.Debug("Converting Iceberg timestamp type", 
+		d.logger.Debug("Converting Iceberg timestamp type",
 			zap.String("type", t.String()))
 		// Create timestamp type without timezone to match Iceberg requirements
 		return &arrow.TimestampType{
@@ -173,11 +172,11 @@ func (d *IcebergDestination) batchToArrowRecord(schema *arrow.Schema, batch []*p
 // extractTypedRecords attempts to extract TypedRecords from regular Records
 func (d *IcebergDestination) extractTypedRecords(batch []*pool.Record) []*pool.TypedRecord {
 	typedBatch := make([]*pool.TypedRecord, len(batch))
-	
+
 	for i, record := range batch {
 		// Try to convert regular record to TypedRecord for better performance
 		typedRecord := pool.GetTypedRecord()
-		
+
 		// Copy data to typed fields based on type inference
 		for key, value := range record.Data {
 			switch v := value.(type) {
@@ -204,35 +203,35 @@ func (d *IcebergDestination) extractTypedRecords(batch []*pool.Record) []*pool.T
 				typedRecord.SetData(key, value)
 			}
 		}
-		
+
 		// Copy metadata
 		typedRecord.Metadata = record.Metadata
 		typedRecord.ID = record.ID
 		typedRecord.Schema = record.Schema
-		
+
 		typedBatch[i] = typedRecord
 	}
-	
+
 	return typedBatch
 }
 
 // batchToArrowRecordTyped handles TypedRecord conversion for optimal performance
 func (d *IcebergDestination) batchToArrowRecordTyped(schema *arrow.Schema, batch []*pool.TypedRecord) (arrow.Record, error) {
 	d.logger.Debug("Using TypedRecord optimization", zap.Int("batch_size", len(batch)))
-	
+
 	// Convert TypedRecords to unified extractors
 	extractors := make([]ValueExtractor, len(batch))
 	for i, record := range batch {
 		extractors[i] = &TypedRecordExtractor{record: record}
 	}
-	
+
 	// Clean up TypedRecords after conversion
 	defer func() {
 		for _, tr := range batch {
 			tr.Release()
 		}
 	}()
-	
+
 	return d.buildArrowRecordUnified(schema, extractors)
 }
 
@@ -243,21 +242,32 @@ func (d *IcebergDestination) batchToArrowRecordRegular(schema *arrow.Schema, bat
 	for i, record := range batch {
 		extractors[i] = &RegularRecordExtractor{record: record}
 	}
-	
+
 	return d.buildArrowRecordUnified(schema, extractors)
 }
 
-// buildArrowRecordUnified creates Arrow records using the unified extractor approach
+// buildArrowRecordUnified creates Arrow records using the unified extractor approach with builder pooling
 func (d *IcebergDestination) buildArrowRecordUnified(schema *arrow.Schema, extractors []ValueExtractor) (arrow.Record, error) {
-	pool := memory.NewGoAllocator()
-	recBuilder := array.NewRecordBuilder(pool, schema)
-	defer recBuilder.Release()
+	// Initialize builder pool if not already done (defensive programming)
+	if d.builderPool == nil {
+		d.logger.Warn("Builder pool was nil, initializing it now")
+		allocator := memory.NewGoAllocator()
+		d.builderPool = NewArrowBuilderPool(allocator, d.logger)
+	}
+
+	// Get pooled builder to eliminate allocation overhead
+	pooledBuilder := d.builderPool.Get(schema)
+	if pooledBuilder == nil {
+		return nil, fmt.Errorf("failed to get pooled builder")
+	}
+
+	recBuilder := pooledBuilder.Builder()
 
 	// Pre-allocate builders and populate using unified approach
 	for i, field := range schema.Fields() {
 		builder := recBuilder.Field(i)
 		d.preallocateBuilder(builder, len(extractors))
-		
+
 		// Use unified field appenders for all types
 		switch field.Type.ID() {
 		case arrow.STRING:
@@ -287,20 +297,20 @@ func (d *IcebergDestination) buildArrowRecordUnified(schema *arrow.Schema, extra
 		}
 	}
 
-	rec := recBuilder.NewRecord()
-	rec.Retain()
-	
-	d.logger.Debug("Unified Arrow record built",
+	// Use the pooled builder's NewRecord method which automatically returns builder to pool
+	rec := pooledBuilder.NewRecord()
+
+	d.logger.Debug("Unified Arrow record built with pooled builder",
 		zap.Int64("rows", rec.NumRows()),
 		zap.Int64("cols", rec.NumCols()))
-	
+
 	return rec, nil
 }
 
 // Unified complex type handlers
 func (d *IcebergDestination) appendListFieldUnified(builder *array.ListBuilder, fieldName string, extractors []ValueExtractor, listType *arrow.ListType) {
 	elemType := listType.Elem()
-	
+
 	for _, extractor := range extractors {
 		if val, ok := extractor.GetValue(fieldName); ok {
 			// Handle both []any and []interface{} for compatibility
@@ -316,7 +326,7 @@ func (d *IcebergDestination) appendListFieldUnified(builder *array.ListBuilder, 
 				builder.AppendNull()
 				continue
 			}
-			
+
 			builder.Append(true)
 			elemBuilder := builder.ValueBuilder()
 			for _, v := range values {
@@ -344,7 +354,7 @@ func (d *IcebergDestination) appendStructFieldUnified(builder *array.StructBuild
 				builder.AppendNull()
 				continue
 			}
-			
+
 			builder.Append(true)
 			for i, field := range structType.Fields() {
 				d.appendToBuilder(field.Type, builder.FieldBuilder(i), valueMap[field.Name])
@@ -409,7 +419,7 @@ func (d *IcebergDestination) appendToBuilder(dt arrow.DataType, b array.Builder,
 		if ts, ok := convertToTimestamp(val, tsType.Unit); ok {
 			builder.Append(ts)
 		} else {
-			d.logger.Error("Failed to parse timestamp - data may be lost", 
+			d.logger.Error("Failed to parse timestamp - data may be lost",
 				zap.Any("value", val))
 			builder.AppendNull()
 		}
@@ -504,7 +514,7 @@ func convertToTimestamp(val interface{}, unit arrow.TimeUnit) (arrow.Timestamp, 
 			time.RFC3339Nano,
 			"2006-01-02",
 		}
-		
+
 		for _, format := range formats {
 			if t, err := time.Parse(format, v); err == nil {
 				return getTimestampValue(t), true
@@ -750,7 +760,7 @@ func appendBoolField(builder *array.BooleanBuilder, fieldName string, extractors
 
 func appendTimestampField(builder *array.TimestampBuilder, fieldName string, extractors []ValueExtractor, tsType *arrow.TimestampType) {
 	unit := tsType.Unit
-	
+
 	for _, extractor := range extractors {
 		if val, ok := extractor.GetTime(fieldName); ok {
 			if ts, ok := convertToTimestamp(val, unit); ok {
@@ -843,4 +853,3 @@ func (d *IcebergDestination) preallocateBuilder(builder array.Builder, capacity 
 		b.Reserve(capacity)
 	}
 }
-

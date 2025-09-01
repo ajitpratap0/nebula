@@ -93,6 +93,12 @@ func (d *IcebergDestination) WriteBatch(ctx context.Context, stream *core.BatchS
 }
 
 func (d *IcebergDestination) Close(ctx context.Context) error {
+	// Clear the builder pool to free resources
+	if d.builderPool != nil {
+		d.builderPool.Clear()
+		d.logger.Debug("Arrow builder pool cleared on close")
+	}
+
 	if d.catalogProvider != nil {
 		return d.catalogProvider.Close(ctx)
 	}
@@ -134,9 +140,28 @@ func (d *IcebergDestination) Upsert(ctx context.Context, records []*pool.Record,
 }
 
 func (d *IcebergDestination) Metrics() map[string]interface{} {
-	return map[string]interface{}{
+	metrics := map[string]interface{}{
 		"connector_type": "iceberg",
 		"table":          fmt.Sprintf("%s.%s", d.database, d.tableName),
 		"initialized":    d.catalogProvider != nil,
 	}
+
+	// Add builder pool statistics for performance monitoring
+	if d.builderPool != nil {
+		hits, misses, resets := d.builderPool.GetStats()
+		metrics["arrow_builder_pool"] = map[string]interface{}{
+			"hits":   hits,
+			"misses": misses,
+			"resets": resets,
+			"hit_ratio": func() float64 {
+				total := hits + misses
+				if total == 0 {
+					return 0.0
+				}
+				return float64(hits) / float64(total)
+			}(),
+		}
+	}
+
+	return metrics
 }
