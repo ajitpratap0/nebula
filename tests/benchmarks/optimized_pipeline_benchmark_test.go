@@ -20,7 +20,7 @@ func BenchmarkOptimizedPipelinePerformance(b *testing.B) {
 			// Create test data
 			testFile := fmt.Sprintf("/tmp/optimized_bench_%d.csv", recordCount)
 			createTestData(b, testFile, recordCount)
-			defer os.Remove(testFile)
+			defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 			b.ResetTimer()
 			b.ReportAllocs()

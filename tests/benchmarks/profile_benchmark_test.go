@@ -384,5 +384,5 @@ func createTestCSV(tb testing.TB, recordCount, columnCount int) string {
 
 // removeTestFile removes a test file, ignoring errors
 func removeTestFile(filename string) {
-	os.Remove(filename)
+	_ = os.Remove(filename) // Best effort cleanup
 }

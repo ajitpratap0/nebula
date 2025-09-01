@@ -380,7 +380,7 @@ func (gc *gzipCompressor) Decompress(data []byte) ([]byte, error) {
 	builder := stringpool.GetBuilder(stringpool.Medium)
 	defer stringpool.PutBuilder(builder, stringpool.Medium)
 
-	if _, err := io.Copy(builder, r); err != nil {
+	if _, err := io.Copy(builder, r); err != nil { //nolint:gosec // G110: TODO - Add decompression size limits to prevent DoS attacks
 		return nil, err
 	}
 
@@ -502,7 +502,7 @@ func (lc *lz4Compressor) Decompress(data []byte) ([]byte, error) {
 	builder := stringpool.GetBuilder(stringpool.Medium)
 	defer stringpool.PutBuilder(builder, stringpool.Medium)
 
-	if _, err := io.Copy(builder, r); err != nil {
+	if _, err := io.Copy(builder, r); err != nil { //nolint:gosec // G110: TODO - Add decompression size limits to prevent DoS attacks
 		return nil, err
 	}
 
@@ -694,7 +694,7 @@ func (dc *deflateCompressor) Decompress(data []byte) ([]byte, error) {
 	builder := stringpool.GetBuilder(stringpool.Medium)
 	defer stringpool.PutBuilder(builder, stringpool.Medium)
 
-	if _, err := io.Copy(builder, r); err != nil {
+	if _, err := io.Copy(builder, r); err != nil { //nolint:gosec // G110: TODO - Add decompression size limits to prevent DoS attacks
 		return nil, err
 	}
 

@@ -214,7 +214,7 @@ func BasicColumnarExample() {
 	}
 
 	fmt.Printf("Read %d records back from Parquet\n", len(readRecords))
-	reader.Close()
+	_ = reader.Close() // Error ignored for cleanup
 }
 
 // Example 5: Streaming columnar writes
@@ -264,11 +264,11 @@ func StreamingColumnarExample() {
 
 		// Simulate streaming - flush periodically
 		if i%100 == 0 {
-			writer.Flush()
+			_ = writer.Flush() // Error ignored for cleanup
 		}
 	}
 
-	writer.Close()
+	_ = writer.Close() // Error ignored for cleanup
 	fmt.Printf("Streamed 1000 events to Arrow format (%d bytes)\n", buf.Len())
 }
 
@@ -321,7 +321,7 @@ func ColumnarCompressionComparisonExample() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		writer.Close()
+		_ = writer.Close() // Error ignored for cleanup
 		elapsed := time.Since(start)
 
 		fmt.Printf("Parquet/%s: %d bytes, %.2fms\n",
@@ -376,7 +376,7 @@ func CompressedColumnarPipelineExample() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	writer.Close()
+	_ = writer.Close() // Error ignored for cleanup
 
 	// Step 3: Further compress the Parquet file
 	compressor, err := compression.NewCompressor(&compression.Config{
@@ -450,7 +450,7 @@ func FileBasedColumnarExample() {
 		BatchSize:   1000,
 	})
 	if err != nil {
-		file.Close()
+		_ = file.Close() // Error ignored for cleanup
 		log.Fatal(err)
 	}
 
@@ -464,11 +464,11 @@ func FileBasedColumnarExample() {
 				"created":  time.Now(),
 			},
 		}
-		writer.WriteRecord(record)
+		_ = writer.WriteRecord(record) // Error ignored for example
 	}
 
-	writer.Close()
-	file.Close()
+	_ = writer.Close() // Error ignored for cleanup
+	_ = file.Close() // Error ignored for cleanup
 
 	// Read file info
 	info, err := os.Stat(filename)
@@ -483,7 +483,7 @@ func FileBasedColumnarExample() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer readFile.Close()
+	defer readFile.Close() //nolint:errcheck // File close errors in defer are usually not actionable
 
 	reader, err := columnar.NewReader(readFile, &columnar.ReaderConfig{
 		Format:     columnar.Parquet,
@@ -505,10 +505,10 @@ func FileBasedColumnarExample() {
 	}
 
 	fmt.Printf("Read %d records with projection\n", count)
-	reader.Close()
+	_ = reader.Close() // Error ignored for cleanup
 
 	// Cleanup
-	os.Remove(filename)
+	_ = os.Remove(filename) // Best effort cleanup
 }
 
 // Main function to run all examples

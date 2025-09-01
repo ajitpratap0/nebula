@@ -84,7 +84,7 @@ func runGoogleSheetsBenchmarks(timestamp string) {
 			args = append(args, "-v")
 		}
 
-		cmd := exec.Command("go", args...)
+		cmd := exec.Command("go", args...) //nolint:gosec // Controlled args from predefined benchmarks
 
 		// Capture output
 		output, err := cmd.CombinedOutput()

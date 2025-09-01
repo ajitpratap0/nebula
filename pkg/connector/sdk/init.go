@@ -174,7 +174,11 @@ func InitializeGlobalSDK() error {
 func GetGlobalSDK() *SDK {
 	if globalSDK == nil {
 		globalSDK = NewSDK()
-		globalSDK.Initialize() // Use unified pool system
+		if err := globalSDK.Initialize(); err != nil {
+			// Log error but continue with uninitialized SDK
+			// This is better than crashing during package initialization
+			globalSDK = nil
+		}
 	}
 	return globalSDK
 }

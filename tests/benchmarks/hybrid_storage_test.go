@@ -20,7 +20,7 @@ func BenchmarkHybridStorageComparison(b *testing.B) {
 	testFile := "/tmp/hybrid_storage_test.csv"
 	recordCount := 100000
 	createBenchmarkTestData(b, testFile, recordCount)
-	defer os.Remove(testFile)
+	defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 	modes := []struct {
 		name string
@@ -105,7 +105,7 @@ func BenchmarkColumnarMemoryEfficiency(b *testing.B) {
 	for _, count := range recordCounts {
 		b.Run(fmt.Sprintf("Records_%d", count), func(b *testing.B) {
 			createBenchmarkTestData(b, testFile, count)
-			defer os.Remove(testFile)
+			defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 			cfg := config.NewBaseConfig("test", "csv_source")
 			cfg.Advanced.StorageMode = "columnar"
@@ -185,7 +185,7 @@ func BenchmarkStorageModeAutoSelection(b *testing.B) {
 	for _, scenario := range scenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			createBenchmarkTestData(b, testFile, scenario.recordCount)
-			defer os.Remove(testFile)
+			defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 			cfg := config.NewBaseConfig("test", "csv_source")
 			cfg.Advanced.StorageMode = "hybrid"

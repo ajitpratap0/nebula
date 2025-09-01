@@ -1286,7 +1286,7 @@ func (s *SnowflakeOptimizedDestination) uploadFile(ctx context.Context, upload *
 	if err := os.WriteFile(tempFile, upload.Data, 0644); err != nil {
 		return errors.Wrap(err, errors.ErrorTypeData, "failed to write temp file")
 	}
-	defer os.Remove(tempFile) // Clean up temp file
+	defer func() { _ = os.Remove(tempFile) }() // Best effort cleanup
 
 	// Build PUT command using SQLBuilder
 	sqlBuilder := stringpool.NewSQLBuilder(256)
@@ -1414,7 +1414,7 @@ func (s *SnowflakeOptimizedDestination) uploadToStage(ctx context.Context, filen
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeData, "failed to create temporary file")
 	}
-	defer os.Remove(tempFile.Name())
+	defer func() { _ = os.Remove(tempFile.Name()) }() // Best effort cleanup
 	defer tempFile.Close()
 
 	// Write data to file

@@ -21,9 +21,9 @@ func generateJSONData(size int) []byte {
 			"id":        i,
 			"name":      fmt.Sprintf("User %d", i),
 			"email":     fmt.Sprintf("user%d@example.com", i),
-			"age":       rand.Intn(80) + 20,
-			"score":     rand.Float64() * 100,
-			"active":    rand.Intn(2) == 1,
+			"age":       rand.Intn(80) + 20, //nolint:gosec // G404: Using weak random for test data generation is acceptable
+			"score":     rand.Float64() * 100, //nolint:gosec // G404: Using weak random for test data generation is acceptable
+			"active":    rand.Intn(2) == 1, //nolint:gosec // G404: Using weak random for test data generation is acceptable
 			"tags":      []string{"tag1", "tag2", "tag3"},
 			"metadata":  map[string]string{"key1": "value1", "key2": "value2"},
 			"timestamp": "2024-01-15T10:30:00Z",

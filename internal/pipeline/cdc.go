@@ -24,15 +24,15 @@ type CDCEngine struct {
 	conflict    *ConflictResolver
 
 	// State management
-	isRunning  int32
-	lastLSN    uint64 // Log Sequence Number
-	lastCommit time.Time
+	isRunning  int32     // Reserved for runtime state tracking
+	lastLSN    uint64    // Log Sequence Number - reserved for position tracking
+	lastCommit time.Time // Reserved for commit timestamp tracking
 	metrics    *CDCMetrics
 
 	// Control
 	ctx    context.Context
 	cancel context.CancelFunc
-	wg     sync.WaitGroup
+	wg     sync.WaitGroup // Reserved for goroutine coordination
 }
 
 // CDCConfig configures CDC behavior
@@ -343,7 +343,8 @@ func (mlr *MockLogReader) ReadChanges(ctx context.Context, fromLSN uint64) (<-ch
 }
 
 func (mlr *MockLogReader) GetCurrentLSN(ctx context.Context) (uint64, error) {
-	return uint64(time.Now().Unix()), nil
+	// Unix time is always positive, safe to convert
+	return uint64(time.Now().Unix()), nil //nolint:gosec
 }
 
 func (mlr *MockLogReader) CreateSnapshot(ctx context.Context, tables []string) (<-chan *SnapshotEvent, <-chan error) {

@@ -498,7 +498,7 @@ func (kp *KafkaProducer) buildSaramaConfig() *sarama.Config {
 	if kp.config.SecurityProtocol == "SASL_SSL" || kp.config.SecurityProtocol == "SSL" {
 		config.Net.TLS.Enable = true
 		config.Net.TLS.Config = &tls.Config{
-			InsecureSkipVerify: kp.config.TLSInsecureSkipVerify,
+			InsecureSkipVerify: kp.config.TLSInsecureSkipVerify, //nolint:gosec // User-controlled config for dev/test environments
 		}
 	}
 

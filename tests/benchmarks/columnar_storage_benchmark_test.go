@@ -22,7 +22,7 @@ func BenchmarkColumnarStorage(b *testing.B) {
 			// Create test data
 			testFile := fmt.Sprintf("/tmp/columnar_bench_%d.csv", recordCount)
 			createTestDataForColumnar(b, testFile, recordCount)
-			defer os.Remove(testFile)
+			defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 			b.ResetTimer()
 			b.ReportAllocs()
@@ -67,7 +67,7 @@ func BenchmarkColumnarVsRowBased(b *testing.B) {
 	testFile := "/tmp/comparison_test.csv"
 	recordCount := 10000
 	createTestDataForColumnar(b, testFile, recordCount)
-	defer os.Remove(testFile)
+	defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 	b.Run("RowBased", func(b *testing.B) {
 		var m1, m2 runtime.MemStats
@@ -125,7 +125,7 @@ func BenchmarkColumnarDictionaryEncoding(b *testing.B) {
 		b.Run(tc.name, func(b *testing.B) {
 			testFile := fmt.Sprintf("/tmp/dict_test_%s.csv", tc.name)
 			createCategoricalTestData(b, testFile, tc.records, tc.categories)
-			defer os.Remove(testFile)
+			defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 			var m1, m2 runtime.MemStats
 			runtime.GC()
@@ -162,7 +162,7 @@ func BenchmarkColumnarBatchProcessing(b *testing.B) {
 	testFile := "/tmp/batch_test.csv"
 	recordCount := 100000
 	createTestDataForColumnar(b, testFile, recordCount)
-	defer os.Remove(testFile)
+	defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 	store := processCSVColumnar(b, testFile)
 
@@ -372,7 +372,7 @@ func BenchmarkColumnarMemoryBreakdown(b *testing.B) {
 	testFile := "/tmp/memory_breakdown.csv"
 	recordCount := 10000
 	createTestDataForColumnar(b, testFile, recordCount)
-	defer os.Remove(testFile)
+	defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 	store := processCSVColumnar(b, testFile)
 
@@ -398,7 +398,7 @@ func BenchmarkColumnarWithPooledRecords(b *testing.B) {
 	testFile := "/tmp/pooled_columnar.csv"
 	recordCount := 10000
 	createTestDataForColumnar(b, testFile, recordCount)
-	defer os.Remove(testFile)
+	defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 	b.ResetTimer()
 

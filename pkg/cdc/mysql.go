@@ -480,7 +480,7 @@ func (c *MySQLConnector) processBinlogEvent(ev *replication.BinlogEvent) error {
 func (c *MySQLConnector) processRotateEvent(e *replication.RotateEvent) error {
 	c.mutex.Lock()
 	c.position.Name = string(e.NextLogName)
-	c.position.Pos = uint32(e.Position)
+	c.position.Pos = uint32(e.Position) //nolint:gosec // G115: Position from MySQL binlog events are expected to fit in uint32
 	c.mutex.Unlock()
 
 	c.logger.Debug("binlog rotated",

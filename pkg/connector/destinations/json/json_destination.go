@@ -39,7 +39,7 @@ type JSONDestination struct {
 	bytesWritten   int64
 	mu             sync.Mutex
 	isArray        bool
-	arrayStarted   bool
+	arrayStarted   bool // Reserved for future array formatting support
 	firstRecord    bool
 	schema         *core.Schema
 	filePath       string
@@ -391,8 +391,8 @@ func (d *JSONDestination) Close(ctx context.Context) error {
 	}
 
 	if d.writer != nil {
-		// Flush any remaining data
-		d.writer.Flush()
+		// Flush any remaining data  
+		_ = d.writer.Flush() // Error ignored during cleanup
 	}
 
 	// Close compression writer first if it exists

@@ -38,7 +38,7 @@ func (d *DirectCSVToColumnar) ProcessCSV(reader *csv.Reader) error {
 	for i, header := range headers {
 		d.headerMap[header] = i
 		d.types[i] = ColumnTypeString // Start with string, optimize later
-		d.store.AddColumn(header, ColumnTypeString)
+		_ = d.store.AddColumn(header, ColumnTypeString) // Error ignored - column addition is expected to succeed
 	}
 
 	// Process rows directly

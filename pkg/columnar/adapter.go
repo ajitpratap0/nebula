@@ -186,7 +186,7 @@ func (c *CSVToColumnar) SetHeaders(headers []string) {
 	for i, h := range headers {
 		c.headerMap[h] = i
 		// Start with string type, will be refined later
-		c.store.AddColumn(h, ColumnTypeString)
+		_ = c.store.AddColumn(h, ColumnTypeString) // Error ignored - column addition is expected to succeed
 	}
 }
 

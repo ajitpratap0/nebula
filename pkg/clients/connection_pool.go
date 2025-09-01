@@ -138,7 +138,9 @@ func (cp *ConnectionPool) Put(conn *PooledConnection) {
 	if currentIdleForHost >= cp.config.MaxIdleConnsPerHost {
 		// Close the connection instead of pooling
 		if conn.conn != nil {
-			conn.conn.Close()
+			if err := conn.conn.Close(); err != nil {
+				cp.logger.Debug("error closing connection", zap.Error(err))
+			}
 		}
 		atomic.AddInt64(&cp.activeCount, -1)
 		return
@@ -195,7 +197,9 @@ func (cp *ConnectionPool) cleanup() {
 			// Remove connections that have been idle too long
 			if idleTime > cp.config.IdleConnTimeout {
 				if conn.conn != nil {
-					conn.conn.Close()
+					if err := conn.conn.Close(); err != nil {
+						cp.logger.Debug("error closing idle connection", zap.Error(err))
+					}
 				}
 				atomic.AddInt64(&cp.idleCount, -1)
 				totalCleaned++
@@ -279,7 +283,9 @@ func (cp *ConnectionPool) Close() {
 	for _, conns := range cp.idleConnections {
 		for _, conn := range conns {
 			if conn.conn != nil {
-				conn.conn.Close()
+				if err := conn.conn.Close(); err != nil {
+					cp.logger.Debug("error closing connection during pool shutdown", zap.Error(err))
+				}
 			}
 		}
 	}

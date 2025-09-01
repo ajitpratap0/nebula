@@ -280,7 +280,9 @@ func (b *BigQueryDestination) Write(ctx context.Context, stream *core.RecordStre
 
 		case <-ctx.Done():
 			// Flush remaining micro-batch
-			b.flushMicroBatch(ctx)
+			if err := b.flushMicroBatch(ctx); err != nil {
+				b.GetLogger().Error("failed to flush micro-batch on context cancellation", zap.Error(err))
+			}
 			return ctx.Err()
 		}
 	}
@@ -334,7 +336,9 @@ func (b *BigQueryDestination) WriteBatch(ctx context.Context, stream *core.Batch
 			}
 
 		case <-ctx.Done():
-			b.flushMicroBatch(ctx)
+			if err := b.flushMicroBatch(ctx); err != nil {
+				b.GetLogger().Error("failed to flush micro-batch on context cancellation", zap.Error(err))
+			}
 			return ctx.Err()
 		}
 	}
@@ -958,7 +962,9 @@ func (b *BigQueryDestination) batchWorker(ctx context.Context, id int) {
 					zap.Int("worker_id", id),
 					zap.String("batch_id", batch.BatchID),
 					zap.Error(err))
-				b.HandleError(ctx, err, nil)
+				if handleErr := b.HandleError(ctx, err, nil); handleErr != nil {
+					b.GetLogger().Error("failed to handle error", zap.Error(handleErr))
+				}
 			}
 		}
 	}
@@ -1062,7 +1068,7 @@ func (b *BigQueryDestination) insertBatch(ctx context.Context, batch *RecordBatc
 	startTime := time.Now()
 
 	// Convert records to BigQuery format
-	var items []interface{}
+	items := make([]interface{}, 0, len(batch.Records))
 	for _, record := range batch.Records {
 		// Use record.Data directly as it's already a map
 		items = append(items, record.Data)

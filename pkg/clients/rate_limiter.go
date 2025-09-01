@@ -601,7 +601,7 @@ func (dr *DistributedRateLimiter) maybeSync() {
 
 	// Report usage
 	stats := dr.localLimiter.GetStats()
-	dr.coordinator.ReportUsage(dr.nodeID, stats.AllowedRequests, time.Now())
+	_ = dr.coordinator.ReportUsage(dr.nodeID, stats.AllowedRequests, time.Now()) // Error ignored - continue with local limiting
 
 	dr.lastSync = time.Now()
 }

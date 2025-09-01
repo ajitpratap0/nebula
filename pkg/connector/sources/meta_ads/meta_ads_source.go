@@ -354,7 +354,7 @@ func (s *MetaAdsSource) validateAccessToken(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeConnection, "test request failed")
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // HTTP response body close errors are typically not actionable
 
 	if resp.StatusCode != http.StatusOK {
 		// Use pooled buffer for error response reading
@@ -708,7 +708,7 @@ func (s *MetaAdsSource) makeAPIRequest(ctx context.Context, accountID, cursor st
 	if err != nil {
 		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "HTTP request failed")
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // HTTP response body close errors are typically not actionable
 
 	// Check for HTTP errors
 	if resp.StatusCode != http.StatusOK {

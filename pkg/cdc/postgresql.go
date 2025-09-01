@@ -286,11 +286,15 @@ func (c *PostgreSQLConnector) Stop() error {
 
 	// Close connections
 	if c.replConn != nil {
-		c.replConn.Close(context.Background())
+		if err := c.replConn.Close(context.Background()); err != nil {
+			c.logger.Error("failed to close replication connection", zap.Error(err))
+		}
 	}
 
 	if c.conn != nil {
-		c.conn.Close(context.Background())
+		if err := c.conn.Close(context.Background()); err != nil {
+			c.logger.Error("failed to close connection", zap.Error(err))
+		}
 	}
 
 	c.updateHealth("stopped", "Connector stopped", nil)

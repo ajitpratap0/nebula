@@ -116,7 +116,7 @@ type BackpressureMetrics struct {
 
 	// Adaptive metrics
 	adjustmentCount    int64
-	predictionAccuracy float64
+	predictionAccuracy float64 // Reserved for future ML-based prediction accuracy tracking
 
 	// Buffer metrics
 	bufferUtilization []float64 // Rolling window
@@ -267,8 +267,16 @@ func (bc *BackpressureController) ApplyBatch(ctx context.Context, records []*mod
 	case BackpressureAdaptive:
 		return bc.applyBatchAdaptiveStrategy(ctx, severity, records)
 
+	case BackpressureBlock, BackpressureThrottle:
+		// Apply to entire batch
+		allowed, err := bc.Apply(ctx, nil)
+		if err != nil || !allowed {
+			return nil, err
+		}
+		return records, nil
+
 	default:
-		// For block and throttle, apply to entire batch
+		// Fallback for any unknown strategy
 		allowed, err := bc.Apply(ctx, nil)
 		if err != nil || !allowed {
 			return nil, err
@@ -744,6 +752,29 @@ func (bc *BackpressureController) handleControlSignal(signal ControlSignal) {
 		if atomic.LoadInt32(&bc.isActive) == 1 {
 			bc.deactivate(0.5)
 		}
+
+	case ControlTypeThrottle:
+		// Apply throttling based on signal
+		if atomic.LoadInt32(&bc.isActive) == 0 {
+			bc.activate(0.7, int32(signal.Severity))
+		}
+
+	case ControlTypeDrop:
+		// Enable dropping mode
+		if atomic.LoadInt32(&bc.isActive) == 0 {
+			bc.activate(0.8, int32(signal.Severity))
+		}
+
+	case ControlTypeReroute:
+		// Rerouting would be handled at a higher level
+		// For now, just activate backpressure
+		if atomic.LoadInt32(&bc.isActive) == 0 {
+			bc.activate(0.6, int32(signal.Severity))
+		}
+
+	default:
+		// Unknown control type - log and ignore
+		bc.logger.Warn("unknown control signal type", zap.String("type", string(signal.Type)))
 	}
 }
 

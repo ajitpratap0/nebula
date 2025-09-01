@@ -306,7 +306,9 @@ func (oc *OAuth2Client) requestTokenWithURL(ctx context.Context, tokenURL string
 		}
 
 		if resp != nil {
-			resp.Body.Close()
+			if err := resp.Body.Close(); err != nil {
+				oc.logger.Debug("failed to close response body", zap.Error(err))
+			}
 		}
 
 		oc.logger.Warn("token request failed, retrying",
@@ -318,7 +320,7 @@ func (oc *OAuth2Client) requestTokenWithURL(ctx context.Context, tokenURL string
 	if err != nil {
 		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "token request failed")
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // Response body close errors in defer are usually not actionable
 
 	// Parse response
 	if resp.StatusCode != http.StatusOK {

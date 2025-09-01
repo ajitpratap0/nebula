@@ -186,7 +186,7 @@ func NewHTTPClient(config *HTTPConfig, logger *zap.Logger) *HTTPClient {
 		ResponseHeaderTimeout: config.ResponseHeaderTimeout,
 		ExpectContinueTimeout: 1 * time.Second,
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: config.InsecureSkipVerify,
+			InsecureSkipVerify: config.InsecureSkipVerify, //nolint:gosec // G402: TLS verification may be disabled for testing/development environments
 			MinVersion:         config.TLSMinVersion,
 		},
 	}

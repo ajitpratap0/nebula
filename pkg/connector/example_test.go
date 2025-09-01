@@ -35,7 +35,7 @@ func Example() {
 	if err := source.Initialize(ctx, sourceConfig); err != nil {
 		log.Fatal(err)
 	}
-	defer source.Close(ctx)
+	defer source.Close(ctx) //nolint:errcheck // Test cleanup, error not critical
 
 	// Read records stream
 	stream, err := source.Read(ctx)
@@ -91,11 +91,17 @@ func Example_pipeline() {
 	dest, _ := registry.CreateDestination("json", destConfig)
 
 	// Initialize connectors
-	source.Initialize(ctx, sourceConfig)
-	defer source.Close(ctx)
+	if err := source.Initialize(ctx, sourceConfig); err != nil {
+		log.Printf("Failed to initialize source: %v", err)
+		return
+	}
+	defer source.Close(ctx) //nolint:errcheck // Test cleanup, error not critical
 
-	dest.Initialize(ctx, destConfig)
-	defer dest.Close(ctx)
+	if err := dest.Initialize(ctx, destConfig); err != nil {
+		log.Printf("Failed to initialize destination: %v", err)
+		return
+	}
+	defer dest.Close(ctx) //nolint:errcheck // Test cleanup, error not critical
 
 	// Simple pipeline: read from source using batch API
 	batchStream, err := source.ReadBatch(ctx, 100)
@@ -290,8 +296,11 @@ func Example_connectorMetrics() {
 	cfg.Security.Credentials["path"] = "test.csv"
 
 	source, _ := registry.CreateSource("csv", cfg)
-	source.Initialize(ctx, cfg)
-	defer source.Close(ctx)
+	if err := source.Initialize(ctx, cfg); err != nil {
+		log.Printf("Failed to initialize source: %v", err)
+		return
+	}
+	defer source.Close(ctx) //nolint:errcheck // Test cleanup, error not critical
 
 	// Process some records
 	stream, _ := source.Read(ctx)
@@ -361,15 +370,19 @@ func Example_customTransform() {
 	transform := func(record *pool.Record) {
 		// Uppercase the name
 		if name, ok := record.Data["name"].(string); ok {
-			record.SetData("name", fmt.Sprintf("%s", name))
-			record.SetData("name_upper", fmt.Sprintf("%s", name))
+			record.SetData("name", name)
+			record.SetData("name_upper", name)
 		}
 
 		// Parse age to int
 		if ageStr, ok := record.Data["age"].(string); ok {
 			var age int
-			fmt.Sscanf(ageStr, "%d", &age)
-			record.SetData("age", age)
+			if _, err := fmt.Sscanf(ageStr, "%d", &age); err == nil {
+				record.SetData("age", age)
+			} else {
+				// Keep original string value if parsing fails
+				record.SetData("age", ageStr)
+			}
 		}
 	}
 
