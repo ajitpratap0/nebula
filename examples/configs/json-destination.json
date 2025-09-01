@@ -21,7 +21,7 @@
   },
   "security": {
     "credentials": {
-      "path": "/Users/shubhamtomar/pixis-projects/nebula/output_google-ads-data.json",
+      "path": "/output_google-ads-data.json",
       "format": "lines",
       "pretty": "false"
     }
