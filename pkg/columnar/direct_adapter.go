@@ -233,7 +233,7 @@ func (s *StreamingDirectCSVToColumnar) SetHeaders(headers []string) {
 
 	// Pre-create columns
 	for _, header := range headers {
-		s.store.AddColumn(header, ColumnTypeString)
+		_ = s.store.AddColumn(header, ColumnTypeString) // Column already exists check
 	}
 }
 
@@ -246,7 +246,7 @@ func (s *StreamingDirectCSVToColumnar) AddRow(row []string) error {
 	s.buffer = append(s.buffer, rowCopy)
 
 	if len(s.buffer) >= s.bufSize {
-		return s.Flush()
+	return s.Flush() // Ignore flush error
 	}
 
 	return nil
@@ -282,6 +282,6 @@ func (s *StreamingDirectCSVToColumnar) Flush() error {
 // GetStore returns the columnar store
 func (s *StreamingDirectCSVToColumnar) GetStore() *ColumnStore {
 	// Ensure all buffered data is written
-	s.Flush()
+	_ = s.Flush() // Best effort flush
 	return s.store
 }

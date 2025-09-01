@@ -194,7 +194,7 @@ func (m *MockGoogleAdsServer) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	atomic.AddInt64(&m.bytesServed, int64(len(respBytes)))
 
 	w.Header().Set("Content-Type", "application/json")
-	_, _ = w.Write(respBytes)
+	_, _ = w.Write(respBytes) // Ignore write error
 }
 
 // BenchmarkGoogleAdsStreamingRead benchmarks streaming read performance

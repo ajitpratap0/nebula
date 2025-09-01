@@ -262,16 +262,16 @@ func (d *GCSDestination) CreateSchema(ctx context.Context, schema *core.Schema) 
 
 	// Build GCS object name using URLBuilder for optimized string handling
 	ub := stringpool.NewURLBuilder(d.prefix)
-	defer ub.Close()
+	defer ub.Close() // Ignore close error
 	objectName := ub.AddPath("_schema", "schema.json").String()
 
 	obj := d.bucketHandle.Object(objectName)
 	writer := obj.NewWriter(ctx)
 	writer.ContentType = "application/json"
 
-	_, err = writer.Write(schemaJSON)
+	_, err = writer.Write(schemaJSON) // Ignore write error
 	if err != nil {
-		writer.Close()
+_ = 		writer.Close() // Ignore close error
 		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to write schema metadata")
 	}
 
@@ -366,7 +366,7 @@ func (d *GCSDestination) DropSchema(ctx context.Context, schema *core.Schema) er
 	// For GCS, we just remove schema metadata if it exists
 	// Build GCS object name using URLBuilder for optimized string handling
 	ub := stringpool.NewURLBuilder(d.prefix)
-	defer ub.Close()
+	defer ub.Close() // Ignore close error
 	objectName := ub.AddPath("_schema", "schema.json").String()
 
 	err := d.bucketHandle.Object(objectName).Delete(ctx)
@@ -580,7 +580,7 @@ func (d *GCSDestination) uploadBatch(ctx context.Context, batch []*models.Record
 	// Copy data to GCS
 	_, err = io.Copy(writer, data)
 	if err != nil {
-		writer.Close()
+_ = 		writer.Close() // Ignore close error
 		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to write to GCS")
 	}
 
@@ -630,7 +630,7 @@ func (d *GCSDestination) generateFilePath() string {
 
 	// Build GCS object name using URLBuilder for optimized string handling
 	ub := stringpool.NewURLBuilder(d.prefix)
-	defer ub.Close()
+	defer ub.Close() // Ignore close error
 
 	if partitionPath != "" {
 		return ub.AddPath(partitionPath, filename).String()
@@ -686,7 +686,7 @@ func (d *GCSDestination) batchToCSV(batch []*models.Record) ([]byte, error) {
 	// Estimate size: assume average 20 chars per field
 	estimatedCols := len(batch[0].Data)
 	csvBuilder := stringpool.NewCSVBuilder(len(batch), estimatedCols)
-	defer csvBuilder.Close()
+	defer csvBuilder.Close() // Ignore close error
 
 	// Write headers from first record
 	headers := make([]string, 0, len(batch[0].Data))

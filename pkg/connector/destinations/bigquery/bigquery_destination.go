@@ -544,7 +544,7 @@ func (b *BigQueryDestination) createJSONSource(records []*models.Record) (bigque
 
 	// Start a goroutine to write JSON data
 	go func() {
-		defer writer.Close()
+		defer func() { _ = writer.Close() }() // Ignore close error in goroutine
 
 		for _, record := range records {
 			jsonData, err := jsonpool.Marshal(record.Data)
@@ -587,7 +587,7 @@ func (b *BigQueryDestination) createCSVSource(records []*models.Record) (bigquer
 
 	// Start a goroutine to write CSV data
 	go func() {
-		defer writer.Close()
+		defer func() { _ = writer.Close() }() // Ignore close error in goroutine
 
 		csvWriter := csv.NewWriter(writer)
 		defer csvWriter.Flush()

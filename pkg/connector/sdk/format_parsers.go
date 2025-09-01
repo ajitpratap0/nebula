@@ -122,7 +122,7 @@ func (cp *CSVParser) ParseFile(ctx context.Context, filePath string) (*ParseResu
 	if err != nil {
 		return nil, errors.Wrap(err, errors.ErrorTypeFile, "failed to open CSV file")
 	}
-	defer file.Close() //nolint:errcheck // File close errors in defer are usually not actionable
+	defer file.Close() // Ignore close error //nolint:errcheck // File close errors in defer are usually not actionable
 
 	return cp.ParseReader(ctx, file)
 }
@@ -357,7 +357,7 @@ func (jp *JSONParser) ParseFile(ctx context.Context, filePath string) (*ParseRes
 	if err != nil {
 		return nil, errors.Wrap(err, errors.ErrorTypeFile, "failed to open JSON file")
 	}
-	defer file.Close() //nolint:errcheck // File close errors in defer are usually not actionable
+	defer file.Close() // Ignore close error //nolint:errcheck // File close errors in defer are usually not actionable
 
 	// Auto-detect format if needed
 	if jp.config.Format == JSONFormatAuto {
@@ -614,7 +614,7 @@ func (jp *JSONParser) detectFormat(filePath string) (JSONFormat, error) {
 	if err != nil {
 		return "", errors.Wrap(err, errors.ErrorTypeFile, "failed to open file for format detection")
 	}
-	defer file.Close() //nolint:errcheck // File close errors in defer are usually not actionable
+	defer file.Close() // Ignore close error //nolint:errcheck // File close errors in defer are usually not actionable
 
 	// Read first few bytes to determine format
 	header := pool.GetByteSlice()
@@ -694,7 +694,7 @@ func (cw *CSVWriter) WriteToFile(ctx context.Context, filePath string, records [
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeFile, "failed to create CSV file")
 	}
-	defer file.Close() //nolint:errcheck // File close errors in defer are usually not actionable
+	defer file.Close() // Ignore close error //nolint:errcheck // File close errors in defer are usually not actionable
 
 	return cw.WriteToWriter(ctx, file, records, schema)
 }
@@ -821,7 +821,7 @@ func (jw *JSONWriter) WriteToFile(ctx context.Context, filePath string, records 
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeFile, "failed to create JSON file")
 	}
-	defer file.Close() //nolint:errcheck // File close errors in defer are usually not actionable
+	defer file.Close() // Ignore close error //nolint:errcheck // File close errors in defer are usually not actionable
 
 	return jw.WriteToWriter(ctx, file, records)
 }
@@ -892,7 +892,7 @@ func (jw *JSONWriter) writeJSONArray(ctx context.Context, writer io.Writer, reco
 		}
 
 		buf.WriteString("  ")
-		buf.Write(jsonData)
+		_, _ = buf.Write(jsonData) // Ignore write error
 		jw.recordCount++
 	}
 
@@ -924,7 +924,7 @@ func (jw *JSONWriter) writeJSONLines(ctx context.Context, writer io.Writer, reco
 			return errors.Wrap(err, errors.ErrorTypeData, "failed to marshal record to JSON")
 		}
 
-		buf.Write(jsonData)
+		_, _ = buf.Write(jsonData) // Ignore write error
 		buf.WriteString("\n")
 		jw.recordCount++
 	}

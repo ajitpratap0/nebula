@@ -398,7 +398,7 @@ func (gc *gzipCompressor) CompressStream(dst io.Writer, src io.Reader) error {
 	if _, err := io.Copy(w, src); err != nil {
 		return err
 	}
-	return w.Close()
+	return w.Close() // Ignore close error
 }
 
 func (gc *gzipCompressor) DecompressStream(dst io.Writer, src io.Reader) error {
@@ -442,7 +442,7 @@ func (sc *snappyCompressor) CompressStream(dst io.Writer, src io.Reader) error {
 	if err != nil {
 		return err
 	}
-	return w.Close()
+	return w.Close() // Ignore close error
 }
 
 func (sc *snappyCompressor) DecompressStream(dst io.Writer, src io.Reader) error {
@@ -523,7 +523,7 @@ func (lc *lz4Compressor) CompressStream(dst io.Writer, src io.Reader) error {
 	if _, err := io.Copy(w, src); err != nil {
 		return err
 	}
-	return w.Close()
+	return w.Close() // Ignore close error
 }
 
 func (lc *lz4Compressor) DecompressStream(dst io.Writer, src io.Reader) error {
@@ -586,7 +586,7 @@ func (zc *zstdCompressor) CompressStream(dst io.Writer, src io.Reader) error {
 	if err != nil {
 		return err
 	}
-	return enc.Close()
+	return enc.Close() // Ignore close error
 }
 
 func (zc *zstdCompressor) DecompressStream(dst io.Writer, src io.Reader) error {
@@ -631,7 +631,7 @@ func (sc *s2Compressor) CompressStream(dst io.Writer, src io.Reader) error {
 	if err != nil {
 		return err
 	}
-	return w.Close()
+	return w.Close() // Ignore close error
 }
 
 func (sc *s2Compressor) DecompressStream(dst io.Writer, src io.Reader) error {
@@ -713,7 +713,7 @@ func (dc *deflateCompressor) CompressStream(dst io.Writer, src io.Reader) error 
 	if _, err := io.Copy(w, src); err != nil {
 		return err
 	}
-	return w.Close()
+	return w.Close() // Ignore close error
 }
 
 func (dc *deflateCompressor) DecompressStream(dst io.Writer, src io.Reader) error {

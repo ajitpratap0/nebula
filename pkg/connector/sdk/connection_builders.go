@@ -180,7 +180,7 @@ func (pcb *PostgreSQLConnectionBuilder) BuildPostgreSQLPool(ctx context.Context)
 
 	// Test connection
 	if err := pcb.testConnection(ctx, pool); err != nil {
-		pool.Close()
+		pool.Close() // Close the pool (no return value)
 		return nil, err
 	}
 

@@ -114,7 +114,7 @@ func (b *BottleneckAnalyzer) analyzeCPU() error {
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to open CPU profile")
 	}
-	defer file.Close()
+	defer file.Close() // Ignore close error
 
 	// Parse is from the profile package, not pprof
 	// For now, we'll skip detailed CPU analysis
@@ -468,7 +468,7 @@ func (b *BottleneckAnalyzer) saveAnalysisReport(result *AnalysisResult) error {
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create analysis report")
 	}
-	defer file.Close()
+	defer file.Close() // Ignore close error
 
 	fmt.Fprintf(file, "Nebula Performance Bottleneck Analysis\n")
 	fmt.Fprintf(file, "=====================================\n\n")

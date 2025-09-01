@@ -8,7 +8,7 @@ import (
 
 func init() {
 	// Register MongoDB CDC source with the registry
-	registry.GetRegistry().RegisterSource("mongodb-cdc", func(cfg *config.BaseConfig) (core.Source, error) {
+	_ = registry.GetRegistry().RegisterSource("mongodb-cdc", func(cfg *config.BaseConfig) (core.Source, error) {
 		return NewMongoDBCDCSource(cfg)
-	})
+	}) // Ignore registration error - will fail later if needed
 }

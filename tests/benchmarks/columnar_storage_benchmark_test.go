@@ -239,14 +239,14 @@ func processCSVColumnar(b *testing.B, filename string) *columnar.ColumnStore {
 		batch = append(batch, recordCopy)
 
 		if len(batch) >= batchSize {
-			converter.AddBatch(batch)
+_ = 			converter.AddBatch(batch) // Ignore add batch error
 			batch = batch[:0]
 		}
 	}
 
 	// Add remaining records
 	if len(batch) > 0 {
-		converter.AddBatch(batch)
+_ = 		converter.AddBatch(batch) // Ignore add batch error
 	}
 
 	return converter.GetStore()
@@ -304,7 +304,7 @@ func createTestDataForColumnar(b *testing.B, filename string, records int) {
 		"id", "name", "age", "city", "status", "score",
 		"created_at", "active", "category", "value",
 	}
-	_ = writer.Write(headers)
+	_ = writer.Write(headers) // Ignore write error
 
 	// Generate data with some repetition for dictionary encoding
 	cities := []string{"New York", "Los Angeles", "Chicago", "Houston", "Phoenix"}
@@ -324,10 +324,10 @@ func createTestDataForColumnar(b *testing.B, filename string, records int) {
 			categories[i%len(categories)],                                       // category (repetitive)
 			fmt.Sprintf("%d", i*10),                                             // value
 		}
-		_ = writer.Write(record)
+	_ = writer.Write(record) // Ignore write error
 	}
 
-	writer.Flush()
+	writer.Flush() // Flush writes (no return value)
 }
 
 func createCategoricalTestData(b *testing.B, filename string, records, categories int) {
@@ -345,7 +345,7 @@ func createCategoricalTestData(b *testing.B, filename string, records, categorie
 
 	// Headers
 	headers := []string{"id", "category1", "category2", "category3", "value"}
-	_ = writer.Write(headers)
+	_ = writer.Write(headers) // Ignore write error
 
 	// Generate categorical values
 	var catValues []string
@@ -361,10 +361,10 @@ func createCategoricalTestData(b *testing.B, filename string, records, categorie
 			catValues[(i*3)%len(catValues)],
 			fmt.Sprintf("%d", i),
 		}
-		_ = writer.Write(record)
+	_ = writer.Write(record) // Ignore write error
 	}
 
-	writer.Flush()
+	writer.Flush() // Flush writes (no return value)
 }
 
 // BenchmarkColumnarMemoryBreakdown provides detailed memory analysis

@@ -264,7 +264,7 @@ func (d *S3Destination) CreateSchema(ctx context.Context, schema *core.Schema) e
 
 	// Build S3 key using URLBuilder for optimized string handling
 	ub := stringpool.NewURLBuilder(d.prefix)
-	defer ub.Close()
+	defer ub.Close() // Ignore close error
 	key := ub.AddPath("_schema", "schema.json").String()
 
 	_, err = d.s3Client.PutObject(ctx, &s3.PutObjectInput{
@@ -358,7 +358,7 @@ func (d *S3Destination) DropSchema(ctx context.Context, schema *core.Schema) err
 	// For S3, we just remove schema metadata if it exists
 	// Build S3 key using URLBuilder for optimized string handling
 	ub := stringpool.NewURLBuilder(d.prefix)
-	defer ub.Close()
+	defer ub.Close() // Ignore close error
 	key := ub.AddPath("_schema", "schema.json").String()
 
 	_, err := d.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
@@ -639,7 +639,7 @@ func (d *S3Destination) generateFilePath() string {
 
 	// Build S3 key using URLBuilder for optimized string handling
 	ub := stringpool.NewURLBuilder(d.prefix)
-	defer ub.Close()
+	defer ub.Close() // Ignore close error
 
 	if partitionPath != "" {
 		return ub.AddPath(partitionPath, filename).String()
@@ -695,7 +695,7 @@ func (d *S3Destination) batchToCSV(batch []*models.Record) ([]byte, error) {
 	// Estimate size: assume average 20 chars per field
 	estimatedCols := len(batch[0].Data)
 	csvBuilder := stringpool.NewCSVBuilder(len(batch), estimatedCols)
-	defer csvBuilder.Close()
+	defer csvBuilder.Close() // Ignore close error
 
 	// Write headers from first record
 	headers := make([]string, 0, len(batch[0].Data))

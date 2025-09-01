@@ -116,7 +116,7 @@ type BackpressureMetrics struct {
 
 	// Adaptive metrics
 	adjustmentCount    int64
-	predictionAccuracy float64 // Reserved for future ML-based prediction accuracy tracking
+	predictionAccuracy float64 //nolint:unused // Reserved for future ML-based prediction accuracy tracking
 
 	// Buffer metrics
 	bufferUtilization []float64 // Rolling window

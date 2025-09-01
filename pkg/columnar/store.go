@@ -188,7 +188,7 @@ func (s *ColumnStore) AppendRow(data map[string]interface{}) error {
 
 			// Fill with nulls for existing rows
 			for i := 0; i < s.rowCount; i++ {
-				s.columns[key].Append("")
+				_ = s.columns[key].Append("") // Ignore error for null padding
 			}
 		}
 	}
@@ -237,7 +237,7 @@ func (s *ColumnStore) AppendBatch(rows []map[string]interface{}) error {
 
 				// Fill with nulls for existing rows
 				for i := 0; i < s.rowCount; i++ {
-					s.columns[key].Append("")
+					_ = s.columns[key].Append("") // Ignore error for null padding
 				}
 			}
 		}

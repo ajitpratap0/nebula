@@ -428,7 +428,7 @@ func (c *PostgreSQLConnector) loadTableSchemas() error {
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeQuery, "failed to query table schemas")
 	}
-	defer rows.Close()
+	defer rows.Close() // Ignore close error
 
 	c.schemaMutex.Lock()
 	defer c.schemaMutex.Unlock()
@@ -500,7 +500,7 @@ func (c *PostgreSQLConnector) loadTableSchemas() error {
 			}
 			primaryKey = append(primaryKey, column)
 		}
-		pkRows.Close()
+		pkRows.Close() // Close result set (no return value)
 
 		schemaMap[tableName].PrimaryKey = primaryKey
 	}
@@ -520,7 +520,7 @@ func (c *PostgreSQLConnector) loadTableSchemas() error {
 	if err != nil {
 		c.logger.Warn("failed to load relation OIDs", zap.Error(err))
 	} else {
-		defer relationRows.Close()
+		defer relationRows.Close() // Ignore close error
 
 		for relationRows.Next() {
 			var oid uint32

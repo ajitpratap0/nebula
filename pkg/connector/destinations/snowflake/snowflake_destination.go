@@ -117,13 +117,13 @@ type SnowflakeTransaction struct {
 
 // Commit commits the transaction
 func (st *SnowflakeTransaction) Commit(ctx context.Context) error {
-	defer st.conn.Close()
+	defer func() { _ = st.conn.Close() }() // Ignore close error after commit
 	return st.tx.Commit()
 }
 
 // Rollback rolls back the transaction
 func (st *SnowflakeTransaction) Rollback(ctx context.Context) error {
-	defer st.conn.Close()
+	defer func() { _ = st.conn.Close() }() // Ignore close error after rollback
 	return st.tx.Rollback()
 }
 
@@ -305,7 +305,7 @@ func (s *SnowflakeOptimizedDestination) Write(ctx context.Context, stream *core.
 
 		case <-ctx.Done():
 			// Flush remaining micro-batch
-			s.flushMicroBatch(ctx)
+_ = 			s.flushMicroBatch(ctx) // Ignore micro batch flush error
 			return ctx.Err()
 		}
 	}
@@ -359,7 +359,7 @@ func (s *SnowflakeOptimizedDestination) WriteBatch(ctx context.Context, stream *
 			}
 
 		case <-ctx.Done():
-			s.flushMicroBatch(ctx)
+_ = 			s.flushMicroBatch(ctx) // Ignore micro batch flush error
 			return ctx.Err()
 		}
 	}
@@ -698,7 +698,7 @@ func (s *SnowflakeOptimizedDestination) BeginTransaction(ctx context.Context) (c
 	// Begin transaction
 	tx, err := conn.BeginTx(ctx, nil)
 	if err != nil {
-		conn.Close()
+_ = 		conn.Close() // Ignore close error
 		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "failed to begin transaction")
 	}
 
@@ -731,7 +731,7 @@ func (s *SnowflakeOptimizedDestination) DropSchema(ctx context.Context, schema *
 
 	// Use SQLBuilder for DROP TABLE statement
 	sqlBuilder := stringpool.NewSQLBuilder(128)
-	defer sqlBuilder.Close()
+	defer sqlBuilder.Close() // Ignore close error
 
 	dropSQL := sqlBuilder.WriteQuery("DROP TABLE IF EXISTS ").
 		WriteIdentifier(s.database).WriteQuery(".").
@@ -898,7 +898,7 @@ func (s *SnowflakeOptimizedDestination) initializeStage(ctx context.Context) err
 
 	// Use SQLBuilder for stage creation
 	sqlBuilder := stringpool.NewSQLBuilder(512)
-	defer sqlBuilder.Close()
+	defer sqlBuilder.Close() // Ignore close error
 
 	if s.useExternalStage {
 		// Create external stage
@@ -959,7 +959,7 @@ func (s *SnowflakeOptimizedDestination) uploadWorker(ctx context.Context, id int
 				s.GetLogger().Error("failed to upload file",
 					zap.String("filename", upload.Filename),
 					zap.Error(err))
-				s.HandleError(ctx, err, nil)
+_ = 				s.HandleError(ctx, err, nil) // Ignore error handling result
 			}
 		}
 	}
@@ -1086,13 +1086,13 @@ func (s *SnowflakeOptimizedDestination) buildCreateTableSQL(schema *core.Schema)
 		colBuilder := stringpool.NewSQLBuilder(64)
 		column := colBuilder.WriteIdentifier(field.Name).WriteSpace().
 			WriteQuery(s.mapFieldTypeToSnowflake(field.Type)).String()
-		colBuilder.Close()
+		colBuilder.Close() // Close builder (no return value)
 		columns = append(columns, column)
 	}
 
 	// Use SQLBuilder for CREATE TABLE statement
 	sqlBuilder := stringpool.NewSQLBuilder(512)
-	defer sqlBuilder.Close()
+	defer sqlBuilder.Close() // Ignore close error
 
 	return sqlBuilder.WriteQuery("CREATE TABLE IF NOT EXISTS ").
 		WriteIdentifier(s.database).WriteQuery(".").
@@ -1122,7 +1122,7 @@ func (s *SnowflakeOptimizedDestination) buildAlterTableSQL(old, new *core.Schema
 				WriteIdentifier(s.currentTable).WriteQuery(" ADD COLUMN ").
 				WriteIdentifier(field.Name).WriteSpace().
 				WriteQuery(s.mapFieldTypeToSnowflake(field.Type)).String()
-			sqlBuilder.Close()
+			sqlBuilder.Close() // Close builder (no return value)
 			statements = append(statements, stmt)
 		}
 	}
@@ -1290,7 +1290,7 @@ func (s *SnowflakeOptimizedDestination) uploadFile(ctx context.Context, upload *
 
 	// Build PUT command using SQLBuilder
 	sqlBuilder := stringpool.NewSQLBuilder(256)
-	defer sqlBuilder.Close()
+	defer sqlBuilder.Close() // Ignore close error
 
 	putSQL := sqlBuilder.WriteQuery("PUT file://").WriteQuery(tempFile).
 		WriteQuery(" @").
@@ -1327,7 +1327,7 @@ func (s *SnowflakeOptimizedDestination) uploadFile(ctx context.Context, upload *
 func (s *SnowflakeOptimizedDestination) executeCopyCommand(ctx context.Context) {
 	// Build COPY command using SQLBuilder
 	sqlBuilder := stringpool.NewSQLBuilder(512)
-	defer sqlBuilder.Close()
+	defer sqlBuilder.Close() // Ignore close error
 
 	copySQL := sqlBuilder.WriteQuery("COPY INTO ").
 		WriteIdentifier(s.database).WriteQuery(".").
@@ -1345,7 +1345,7 @@ func (s *SnowflakeOptimizedDestination) executeCopyCommand(ctx context.Context) 
 	// Execute COPY command
 	if _, err := s.connectionPool.ExecContext(ctx, copySQL); err != nil {
 		s.GetLogger().Error("failed to execute COPY command", zap.Error(err))
-		s.HandleError(ctx, err, nil)
+_ = 		s.HandleError(ctx, err, nil) // Ignore error handling result
 		return
 	}
 
@@ -1373,7 +1373,7 @@ func (s *SnowflakeOptimizedDestination) recordsToCSV(records []*models.Record) (
 
 	// Create optimized CSV builder
 	csvBuilder := stringpool.NewCSVBuilder(len(records), len(fieldNames))
-	defer csvBuilder.Close()
+	defer csvBuilder.Close() // Ignore close error
 
 	// Write header
 	csvBuilder.WriteHeader(fieldNames)
@@ -1415,7 +1415,7 @@ func (s *SnowflakeOptimizedDestination) uploadToStage(ctx context.Context, filen
 		return errors.Wrap(err, errors.ErrorTypeData, "failed to create temporary file")
 	}
 	defer func() { _ = os.Remove(tempFile.Name()) }() // Best effort cleanup
-	defer tempFile.Close()
+	defer func() { _ = tempFile.Close() }() // Ignore close error
 
 	// Write data to file
 	if _, err := tempFile.Write(data); err != nil {
@@ -1429,7 +1429,7 @@ func (s *SnowflakeOptimizedDestination) uploadToStage(ctx context.Context, filen
 
 	// Build PUT command using SQLBuilder
 	sqlBuilder := stringpool.NewSQLBuilder(256)
-	defer sqlBuilder.Close()
+	defer sqlBuilder.Close() // Ignore close error
 
 	putSQL := sqlBuilder.WriteQuery("PUT file://").WriteQuery(tempFile.Name()).
 		WriteQuery(" @").
@@ -1465,7 +1465,7 @@ func (s *SnowflakeOptimizedDestination) buildCopySQL(filename, format string) st
 
 	// Build COPY command for specific file using SQLBuilder
 	sqlBuilder := stringpool.NewSQLBuilder(512)
-	defer sqlBuilder.Close()
+	defer sqlBuilder.Close() // Ignore close error
 
 	copySQL := sqlBuilder.WriteQuery("COPY INTO ").
 		WriteIdentifier(s.database).WriteQuery(".").

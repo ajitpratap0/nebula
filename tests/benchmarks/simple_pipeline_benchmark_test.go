@@ -105,7 +105,7 @@ func createBenchmarkCSV(filename string, records int) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer file.Close() // Ignore close error
 
 	// Write header
 	fmt.Fprintln(file, "id,name,email,age,department,salary,created_at")

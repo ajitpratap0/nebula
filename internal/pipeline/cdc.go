@@ -24,15 +24,15 @@ type CDCEngine struct {
 	conflict    *ConflictResolver
 
 	// State management
-	isRunning  int32     // Reserved for runtime state tracking
-	lastLSN    uint64    // Log Sequence Number - reserved for position tracking
-	lastCommit time.Time // Reserved for commit timestamp tracking
+	isRunning  int32     //nolint:unused // Reserved for runtime state tracking
+	lastLSN    uint64    //nolint:unused // Reserved for position tracking
+	lastCommit time.Time //nolint:unused // Reserved for commit timestamp tracking
 	metrics    *CDCMetrics
 
 	// Control
 	ctx    context.Context
 	cancel context.CancelFunc
-	wg     sync.WaitGroup // Reserved for goroutine coordination
+	wg     sync.WaitGroup //nolint:unused // Reserved for goroutine coordination
 }
 
 // CDCConfig configures CDC behavior

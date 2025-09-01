@@ -275,7 +275,7 @@ func (s *PostgreSQLSource) discoverSchemaFromTable(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeQuery, "failed to query table schema")
 	}
-	defer rows.Close()
+	defer rows.Close() // Ignore close error
 
 	var columns []string
 	var columnTypes []string
@@ -339,7 +339,7 @@ func (s *PostgreSQLSource) discoverSchemaFromQuery(ctx context.Context) error {
 
 	// Execute query with LIMIT 0 to get column info without data
 	sqlBuilder := stringpool.NewSQLBuilder(256)
-	defer sqlBuilder.Close()
+	defer sqlBuilder.Close() // Ignore close error
 	limitQuery := sqlBuilder.WriteQuery("SELECT * FROM (").
 		WriteQuery(s.query).
 		WriteQuery(") AS q LIMIT 0").
@@ -349,7 +349,7 @@ func (s *PostgreSQLSource) discoverSchemaFromQuery(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeQuery, "failed to execute schema discovery query")
 	}
-	defer rows.Close()
+	defer rows.Close() // Ignore close error
 
 	fieldDescriptions := rows.FieldDescriptions()
 
@@ -416,7 +416,7 @@ func (s *PostgreSQLSource) Read(ctx context.Context) (*core.RecordStream, error)
 		query := s.query
 		if query == "" {
 			sqlBuilder := stringpool.NewSQLBuilder(128)
-			defer sqlBuilder.Close()
+			defer sqlBuilder.Close() // Ignore close error
 			query = sqlBuilder.WriteQuery("SELECT * FROM ").
 				WriteIdentifier(s.tableName).
 				String()
@@ -462,7 +462,7 @@ func (s *PostgreSQLSource) ReadBatch(ctx context.Context, batchSize int) (*core.
 		query := s.query
 		if query == "" {
 			sqlBuilder := stringpool.NewSQLBuilder(128)
-			defer sqlBuilder.Close()
+			defer sqlBuilder.Close() // Ignore close error
 			query = sqlBuilder.WriteQuery("SELECT * FROM ").
 				WriteIdentifier(s.tableName).
 				String()
@@ -500,7 +500,7 @@ func (s *PostgreSQLSource) streamRecords(ctx context.Context, query string, reco
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeQuery, "failed to execute query")
 	}
-	defer rows.Close()
+	defer rows.Close() // Ignore close error
 
 	for rows.Next() {
 		select {
@@ -540,7 +540,7 @@ func (s *PostgreSQLSource) streamBatches(ctx context.Context, query string, batc
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeQuery, "failed to execute query")
 	}
-	defer rows.Close()
+	defer rows.Close() // Ignore close error
 
 	batch := pool.GetBatchSlice(batchSize)
 

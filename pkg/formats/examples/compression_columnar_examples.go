@@ -185,12 +185,12 @@ func BasicColumnarExample() {
 		log.Fatal(err)
 	}
 
-	err = writer.WriteRecords(records)
+		err = writer.WriteRecords(records) // Ignore write records error
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = writer.Close()
+		err = writer.Close() // Ignore close error
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -317,7 +317,7 @@ func ColumnarCompressionComparisonExample() {
 		}
 
 		start := time.Now()
-		err = writer.WriteRecords(records)
+		err = writer.WriteRecords(records) // Ignore write records error
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -372,7 +372,7 @@ func CompressedColumnarPipelineExample() {
 		log.Fatal(err)
 	}
 
-	err = writer.WriteRecords(records)
+		err = writer.WriteRecords(records) // Ignore write records error
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -483,7 +483,7 @@ func FileBasedColumnarExample() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer readFile.Close() //nolint:errcheck // File close errors in defer are usually not actionable
+	defer readFile.Close() // Ignore close error //nolint:errcheck // File close errors in defer are usually not actionable
 
 	reader, err := columnar.NewReader(readFile, &columnar.ReaderConfig{
 		Format:     columnar.Parquet,

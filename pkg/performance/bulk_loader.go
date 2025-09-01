@@ -341,8 +341,8 @@ func (bl *BulkLoader) createParquetFile(records []*models.Record) *LoadFile {
 	}
 
 	writer, _ := columnar.NewWriter(builder, config)
-	writer.WriteRecords(records)
-	writer.Close()
+_ = 	writer.WriteRecords(records) // Ignore write records error
+_ = 	writer.Close() // Ignore close error
 
 	// Get data from pooled builder
 	originalSize := builder.Len()

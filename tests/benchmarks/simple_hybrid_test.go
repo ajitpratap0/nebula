@@ -48,7 +48,7 @@ func BenchmarkSimpleHybridComparison(b *testing.B) {
 					record.Release()
 				}
 
-				adapter.Flush()
+_ = 				adapter.Flush() // Ignore flush error
 
 				runtime.GC()
 				runtime.ReadMemStats(&m2)
@@ -59,7 +59,7 @@ func BenchmarkSimpleHybridComparison(b *testing.B) {
 				b.ReportMetric(bytesPerRecord, "bytes/record")
 				b.ReportMetric(float64(adapter.GetRecordCount()), "total_records")
 
-				adapter.Close()
+_ = 				adapter.Close() // Ignore close error
 			}
 		})
 	}
@@ -111,7 +111,7 @@ func BenchmarkColumnarOptimization(b *testing.B) {
 				b.ReportMetric(bytesPerRecord, "bytes/record")
 				b.ReportMetric(float64(size), "total_records")
 
-				adapter.Close()
+_ = 				adapter.Close() // Ignore close error
 			}
 		})
 	}
@@ -161,7 +161,7 @@ func BenchmarkHybridDecisionMaking(b *testing.B) {
 				b.ReportMetric(bytesPerRecord, "bytes/record")
 				b.ReportMetric(float64(len(string(actualMode))), "mode_choice")
 
-				adapter.Close()
+_ = 				adapter.Close() // Ignore close error
 			}
 		})
 	}

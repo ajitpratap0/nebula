@@ -407,7 +407,7 @@ func (d *CSVDestination) DropSchema(ctx context.Context, schema *core.Schema) er
 
 	// Close current file first
 	if d.file != nil {
-		d.file.Close()
+		_ = d.file.Close() // Ignore close error during cleanup
 		d.file = nil
 		d.writer = nil
 	}

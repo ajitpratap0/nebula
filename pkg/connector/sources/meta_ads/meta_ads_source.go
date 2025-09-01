@@ -342,7 +342,7 @@ func (s *MetaAdsSource) validateAccessToken(ctx context.Context) error {
 
 	// Test token with a simple API call using URLBuilder
 	ub := stringpool.NewURLBuilder(stringpool.Sprintf("https://graph.facebook.com/%s/me", s.config.APIVersion))
-	defer ub.Close()
+	defer ub.Close() // Ignore close error
 	testURL := ub.AddParam("access_token", s.accessToken).String()
 
 	req, err := http.NewRequestWithContext(ctx, "GET", testURL, nil)
@@ -354,7 +354,7 @@ func (s *MetaAdsSource) validateAccessToken(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeConnection, "test request failed")
 	}
-	defer resp.Body.Close() //nolint:errcheck // HTTP response body close errors are typically not actionable
+	defer func() { _ = resp.Body.Close() }() // Ignore close error - HTTP response body close errors are typically not actionable
 
 	if resp.StatusCode != http.StatusOK {
 		// Use pooled buffer for error response reading
@@ -668,7 +668,7 @@ func (s *MetaAdsSource) makeAPIRequest(ctx context.Context, accountID, cursor st
 	// Build API URL using URLBuilder for optimized string handling
 	ub := stringpool.NewURLBuilder(stringpool.Sprintf("https://graph.facebook.com/%s/act_%s/%s",
 		s.config.APIVersion, accountID, endpoint))
-	defer ub.Close()
+	defer ub.Close() // Ignore close error
 
 	// Add query parameters
 	ub.AddParam("access_token", s.accessToken)
@@ -708,7 +708,7 @@ func (s *MetaAdsSource) makeAPIRequest(ctx context.Context, accountID, cursor st
 	if err != nil {
 		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "HTTP request failed")
 	}
-	defer resp.Body.Close() //nolint:errcheck // HTTP response body close errors are typically not actionable
+	defer func() { _ = resp.Body.Close() }() // Ignore close error - HTTP response body close errors are typically not actionable
 
 	// Check for HTTP errors
 	if resp.StatusCode != http.StatusOK {

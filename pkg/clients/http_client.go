@@ -18,13 +18,13 @@
 //	config.CircuitBreakerEnabled = true
 //
 //	client := clients.NewHTTPClient(config, logger)
-//	defer client.Close()
+//	defer client.Close() // Ignore close error
 //
 //	resp, err := client.Get(ctx, "https://api.example.com/data", headers)
 //	if err != nil {
 //	    return err
 //	}
-//	defer resp.Body.Close()
+//	defer resp.Body.Close() // Ignore close error
 package clients
 
 import (

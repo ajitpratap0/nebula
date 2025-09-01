@@ -115,7 +115,7 @@ func (psd *PostgreSQLSchemaDiscovery) DiscoverTableSchema(ctx context.Context, t
 	if err != nil {
 		return nil, errors.Wrap(err, errors.ErrorTypeQuery, "failed to query table schema")
 	}
-	defer rows.Close()
+	defer rows.Close() // Ignore close error
 
 	var fields []core.Field
 	for rows.Next() {
@@ -208,7 +208,7 @@ func (psd *PostgreSQLSchemaDiscovery) DiscoverDatabaseSchema(ctx context.Context
 	if err != nil {
 		return nil, errors.Wrap(err, errors.ErrorTypeQuery, "failed to query database tables")
 	}
-	defer rows.Close()
+	defer rows.Close() // Ignore close error
 
 	schemas := make(map[string]*core.Schema)
 	for rows.Next() {

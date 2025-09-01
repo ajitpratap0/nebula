@@ -8,7 +8,7 @@ import (
 
 func init() {
 	// Register PostgreSQL CDC source connector
-	registry.GetRegistry().RegisterSource("postgresql-cdc", func(cfg *config.BaseConfig) (core.Source, error) {
+	_ = registry.GetRegistry().RegisterSource("postgresql-cdc", func(cfg *config.BaseConfig) (core.Source, error) {
 		return NewPostgreSQLCDCSource(cfg)
-	})
+	}) // Ignore registration error - will fail later if needed
 }

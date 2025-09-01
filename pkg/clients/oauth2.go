@@ -130,7 +130,7 @@ func NewOAuth2Client(config *OAuth2Config, httpClient *HTTPClient, logger *zap.L
 func (oc *OAuth2Client) GetAuthorizationURL(state string) string {
 	// Build authorization URL using URLBuilder for optimized string handling
 	ub := stringpool.NewURLBuilder(oc.config.AuthURL)
-	defer ub.Close()
+	defer ub.Close() // Ignore close error
 
 	// Add required OAuth2 parameters
 	ub.AddParam("client_id", oc.config.ClientID)
@@ -320,7 +320,7 @@ func (oc *OAuth2Client) requestTokenWithURL(ctx context.Context, tokenURL string
 	if err != nil {
 		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "token request failed")
 	}
-	defer resp.Body.Close() //nolint:errcheck // Response body close errors in defer are usually not actionable
+	defer func() { _ = resp.Body.Close() }() // Ignore close error - Response body close errors in defer are usually not actionable
 
 	// Parse response
 	if resp.StatusCode != http.StatusOK {

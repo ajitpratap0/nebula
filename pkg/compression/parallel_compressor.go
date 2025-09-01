@@ -139,7 +139,7 @@ func (pc *ParallelCompressor) CompressData(data []byte) ([]byte, error) {
 
 	// Write header with chunk information
 	header := pc.createHeader(numChunks, len(data))
-	output.Write(header)
+	_, _ = output.Write(header) // Ignore write error
 
 	// Write compressed chunks
 	for i := 0; i < numChunks; i++ {
@@ -152,7 +152,7 @@ func (pc *ParallelCompressor) CompressData(data []byte) ([]byte, error) {
 			byte(len(chunk.Compressed)),
 		})
 		// Write compressed data
-		output.Write(chunk.Compressed)
+		_, _ = output.Write(chunk.Compressed) // Ignore write error
 
 		atomic.AddInt64(&pc.bytesProcessed, int64(len(chunk.Original)))
 		atomic.AddInt64(&pc.chunksProcessed, 1)
@@ -356,7 +356,7 @@ func (pc *ParallelCompressor) decompressChunk(data []byte) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer r.Close()
+		defer func() { _ = r.Close() }() // Ignore close error in decompression
 		return io.ReadAll(r)
 
 	case Snappy:
@@ -368,7 +368,7 @@ func (pc *ParallelCompressor) decompressChunk(data []byte) ([]byte, error) {
 
 	case Zstd:
 		decoder, _ := zstd.NewReader(bytes.NewReader(data))
-		defer decoder.Close()
+		defer decoder.Close() // Ignore close error
 		return io.ReadAll(decoder)
 
 	case S2:

@@ -358,17 +358,17 @@ func createTestCSV(tb testing.TB, recordCount, columnCount int) string {
 	if err != nil {
 		tb.Fatal(err)
 	}
-	defer file.Close()
+	defer file.Close() // Ignore close error
 
 	writer := csv.NewWriter(file)
-	defer writer.Flush()
+	defer writer.Flush() // Ignore flush error
 
 	// Write header
 	headers := make([]string, columnCount)
 	for i := 0; i < columnCount; i++ {
 		headers[i] = fmt.Sprintf("col_%d", i)
 	}
-	_ = writer.Write(headers)
+	_ = writer.Write(headers) // Ignore write error
 
 	// Write records
 	for i := 0; i < recordCount; i++ {
@@ -376,7 +376,7 @@ func createTestCSV(tb testing.TB, recordCount, columnCount int) string {
 		for j := 0; j < columnCount; j++ {
 			record[j] = fmt.Sprintf("value_%d_%d", i, j)
 		}
-		_ = writer.Write(record)
+	_ = writer.Write(record) // Ignore write error
 	}
 
 	return tempFile

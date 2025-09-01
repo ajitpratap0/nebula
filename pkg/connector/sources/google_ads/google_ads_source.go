@@ -606,7 +606,7 @@ func (s *GoogleAdsSource) readCustomerRecords(ctx context.Context, customerID st
 func (s *GoogleAdsSource) makeAPIRequest(ctx context.Context, customerID, pageToken string) (*GoogleAdsResponse, error) {
 	// Build request URL using URLBuilder for optimized string handling
 	ub := stringpool.NewURLBuilder("https://googleads.googleapis.com")
-	defer ub.Close()
+	defer ub.Close() // Ignore close error
 	baseURL := ub.AddPath("v21", "customers", customerID, "googleAds:search").String()
 
 	// Build request body
@@ -647,7 +647,7 @@ func (s *GoogleAdsSource) makeAPIRequest(ctx context.Context, customerID, pageTo
 	if err != nil {
 		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "HTTP request failed")
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // Ignore close error
 
 	// Parse response
 	responseData := s.responsePool.Get().(*GoogleAdsResponse)

@@ -316,7 +316,7 @@ func (d *JSONDestination) writeRecord(record *models.Record) (int, error) {
 func (d *JSONDestination) closeArray() error {
 	// The streaming encoder handles closing the array
 	if d.streamEncoder != nil {
-		_ = d.streamEncoder.Close()
+		_ = d.streamEncoder.Close() // Ignore encoder close error
 		return nil
 	}
 	return nil

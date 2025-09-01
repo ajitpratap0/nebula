@@ -243,7 +243,7 @@ func createBenchmarkTestData(b *testing.B, filename string, records int) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close()
+	defer file.Close() // Ignore close error
 
 	// Write headers
 	headers := "order_id,customer_id,product_sku,quantity,price,status,category,region,timestamp\n"
@@ -284,7 +284,7 @@ func BenchmarkDirectStorageAdapter(b *testing.B) {
 			cfg.Performance.BatchSize = 10000
 
 			adapter := pipeline.NewStorageAdapter(mode, cfg)
-			defer adapter.Close()
+			defer adapter.Close() // Ignore close error
 
 			b.ResetTimer()
 			b.ReportAllocs()
@@ -306,7 +306,7 @@ func BenchmarkDirectStorageAdapter(b *testing.B) {
 					record.Release()
 				}
 
-				adapter.Flush()
+_ = 				adapter.Flush() // Ignore flush error
 
 				runtime.GC()
 				runtime.ReadMemStats(&m2)
