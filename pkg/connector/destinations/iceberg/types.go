@@ -1,6 +1,8 @@
 package iceberg
 
 import (
+	"fmt"
+
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"go.uber.org/zap"
@@ -44,6 +46,26 @@ type TableResponse struct {
 }
 
 func NewIcebergDestination(config *config.BaseConfig) (core.Destination, error) {
+	if config == nil {
+		return nil, fmt.Errorf("configuration cannot be nil")
+	}
+
+	// Validate required fields
+	if config.Security.Credentials == nil {
+		return nil, fmt.Errorf("missing required field: credentials")
+	}
+
+	catalogURI, exists := config.Security.Credentials["catalog_uri"]
+	if !exists || catalogURI == "" {
+		return nil, fmt.Errorf("missing required field: catalog_uri")
+	}
+
+	// Check for warehouse field
+	warehouse, exists := config.Security.Credentials["warehouse"]
+	if !exists || warehouse == "" {
+		return nil, fmt.Errorf("missing required field: warehouse")
+	}
+
 	logger, _ := zap.NewProduction()
 
 	return &IcebergDestination{
