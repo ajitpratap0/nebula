@@ -177,6 +177,10 @@ type MemoryConfig struct {
 	MaxBufferSize int `yaml:"max_buffer_size" json:"max_buffer_size"`
 	// GCInterval triggers periodic garbage collection
 	GCInterval time.Duration `yaml:"gc_interval" json:"gc_interval"`
+	// StringDataMultiplier for Arrow string buffer sizing (default: 32)
+	StringDataMultiplier int `yaml:"string_data_multiplier" json:"string_data_multiplier"`
+	// ListElementMultiplier for Arrow list buffer sizing (default: 5)
+	ListElementMultiplier int `yaml:"list_element_multiplier" json:"list_element_multiplier"`
 }
 
 // AdvancedConfig contains optional advanced features.
@@ -265,13 +269,15 @@ func NewBaseConfig(name, connectorType string) *BaseConfig {
 			TracingSampleRate: 0.1,
 		},
 		Memory: MemoryConfig{
-			EnablePools:       true,
-			RecordPoolSize:    1000,
-			BufferPoolSize:    100,
-			EnableBufferReuse: true,
-			MinBufferSize:     1024,
-			MaxBufferSize:     1048576, // 1MB
-			GCInterval:        time.Minute,
+			EnablePools:           true,
+			RecordPoolSize:        1000,
+			BufferPoolSize:        100,
+			EnableBufferReuse:     true,
+			MinBufferSize:         1024,
+			MaxBufferSize:         1048576, // 1MB
+			GCInterval:            time.Minute,
+			StringDataMultiplier:  32, // Default chars per string field
+			ListElementMultiplier: 5,  // Default elements per list field
 		},
 		Advanced: AdvancedConfig{
 			EnableCompression:     false,

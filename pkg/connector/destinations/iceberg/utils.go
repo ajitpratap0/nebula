@@ -2,6 +2,7 @@ package iceberg
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -57,6 +58,20 @@ func (d *IcebergDestination) extractConfig(config *config.BaseConfig) error {
 		}
 	}
 
+	// Configure buffer settings from memory config
+	d.bufferConfig = BufferConfig{
+		StringDataMultiplier:  config.Memory.StringDataMultiplier,
+		ListElementMultiplier: config.Memory.ListElementMultiplier,
+	}
+
+	// Use defaults if not configured
+	if d.bufferConfig.StringDataMultiplier <= 0 {
+		d.bufferConfig.StringDataMultiplier = 32
+	}
+	if d.bufferConfig.ListElementMultiplier <= 0 {
+		d.bufferConfig.ListElementMultiplier = 5
+	}
+
 	return nil
 }
 
@@ -67,7 +82,6 @@ func (d *IcebergDestination) icebergToArrowSchema(icebergSchema *icebergGo.Schem
 	if d.schemaValidator != nil && d.schemaValidator.validated && d.schemaValidator.arrowSchema != nil {
 		return d.schemaValidator.arrowSchema, nil
 	}
-
 
 	fields := make([]arrow.Field, 0, len(icebergSchema.Fields()))
 
@@ -276,7 +290,12 @@ func (d *IcebergDestination) appendToBuilder(dt arrow.DataType, b array.Builder,
 	case *array.StringBuilder:
 		builder.Append(convertToString(val))
 	case *array.TimestampBuilder:
-		tsType := dt.(*arrow.TimestampType)
+		tsType, ok := dt.(*arrow.TimestampType)
+		if !ok {
+			d.logger.Error("Type assertion failed for TimestampType")
+			builder.AppendNull()
+			return
+		}
 		if ts, ok := convertToTimestamp(val, tsType.Unit); ok {
 			builder.Append(ts)
 		} else {
@@ -306,7 +325,13 @@ func (d *IcebergDestination) appendToBuilder(dt arrow.DataType, b array.Builder,
 
 		builder.Append(true)
 		elemBuilder := builder.ValueBuilder()
-		elemType := dt.(*arrow.ListType).Elem()
+		listType, ok := dt.(*arrow.ListType)
+		if !ok {
+			d.logger.Error("Type assertion failed for ListType")
+			builder.AppendNull()
+			return
+		}
+		elemType := listType.Elem()
 
 		for _, v := range values {
 			d.appendToBuilder(elemType, elemBuilder, v)
@@ -328,7 +353,12 @@ func (d *IcebergDestination) appendToBuilder(dt arrow.DataType, b array.Builder,
 		}
 
 		builder.Append(true)
-		structType := dt.(*arrow.StructType)
+		structType, ok := dt.(*arrow.StructType)
+		if !ok {
+			d.logger.Error("Type assertion failed for StructType")
+			builder.AppendNull()
+			return
+		}
 		for i, field := range structType.Fields() {
 			d.appendToBuilder(field.Type, builder.FieldBuilder(i), valueMap[field.Name])
 		}
@@ -387,11 +417,21 @@ func convertToTimestamp(val interface{}, unit arrow.TimeUnit) (arrow.Timestamp, 
 func convertToDate32(val interface{}) (arrow.Date32, bool) {
 	switch v := val.(type) {
 	case time.Time:
-		days := int32(v.Unix() / 86400)
+		unixTime := v.Unix()
+		days := unixTime / 86400
+		// Check for int32 overflow before conversion
+		if days < math.MinInt32 || days > math.MaxInt32 {
+			return 0, false
+		}
 		return arrow.Date32(days), true
 	case string:
 		if t, err := time.Parse("2006-01-02", v); err == nil {
-			days := int32(t.Unix() / 86400)
+			unixTime := t.Unix()
+			days := unixTime / 86400
+			// Check for int32 overflow before conversion
+			if days < math.MinInt32 || days > math.MaxInt32 {
+				return 0, false
+			}
 			return arrow.Date32(days), true
 		}
 	}
@@ -735,10 +775,10 @@ func (d *IcebergDestination) preallocateBuilder(builder array.Builder, capacity 
 		// Special cases for complex builders
 		switch b := builder.(type) {
 		case *array.StringBuilder:
-			b.ReserveData(capacity * 32) // Estimate 32 chars per string
+			b.ReserveData(capacity * d.bufferConfig.StringDataMultiplier)
 		case *array.ListBuilder:
 			if valueBuilder := b.ValueBuilder(); valueBuilder != nil {
-				d.preallocateBuilder(valueBuilder, capacity*5) // Est. 5 elements per list
+				d.preallocateBuilder(valueBuilder, capacity*d.bufferConfig.ListElementMultiplier)
 			}
 		case *array.StructBuilder:
 			for i := 0; i < b.NumField(); i++ {

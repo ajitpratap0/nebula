@@ -12,29 +12,19 @@ import (
 )
 
 // ArrowBuilderPool manages a pool of Arrow RecordBuilders to eliminate allocation overhead
+// Optimized for single-schema usage (one table per destination)
 type ArrowBuilderPool struct {
-	pool        sync.Pool
-	schemaCache map[string]*arrow.Schema
-	schemaMutex sync.RWMutex
-	allocator   memory.Allocator
-	logger      *zap.Logger
-
-	// Pool statistics for monitoring
-	stats struct {
-		hits   int64
-		misses int64
-		resets int64
-	}
-	statsMutex sync.RWMutex
+	pool      sync.Pool
+	schema    *arrow.Schema // Single schema per pool (one table per destination)
+	allocator memory.Allocator
+	logger    *zap.Logger
 }
 
-// PooledBuilder wraps a RecordBuilder with additional pooling metadata
+// PooledBuilder wraps a RecordBuilder with pooling metadata
 type PooledBuilder struct {
-	builder    *array.RecordBuilder
-	schema     *arrow.Schema
-	lastUsed   time.Time
-	resetCount int
-	pool       *ArrowBuilderPool
+	builder  *array.RecordBuilder
+	lastUsed time.Time
+	pool     *ArrowBuilderPool
 }
 
 // NewArrowBuilderPool creates a new builder pool with the given allocator
@@ -44,15 +34,14 @@ func NewArrowBuilderPool(allocator memory.Allocator, logger *zap.Logger) *ArrowB
 	}
 
 	pool := &ArrowBuilderPool{
-		schemaCache: make(map[string]*arrow.Schema),
-		allocator:   allocator,
-		logger:      logger,
+		allocator: allocator,
+		logger:    logger,
 	}
 
 	pool.pool = sync.Pool{
 		New: func() interface{} {
-			pool.incrementMisses()
-			// Return nil - actual builder creation happens in Get()
+			// Return nil if no schema is set yet - builder creation happens in Get()
+			// This prevents creating builders with the wrong schema
 			return nil
 		},
 	}
@@ -62,21 +51,38 @@ func NewArrowBuilderPool(allocator memory.Allocator, logger *zap.Logger) *ArrowB
 
 // Get retrieves a builder for the given schema, creating one if necessary
 func (p *ArrowBuilderPool) Get(schema *arrow.Schema) *PooledBuilder {
-	schemaKey := p.getSchemaKey(schema)
+	// Validate input
+	if schema == nil {
+		p.logger.Error("Cannot get builder with nil schema")
+		return nil
+	}
+
+	// Set schema on first use (single schema per pool)
+	if p.schema == nil {
+		p.schema = schema
+	}
+
+	// Verify schema consistency (single schema per pool design)
+	if !p.schema.Equal(schema) {
+		p.logger.Warn("Schema mismatch in builder pool - creating new builder",
+			zap.String("pool_schema", p.schema.String()),
+			zap.String("requested_schema", schema.String()))
+	}
 
 	// Try to get from pool first
 	if item := p.pool.Get(); item != nil {
 		// Safe type assertion with ok check
-		if pooled, ok := item.(*PooledBuilder); ok && pooled != nil {
-			// Check if schema matches
-			if p.schemasEqual(pooled.schema, schema) {
-				p.incrementHits()
+		if pooled, ok := item.(*PooledBuilder); ok && pooled != nil && pooled.builder != nil {
+			// Verify builder is still valid
+			if pooled.builder.Schema().Equal(schema) {
+				// Reuse pooled builder (all builders have same schema)
 				pooled.lastUsed = time.Now()
 				pooled.resetBuilder()
 				return pooled
+			} else {
+				// Schema mismatch - release old builder
+				pooled.release()
 			}
-			// Schema mismatch - release and create new
-			pooled.release()
 		} else {
 			// Unexpected type in pool - cleanup and log warning
 			if releaser, ok := item.(interface{ Release() }); ok {
@@ -87,19 +93,19 @@ func (p *ArrowBuilderPool) Get(schema *arrow.Schema) *PooledBuilder {
 		}
 	}
 
-	// Cache schema for reuse
-	p.cacheSchema(schemaKey, schema)
-
-	// Create new builder
+	// Create new builder - handle potential allocation failure
 	builder := array.NewRecordBuilder(p.allocator, schema)
+	if builder == nil {
+		p.logger.Error("Failed to create new RecordBuilder")
+		return nil
+	}
+
 	pooled := &PooledBuilder{
 		builder:  builder,
-		schema:   schema,
 		lastUsed: time.Now(),
 		pool:     p,
 	}
 
-	p.incrementMisses()
 	return pooled
 }
 
@@ -117,26 +123,15 @@ func (p *ArrowBuilderPool) Put(pooled *PooledBuilder) {
 	p.pool.Put(pooled)
 }
 
-// GetStats returns pool statistics
-func (p *ArrowBuilderPool) GetStats() (hits, misses, resets int64) {
-	p.statsMutex.RLock()
-	defer p.statsMutex.RUnlock()
-	return p.stats.hits, p.stats.misses, p.stats.resets
-}
 
-// Clear empties the pool and clears schema cache
+// Clear empties the pool 
 func (p *ArrowBuilderPool) Clear() {
 	// Create new pool to clear all items
 	p.pool = sync.Pool{
 		New: func() interface{} {
-			p.incrementMisses()
 			return nil
 		},
 	}
-
-	p.schemaMutex.Lock()
-	p.schemaCache = make(map[string]*arrow.Schema)
-	p.schemaMutex.Unlock()
 
 	p.logger.Debug("Arrow builder pool cleared")
 }
@@ -183,9 +178,6 @@ func (pb *PooledBuilder) resetBuilder() {
 			fieldBuilder.Resize(0)
 		}
 	}
-
-	pb.resetCount++
-	pb.pool.incrementResets()
 }
 
 // release releases the builder resources
@@ -196,43 +188,3 @@ func (pb *PooledBuilder) release() {
 	}
 }
 
-// Helper methods
-
-func (p *ArrowBuilderPool) getSchemaKey(schema *arrow.Schema) string {
-	if schema == nil {
-		return ""
-	}
-	// Use schema fingerprint as key for efficient comparison
-	return schema.Fingerprint()
-}
-
-func (p *ArrowBuilderPool) cacheSchema(key string, schema *arrow.Schema) {
-	p.schemaMutex.Lock()
-	defer p.schemaMutex.Unlock()
-	p.schemaCache[key] = schema
-}
-
-func (p *ArrowBuilderPool) schemasEqual(a, b *arrow.Schema) bool {
-	if a == nil || b == nil {
-		return a == b
-	}
-	return a.Fingerprint() == b.Fingerprint()
-}
-
-func (p *ArrowBuilderPool) incrementHits() {
-	p.statsMutex.Lock()
-	p.stats.hits++
-	p.statsMutex.Unlock()
-}
-
-func (p *ArrowBuilderPool) incrementMisses() {
-	p.statsMutex.Lock()
-	p.stats.misses++
-	p.statsMutex.Unlock()
-}
-
-func (p *ArrowBuilderPool) incrementResets() {
-	p.statsMutex.Lock()
-	p.stats.resets++
-	p.statsMutex.Unlock()
-}

@@ -11,6 +11,12 @@ import (
 	"go.uber.org/zap"
 )
 
+// BufferConfig contains configurable constants for Arrow buffer sizing
+type BufferConfig struct {
+	StringDataMultiplier  int // Default: 32 - estimated chars per string field
+	ListElementMultiplier int // Default: 5 - estimated elements per list field
+}
+
 // SimpleSchemaValidator validates schema once at initialization
 type SimpleSchemaValidator struct {
 	icebergSchema *icebergGo.Schema
@@ -23,6 +29,7 @@ type IcebergDestination struct {
 	catalogProvider CatalogProvider
 	schemaValidator *SimpleSchemaValidator
 	builderPool     *ArrowBuilderPool
+	bufferConfig    BufferConfig
 
 	// Configuration
 	catalogURI  string

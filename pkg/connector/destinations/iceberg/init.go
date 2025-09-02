@@ -149,22 +149,6 @@ func (d *IcebergDestination) Metrics() map[string]interface{} {
 		"initialized":    d.catalogProvider != nil,
 	}
 
-	// Add builder pool statistics for performance monitoring
-	if d.builderPool != nil {
-		hits, misses, resets := d.builderPool.GetStats()
-		metrics["arrow_builder_pool"] = map[string]interface{}{
-			"hits":   hits,
-			"misses": misses,
-			"resets": resets,
-			"hit_ratio": func() float64 {
-				total := hits + misses
-				if total == 0 {
-					return 0.0
-				}
-				return float64(hits) / float64(total)
-			}(),
-		}
-	}
 
 	return metrics
 }
