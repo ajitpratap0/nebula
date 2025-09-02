@@ -149,7 +149,7 @@ func (aw *arrowWriter) flushBatch() error {
 	aw.currentBatch = 0
 
 	// Track bytes written
-	aw.bytesWritten += int64(record.NumRows() * 64) // Estimate
+	aw.bytesWritten += record.NumRows() * 64 // Estimate
 
 	return nil
 }

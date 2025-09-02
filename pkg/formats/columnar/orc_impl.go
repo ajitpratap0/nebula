@@ -467,7 +467,7 @@ func (ow *orcWriter) encodeColumn(data []interface{}, fieldType core.FieldType) 
 				encoded = binary.LittleEndian.AppendUint64(encoded, 0)
 			} else {
 				encoded = binary.LittleEndian.AppendUint64(encoded,
-					uint64(float64ToUint64(v.(float64))))
+					float64ToUint64(v.(float64)))
 			}
 		}
 

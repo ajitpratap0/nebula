@@ -762,7 +762,7 @@ func (d *GCSDestination) checkUploadErrors() error {
 	}
 
 	// Combine all errors
-	var errMsgs []string
+	errMsgs := make([]string, 0, len(d.uploadErrors))
 	for _, err := range d.uploadErrors {
 		errMsgs = append(errMsgs, err.Error())
 	}

@@ -130,14 +130,15 @@ func (n *NessieCatalog) GetSchema(ctx context.Context, database, table string) (
 		zap.String("identifier", fmt.Sprintf("%s.%s", database, table)))
 
 	iceSchema := tbl.Schema()
-	var fields []core.Field
+	schemaFields := iceSchema.Fields()
+	fields := make([]core.Field, 0, len(schemaFields))
 
 	n.logger.Debug("Table schema details",
 		zap.String("table", table),
 		zap.Int("schema_id", iceSchema.ID),
-		zap.Int("field_count", len(iceSchema.Fields())))
+		zap.Int("field_count", len(schemaFields)))
 
-	for _, field := range iceSchema.Fields() {
+	for _, field := range schemaFields {
 		coreField := convertIcebergFieldToCore(field)
 		fields = append(fields, coreField)
 

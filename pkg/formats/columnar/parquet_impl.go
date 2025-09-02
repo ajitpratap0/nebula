@@ -162,7 +162,7 @@ func (pw *parquetWriter) flushBatch() error {
 	pw.currentBatch = 0
 
 	// TODO: Track bytes written accurately
-	pw.bytesWritten += int64(record.NumRows() * 100) // Estimate
+	pw.bytesWritten += record.NumRows() * 100 // Estimate
 
 	return nil
 }

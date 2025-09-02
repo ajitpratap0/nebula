@@ -573,7 +573,7 @@ func (s *SnowflakeOptimizedDestination) processBulkChunks(ctx context.Context, c
 	close(errorChan)
 
 	// Collect any errors
-	var errors []error
+	errors := make([]error, 0, len(chunks))
 	for err := range errorChan {
 		errors = append(errors, err)
 	}
@@ -1080,7 +1080,7 @@ func (s *SnowflakeOptimizedDestination) buildCreateTableSQL(schema *core.Schema)
 		s.currentTable = schema.Name
 	}
 
-	var columns []string
+	columns := make([]string, 0, len(schema.Fields))
 	for _, field := range schema.Fields {
 		// Use SQLBuilder for column definitions
 		colBuilder := stringpool.NewSQLBuilder(64)

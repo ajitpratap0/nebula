@@ -353,12 +353,12 @@ func (s *PostgreSQLSource) discoverSchemaFromQuery(ctx context.Context) error {
 
 	fieldDescriptions := rows.FieldDescriptions()
 
-	var columns []string
-	var columnTypes []string
+	columns := make([]string, 0, len(fieldDescriptions))
+	columnTypes := make([]string, 0, len(fieldDescriptions))
 	fields := make([]core.Field, len(fieldDescriptions))
 
 	for i, fd := range fieldDescriptions {
-		columnName := string(fd.Name)
+		columnName := fd.Name
 
 		columns = append(columns, columnName)
 		columnTypes = append(columnTypes, stringpool.Sprintf("oid_%d", fd.DataTypeOID))

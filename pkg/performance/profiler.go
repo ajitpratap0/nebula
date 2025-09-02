@@ -261,7 +261,7 @@ func NewResourceMonitor() *ResourceMonitor {
 
 	return &ResourceMonitor{
 		process:      proc,
-		startCPUTime: cpuTime.Total(),
+		startCPUTime: cpuTime.User + cpuTime.System,
 		startTime:    time.Now(),
 	}
 }
@@ -277,7 +277,8 @@ func (rm *ResourceMonitor) GetResourceUsage() (*ResourceUsage, error) {
 	cpuTime, err := rm.process.Times()
 	if err == nil {
 		elapsed := time.Since(rm.startTime).Seconds()
-		usage.CPUPercent = ((cpuTime.Total() - rm.startCPUTime) / elapsed) * 100
+		currentCPUTime := cpuTime.User + cpuTime.System
+		usage.CPUPercent = ((currentCPUTime - rm.startCPUTime) / elapsed) * 100
 	}
 
 	// Memory usage
