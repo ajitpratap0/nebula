@@ -76,7 +76,7 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/cdc"
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
@@ -97,7 +97,7 @@ import (
 //   - Checkpoint management for exactly-once delivery
 //   - Comprehensive health monitoring and metrics
 type PostgreSQLCDCSource struct {
-	*base.BaseConnector
+	*baseconnector.BaseConnector
 
 	// CDC connector
 	cdcConnector *cdc.PostgreSQLConnector // Underlying CDC implementation
@@ -121,7 +121,7 @@ type PostgreSQLCDCSource struct {
 
 // NewPostgreSQLCDCSource creates a new PostgreSQL CDC source connector
 func NewPostgreSQLCDCSource(config *config.BaseConfig) (core.Source, error) {
-	base := base.NewBaseConnector("postgresql_cdc", core.ConnectorTypeSource, "2.0.0")
+	base := baseconnector.NewBaseConnector("postgresql_cdc", core.ConnectorTypeSource, "2.0.0")
 
 	source := &PostgreSQLCDCSource{
 		BaseConnector: base,

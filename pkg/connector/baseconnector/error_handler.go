@@ -1,4 +1,4 @@
-package base
+package baseconnector
 
 import (
 	"context"
@@ -76,12 +76,12 @@ func (eh *ErrorHandler) ShouldRetry(err error) bool {
 	}
 
 	// Check if error is explicitly marked as non-retryable
-	if errors.IsType(err, nebulaerrors.ErrorTypeInternal) {
+	if nebulaerrors.IsType(err, nebulaerrors.ErrorTypeInternal) {
 		return false
 	}
 
 	// Check if error is explicitly marked as retryable
-	if errors.IsRetryable(err) {
+	if nebulaerrors.IsRetryable(err) {
 		return true
 	}
 
@@ -133,8 +133,8 @@ func (eh *ErrorHandler) ShouldRetry(err error) bool {
 	}
 
 	// Default: retry network and timeout errors
-	return errors.IsType(err, nebulaerrors.ErrorTypeConnection) ||
-		errors.IsType(err, nebulaerrors.ErrorTypeTimeout)
+	return nebulaerrors.IsType(err, nebulaerrors.ErrorTypeConnection) ||
+		nebulaerrors.IsType(err, nebulaerrors.ErrorTypeTimeout)
 }
 
 // GetRetryDelay calculates the retry delay for a given attempt
@@ -213,25 +213,25 @@ func (eh *ErrorHandler) categorizeError(err error) string {
 	}
 
 	// Check for known error types
-	if errors.IsType(err, nebulaerrors.ErrorTypeConnection) {
+	if nebulaerrors.IsType(err, nebulaerrors.ErrorTypeConnection) {
 		return "connection"
 	}
-	if errors.IsType(err, nebulaerrors.ErrorTypeTimeout) {
+	if nebulaerrors.IsType(err, nebulaerrors.ErrorTypeTimeout) {
 		return "timeout"
 	}
-	if errors.IsType(err, nebulaerrors.ErrorTypeAuthentication) {
+	if nebulaerrors.IsType(err, nebulaerrors.ErrorTypeAuthentication) {
 		return "authentication"
 	}
-	if errors.IsType(err, nebulaerrors.ErrorTypeRateLimit) {
+	if nebulaerrors.IsType(err, nebulaerrors.ErrorTypeRateLimit) {
 		return "rate_limit"
 	}
-	if errors.IsType(err, nebulaerrors.ErrorTypeConfig) {
+	if nebulaerrors.IsType(err, nebulaerrors.ErrorTypeConfig) {
 		return "configuration"
 	}
-	if errors.IsType(err, nebulaerrors.ErrorTypeData) {
+	if nebulaerrors.IsType(err, nebulaerrors.ErrorTypeData) {
 		return "data_error"
 	}
-	if errors.IsType(err, nebulaerrors.ErrorTypeInternal) {
+	if nebulaerrors.IsType(err, nebulaerrors.ErrorTypeInternal) {
 		return "internal"
 	}
 

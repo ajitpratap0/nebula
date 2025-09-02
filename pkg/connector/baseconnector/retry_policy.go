@@ -1,10 +1,10 @@
-package base
+package baseconnector
 
 import (
 	"context"
 	"fmt"
 	"math"
-	"math/rand //nolint:gosec"
+	"math/rand" //nolint:gosec
 	"time"
 )
 

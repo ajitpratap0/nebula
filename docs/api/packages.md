@@ -169,7 +169,7 @@ cmd/nebula
 ```go
 import (
     "github.com/ajitpratap0/nebula/pkg/connector/core"
-    "github.com/ajitpratap0/nebula/pkg/connector/base"
+    "github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
     "github.com/ajitpratap0/nebula/pkg/config"
     "github.com/ajitpratap0/nebula/pkg/pool"
     "github.com/ajitpratap0/nebula/pkg/errors"

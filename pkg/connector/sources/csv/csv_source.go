@@ -68,7 +68,7 @@ import (
 	"strings"
 
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
@@ -87,7 +87,7 @@ import (
 //   - Progress tracking and resumability
 //   - Memory-efficient streaming
 type CSVSource struct {
-	*base.BaseConnector
+	*baseconnector.BaseConnector
 
 	// CSV-specific fields
 	file           *os.File    // Open file handle
@@ -118,7 +118,7 @@ type CSVSource struct {
 //
 // Actual configuration is applied during Initialize().
 func NewCSVSource(config *config.BaseConfig) (core.Source, error) {
-	base := base.NewBaseConnector("csv", core.ConnectorTypeSource, "2.0.0")
+	base := baseconnector.NewBaseConnector("csv", core.ConnectorTypeSource, "2.0.0")
 
 	return &CSVSource{
 		BaseConnector: base,

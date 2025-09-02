@@ -8,7 +8,7 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/cdc"
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
@@ -19,7 +19,7 @@ import (
 
 // MySQLCDCSource is a MySQL CDC source connector that implements core.Source
 type MySQLCDCSource struct {
-	*base.BaseConnector
+	*baseconnector.BaseConnector
 
 	// CDC engine
 	cdcConnector *cdc.MySQLConnector
@@ -47,7 +47,7 @@ type MySQLCDCSource struct {
 
 // NewMySQLCDCSource creates a new MySQL CDC source connector
 func NewMySQLCDCSource(config *config.BaseConfig) (core.Source, error) {
-	base := base.NewBaseConnector("mysql-cdc", core.ConnectorTypeSource, "1.0.0")
+	base := baseconnector.NewBaseConnector("mysql-cdc", core.ConnectorTypeSource, "1.0.0")
 
 	return &MySQLCDCSource{
 		BaseConnector: base,

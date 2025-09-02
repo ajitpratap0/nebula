@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
@@ -23,7 +23,7 @@ import (
 
 // MetaAdsSource is a production-ready Meta Ads source connector using BaseConnector
 type MetaAdsSource struct {
-	*base.BaseConnector
+	*baseconnector.BaseConnector
 
 	// Meta Marketing API configuration
 	config       *MetaAdsConfig
@@ -121,7 +121,7 @@ type CursorInfo struct {
 // NewMetaAdsSource creates a new Meta Ads source connector
 func NewMetaAdsSource(name string, config *config.BaseConfig) (core.Source, error) {
 	// Create base connector with production features
-	base := base.NewBaseConnector("meta_ads", core.ConnectorTypeSource, "1.0.0")
+	base := baseconnector.NewBaseConnector("meta_ads", core.ConnectorTypeSource, "1.0.0")
 
 	source := &MetaAdsSource{
 		BaseConnector:    base,

@@ -11,7 +11,7 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/compression"
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/formats/columnar"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
@@ -39,7 +39,7 @@ const (
 
 // S3Destination represents an S3 destination connector
 type S3Destination struct {
-	*base.BaseConnector
+	*baseconnector.BaseConnector
 
 	// Configuration
 	config            *config.BaseConfig
@@ -79,7 +79,7 @@ type S3Destination struct {
 
 // NewS3Destination creates a new S3 destination
 func NewS3Destination(name string, config *config.BaseConfig) (*S3Destination, error) {
-	baseConnector := base.NewBaseConnector(name, core.ConnectorTypeDestination, "1.0.0")
+	baseConnector := baseconnector.NewBaseConnector(name, core.ConnectorTypeDestination, "1.0.0")
 
 	// Parse configuration
 	if config.Security.Credentials == nil {
