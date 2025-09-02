@@ -8,7 +8,7 @@ import (
 
 func init() {
 	// Register MySQL CDC source connector
-	registry.GetRegistry().RegisterSource("mysql-cdc", func(cfg *config.BaseConfig) (core.Source, error) {
+	_ = registry.GetRegistry().RegisterSource("mysql-cdc", func(cfg *config.BaseConfig) (core.Source, error) {
 		return NewMySQLCDCSource(cfg)
-	})
+	}) // Ignore registration error - will fail later if needed
 }

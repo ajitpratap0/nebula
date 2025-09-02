@@ -1,0 +1,28 @@
+Nebula Performance Bottleneck Analysis
+=====================================
+
+Timestamp: 2025-08-31T12:40:04+05:30
+Summary: Found 1 bottlenecks: 
+Primary bottleneck: CPU underutilization: 0 goroutines on 16 CPUs (concurrency)
+
+Bottlenecks:
+-----------
+
+1. [LOW] CPU underutilization: 0 goroutines on 16 CPUs
+   Type: concurrency
+   Component: parallelism
+   Impact: 100.0%
+   Suggestions:
+   - Increase parallelism for CPU-bound operations
+   - Use worker pools sized to CPU count
+   - Consider data partitioning for parallel processing
+   Details:
+   - num_goroutines: 0
+   - gomaxprocs: 16
+   - num_cpu: 16
+
+Prioritized Recommendations:
+---------------------------
+1. Continue monitoring performance metrics
+2. Establish performance baselines
+3. Set up continuous profiling

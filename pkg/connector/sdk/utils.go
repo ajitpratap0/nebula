@@ -11,8 +11,8 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/connector/registry"
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 )
@@ -31,12 +31,12 @@ func NewConfigValidator() *ConfigValidator {
 // Properties should be stored in the Security.Credentials map.
 func (cv *ConfigValidator) ValidateRequired(config *config.BaseConfig, requiredProps ...string) error {
 	if config.Security.Credentials == nil {
-		return errors.New(errors.ErrorTypeConfig, "security credentials are required for connector-specific properties")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "security credentials are required for connector-specific properties")
 	}
 
 	for _, prop := range requiredProps {
 		if val, exists := config.Security.Credentials[prop]; !exists || val == "" {
-			return errors.New(errors.ErrorTypeConfig, fmt.Sprintf("required property '%s' is missing", prop))
+			return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("required property '%s' is missing", prop))
 		}
 	}
 
@@ -55,20 +55,20 @@ func (cv *ConfigValidator) ValidateString(config *config.BaseConfig, propName st
 	str := val // credentials map values are strings
 
 	if len(str) < minLength {
-		return errors.New(errors.ErrorTypeConfig, fmt.Sprintf("property '%s' must be at least %d characters", propName, minLength))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("property '%s' must be at least %d characters", propName, minLength))
 	}
 
 	if maxLength > 0 && len(str) > maxLength {
-		return errors.New(errors.ErrorTypeConfig, fmt.Sprintf("property '%s' must be at most %d characters", propName, maxLength))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("property '%s' must be at most %d characters", propName, maxLength))
 	}
 
 	if pattern != "" {
 		matched, err := regexp.MatchString(pattern, str)
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeConfig, fmt.Sprintf("invalid pattern for property '%s'", propName))
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, fmt.Sprintf("invalid pattern for property '%s'", propName))
 		}
 		if !matched {
-			return errors.New(errors.ErrorTypeConfig, fmt.Sprintf("property '%s' does not match required pattern", propName))
+			return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("property '%s' does not match required pattern", propName))
 		}
 	}
 
@@ -86,15 +86,15 @@ func (cv *ConfigValidator) ValidateInt(config *config.BaseConfig, propName strin
 	// Parse string to int (credentials map values are strings)
 	intVal, err := strconv.Atoi(val)
 	if err != nil {
-		return errors.New(errors.ErrorTypeConfig, fmt.Sprintf("property '%s' must be an integer", propName))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("property '%s' must be an integer", propName))
 	}
 
 	if intVal < min {
-		return errors.New(errors.ErrorTypeConfig, fmt.Sprintf("property '%s' must be at least %d", propName, min))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("property '%s' must be at least %d", propName, min))
 	}
 
 	if max > 0 && intVal > max {
-		return errors.New(errors.ErrorTypeConfig, fmt.Sprintf("property '%s' must be at most %d", propName, max))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("property '%s' must be at most %d", propName, max))
 	}
 
 	return nil
@@ -116,7 +116,7 @@ func (cv *ConfigValidator) ValidateEnum(config *config.BaseConfig, propName stri
 		}
 	}
 
-	return errors.New(errors.ErrorTypeConfig, stringpool.Sprintf("property '%s' must be one of: %s", propName, stringpool.JoinPooled(validValues, ", ")))
+	return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, stringpool.Sprintf("property '%s' must be one of: %s", propName, stringpool.JoinPooled(validValues, ", ")))
 }
 
 // SchemaBuilder helps build schemas programmatically using a fluent interface.
@@ -484,7 +484,7 @@ func (tc *TypeConverter) toInt(value interface{}) (int64, error) {
 	case string:
 		return strconv.ParseInt(v, 10, 64)
 	default:
-		return 0, errors.New(errors.ErrorTypeData, fmt.Sprintf("cannot convert %T to int", value))
+		return 0, nebulaerrors.New(nebulaerrors.ErrorTypeData, fmt.Sprintf("cannot convert %T to int", value))
 	}
 }
 
@@ -504,7 +504,7 @@ func (tc *TypeConverter) toFloat(value interface{}) (float64, error) {
 	case string:
 		return strconv.ParseFloat(v, 64)
 	default:
-		return 0, errors.New(errors.ErrorTypeData, fmt.Sprintf("cannot convert %T to float", value))
+		return 0, nebulaerrors.New(nebulaerrors.ErrorTypeData, fmt.Sprintf("cannot convert %T to float", value))
 	}
 }
 
@@ -526,7 +526,7 @@ func (tc *TypeConverter) toBool(value interface{}) (bool, error) {
 	case string:
 		return strconv.ParseBool(v)
 	default:
-		return false, errors.New(errors.ErrorTypeData, fmt.Sprintf("cannot convert %T to bool", value))
+		return false, nebulaerrors.New(nebulaerrors.ErrorTypeData, fmt.Sprintf("cannot convert %T to bool", value))
 	}
 }
 
@@ -553,9 +553,9 @@ func (tc *TypeConverter) toTimestamp(value interface{}) (time.Time, error) {
 			}
 		}
 
-		return time.Time{}, errors.New(errors.ErrorTypeData, fmt.Sprintf("cannot parse timestamp: %s", v))
+		return time.Time{}, nebulaerrors.New(nebulaerrors.ErrorTypeData, fmt.Sprintf("cannot parse timestamp: %s", v))
 	default:
-		return time.Time{}, errors.New(errors.ErrorTypeData, fmt.Sprintf("cannot convert %T to timestamp", value))
+		return time.Time{}, nebulaerrors.New(nebulaerrors.ErrorTypeData, fmt.Sprintf("cannot convert %T to timestamp", value))
 	}
 }
 

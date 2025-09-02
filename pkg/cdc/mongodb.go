@@ -305,12 +305,12 @@ func (c *MongoDBConnector) Stop() error {
 
 	// Close change stream
 	if c.changeStream != nil {
-		c.changeStream.Close(context.Background())
+		_ = c.changeStream.Close(context.Background()) // Best effort close
 	}
 
 	// Disconnect from MongoDB
 	if c.client != nil {
-		c.client.Disconnect(context.Background())
+		_ = c.client.Disconnect(context.Background()) // Best effort disconnect
 	}
 
 	c.updateHealth("stopped", "Connector stopped", nil)
@@ -564,6 +564,14 @@ func (c *MongoDBConnector) processMongoChangeEvent(changeEvent MongoChangeEvent)
 			// At minimum, include the document key
 			before = changeEvent.DocumentKey
 		}
+
+	case OperationDDL:
+		// DDL operations typically don't have before/after data in the same way
+		// The operation details are in the change event itself
+
+	case OperationCommit:
+		// Commit operations typically don't have before/after data
+		// They represent transaction boundaries
 	}
 
 	// Create change event
@@ -632,7 +640,7 @@ func (c *MongoDBConnector) restartChangeStream() error {
 
 	// Close existing change stream
 	if c.changeStream != nil {
-		c.changeStream.Close(context.Background())
+		_ = c.changeStream.Close(context.Background()) // Best effort close
 	}
 
 	// Start new change stream

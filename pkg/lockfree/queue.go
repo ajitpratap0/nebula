@@ -12,10 +12,10 @@ import (
 type Queue struct {
 	// Separate head and tail on different cache lines to avoid false sharing
 	head      atomic.Uint64
-	_padding1 [7]uint64 // 56 bytes padding to separate cache lines
+	_padding1 [7]uint64 // 56 bytes padding to separate cache lines //nolint:unused
 
 	tail      atomic.Uint64
-	_padding2 [7]uint64 // 56 bytes padding
+	_padding2 [7]uint64 // 56 bytes padding //nolint:unused
 
 	buffer   []unsafe.Pointer
 	capacity uint64
@@ -123,10 +123,10 @@ type MPMCQueue struct {
 
 	// Separate enqueue and dequeue indices on different cache lines
 	enqueuePos atomic.Uint64
-	_padding1  [7]uint64
+	_padding1  [7]uint64 //nolint:unused
 
 	dequeuePos atomic.Uint64
-	_padding2  [7]uint64
+	_padding2  [7]uint64 //nolint:unused
 }
 
 // slot represents a queue slot with sequence number for ordering
@@ -253,10 +253,10 @@ type RingBuffer struct {
 
 	// Separate read and write positions
 	writePos  atomic.Uint64
-	_padding1 [7]uint64
+	_padding1 [7]uint64 //nolint:unused
 
 	readPos   atomic.Uint64
-	_padding2 [7]uint64
+	_padding2 [7]uint64 //nolint:unused
 }
 
 // NewRingBuffer creates a new lock-free ring buffer with the given capacity.

@@ -72,12 +72,12 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 	var buf bytes.Buffer
 
 	// Write column type
-	if err := binary.Write(&buf, binary.LittleEndian, uint8(col.Type())); err != nil {
+	if err := binary.Write(&buf, binary.LittleEndian, uint8(col.Type())); err != nil { //nolint:gosec // G115: ColumnType values are small and fit in uint8
 		return nil, err
 	}
 
 	// Write column length
-	if err := binary.Write(&buf, binary.LittleEndian, uint32(col.Len())); err != nil {
+	if err := binary.Write(&buf, binary.LittleEndian, uint32(col.Len())); err != nil { //nolint:gosec // G115: Column lengths are expected to fit in uint32
 		return nil, err
 	}
 
@@ -120,7 +120,7 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 	case ColumnTypeBool:
 		boolCol := col.(*BoolColumn)
 		// Already bit-packed, write directly
-		if err := binary.Write(&buf, binary.LittleEndian, uint32(len(boolCol.values))); err != nil {
+		if err := binary.Write(&buf, binary.LittleEndian, uint32(len(boolCol.values))); err != nil { //nolint:gosec // G115: Bool column values length expected to fit in uint32
 			return nil, err
 		}
 		for _, word := range boolCol.values {

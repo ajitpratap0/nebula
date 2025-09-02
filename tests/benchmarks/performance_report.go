@@ -203,22 +203,22 @@ func SaveReport(report *PerformanceReport, outputPath string) error {
 
 // PrintReport prints the report in a human-readable format
 func PrintReport(report *PerformanceReport, w io.Writer) {
-	fmt.Fprintf(w, "\n%s\n", strings.Repeat("=", 80))
-	fmt.Fprintf(w, "GOOGLE SHEETS CONNECTOR PERFORMANCE REPORT\n")
-	fmt.Fprintf(w, "%s\n", strings.Repeat("=", 80))
-	fmt.Fprintf(w, "Generated: %s\n", report.Timestamp.Format(time.RFC3339))
-	fmt.Fprintf(w, "Target: %.0f records/second\n\n", report.TargetValue)
+	_, _ = fmt.Fprintf(w, "\n%s\n", strings.Repeat("=", 80))
+	_, _ = fmt.Fprintf(w, "GOOGLE SHEETS CONNECTOR PERFORMANCE REPORT\n")
+	_, _ = fmt.Fprintf(w, "%s\n", strings.Repeat("=", 80))
+	_, _ = fmt.Fprintf(w, "Generated: %s\n", report.Timestamp.Format(time.RFC3339))
+	_, _ = fmt.Fprintf(w, "Target: %.0f records/second\n\n", report.TargetValue)
 
 	// Results table
-	fmt.Fprintf(w, "%-40s %-15s %-15s %-10s\n", "Configuration", "Throughput", "Latency (ms)", "Status")
-	fmt.Fprintf(w, "%s\n", strings.Repeat("-", 80))
+	_, _ = fmt.Fprintf(w, "%-40s %-15s %-15s %-10s\n", "Configuration", "Throughput", "Latency (ms)", "Status")
+	_, _ = fmt.Fprintf(w, "%s\n", strings.Repeat("-", 80))
 
 	for _, result := range report.Results {
 		status := "FAIL"
 		if result.PassedTarget {
 			status = "PASS"
 		}
-		fmt.Fprintf(w, "%-40s %-15.0f %-15.1f %-10s\n",
+		_, _ = fmt.Fprintf(w, "%-40s %-15.0f %-15.1f %-10s\n",
 			result.Name,
 			result.Metrics.Throughput,
 			result.Metrics.LatencyMs,
@@ -226,38 +226,38 @@ func PrintReport(report *PerformanceReport, w io.Writer) {
 	}
 
 	// Summary
-	fmt.Fprintf(w, "\n%s\n", strings.Repeat("-", 80))
-	fmt.Fprintf(w, "SUMMARY\n")
-	fmt.Fprintf(w, "%s\n", strings.Repeat("-", 80))
-	fmt.Fprintf(w, "Best Throughput: %.0f records/sec (%.1f%% of target)\n",
+	_, _ = fmt.Fprintf(w, "\n%s\n", strings.Repeat("-", 80))
+	_, _ = fmt.Fprintf(w, "SUMMARY\n")
+	_, _ = fmt.Fprintf(w, "%s\n", strings.Repeat("-", 80))
+	_, _ = fmt.Fprintf(w, "Best Throughput: %.0f records/sec (%.1f%% of target)\n",
 		report.Summary.BestThroughput,
 		report.Summary.PercentOfTarget)
-	fmt.Fprintf(w, "Average Throughput: %.0f records/sec\n", report.Summary.AverageThroughput)
-	fmt.Fprintf(w, "Target Achieved: %v\n", report.Summary.TargetAchieved)
+	_, _ = fmt.Fprintf(w, "Average Throughput: %.0f records/sec\n", report.Summary.AverageThroughput)
+	_, _ = fmt.Fprintf(w, "Target Achieved: %v\n", report.Summary.TargetAchieved)
 
 	if len(report.Summary.OptimalConfig) > 0 {
-		fmt.Fprintf(w, "\nOptimal Configuration:\n")
+		_, _ = fmt.Fprintf(w, "\nOptimal Configuration:\n")
 		for key, value := range report.Summary.OptimalConfig {
-			fmt.Fprintf(w, "  - %s: %v\n", key, value)
+			_, _ = fmt.Fprintf(w, "  - %s: %v\n", key, value)
 		}
 	}
 
 	if len(report.Summary.Bottlenecks) > 0 {
-		fmt.Fprintf(w, "\nIdentified Bottlenecks:\n")
+		_, _ = fmt.Fprintf(w, "\nIdentified Bottlenecks:\n")
 		for _, bottleneck := range report.Summary.Bottlenecks {
-			fmt.Fprintf(w, "  - %s\n", bottleneck)
+			_, _ = fmt.Fprintf(w, "  - %s\n", bottleneck)
 		}
 	}
 
 	// Recommendations
-	fmt.Fprintf(w, "\n%s\n", strings.Repeat("-", 80))
-	fmt.Fprintf(w, "RECOMMENDATIONS\n")
-	fmt.Fprintf(w, "%s\n", strings.Repeat("-", 80))
+	_, _ = fmt.Fprintf(w, "\n%s\n", strings.Repeat("-", 80))
+	_, _ = fmt.Fprintf(w, "RECOMMENDATIONS\n")
+	_, _ = fmt.Fprintf(w, "%s\n", strings.Repeat("-", 80))
 	for _, rec := range report.Recommendations {
-		fmt.Fprintf(w, "%s\n", rec)
+		_, _ = fmt.Fprintf(w, "%s\n", rec)
 	}
 
-	fmt.Fprintf(w, "\n%s\n", strings.Repeat("=", 80))
+	_, _ = fmt.Fprintf(w, "\n%s\n", strings.Repeat("=", 80))
 }
 
 // AnalyzeBenchmarkOutput analyzes raw benchmark output

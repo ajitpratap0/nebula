@@ -20,7 +20,7 @@ func BenchmarkHybridStorageComparison(b *testing.B) {
 	testFile := "/tmp/hybrid_storage_test.csv"
 	recordCount := 100000
 	createBenchmarkTestData(b, testFile, recordCount)
-	defer os.Remove(testFile)
+	defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 	modes := []struct {
 		name string
@@ -105,7 +105,7 @@ func BenchmarkColumnarMemoryEfficiency(b *testing.B) {
 	for _, count := range recordCounts {
 		b.Run(fmt.Sprintf("Records_%d", count), func(b *testing.B) {
 			createBenchmarkTestData(b, testFile, count)
-			defer os.Remove(testFile)
+			defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 			cfg := config.NewBaseConfig("test", "csv_source")
 			cfg.Advanced.StorageMode = "columnar"
@@ -185,7 +185,7 @@ func BenchmarkStorageModeAutoSelection(b *testing.B) {
 	for _, scenario := range scenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			createBenchmarkTestData(b, testFile, scenario.recordCount)
-			defer os.Remove(testFile)
+			defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 			cfg := config.NewBaseConfig("test", "csv_source")
 			cfg.Advanced.StorageMode = "hybrid"
@@ -243,7 +243,7 @@ func createBenchmarkTestData(b *testing.B, filename string, records int) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close()
+	defer file.Close() // Ignore close error
 
 	// Write headers
 	headers := "order_id,customer_id,product_sku,quantity,price,status,category,region,timestamp\n"
@@ -284,7 +284,7 @@ func BenchmarkDirectStorageAdapter(b *testing.B) {
 			cfg.Performance.BatchSize = 10000
 
 			adapter := pipeline.NewStorageAdapter(mode, cfg)
-			defer adapter.Close()
+			defer adapter.Close() // Ignore close error
 
 			b.ResetTimer()
 			b.ReportAllocs()
@@ -306,7 +306,7 @@ func BenchmarkDirectStorageAdapter(b *testing.B) {
 					record.Release()
 				}
 
-				adapter.Flush()
+				_ = adapter.Flush() // Ignore flush error
 
 				runtime.GC()
 				runtime.ReadMemStats(&m2)

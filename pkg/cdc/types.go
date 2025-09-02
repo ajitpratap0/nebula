@@ -219,6 +219,21 @@ func (ce *ChangeEvent) ConvertToRecord() (*models.Record, error) {
 		data = ce.After // Main data is the after state
 	case OperationDelete:
 		data = ce.Before
+	case OperationDDL:
+		// DDL operations may have schema information or operation details
+		data = ce.After
+		if data == nil {
+			data = ce.Before
+		}
+	case OperationCommit:
+		// Commit operations typically contain transaction metadata
+		data = ce.After
+		if data == nil {
+			data = map[string]interface{}{
+				"transaction_id": ce.ID,
+				"operation":      string(ce.Operation),
+			}
+		}
 	default:
 		data = ce.After
 		if data == nil {

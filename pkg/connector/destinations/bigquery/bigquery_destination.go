@@ -14,9 +14,9 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
@@ -133,7 +133,7 @@ func NewBigQueryDestination(name string, config *config.BaseConfig) (core.Destin
 func (b *BigQueryDestination) Initialize(ctx context.Context, config *config.BaseConfig) error {
 	// Initialize base connector first
 	if err := b.BaseConnector.Initialize(ctx, config); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize base connector")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to initialize base connector")
 	}
 
 	// Validate and extract configuration
@@ -149,14 +149,14 @@ func (b *BigQueryDestination) Initialize(ctx context.Context, config *config.Bas
 	if err := b.ExecuteWithCircuitBreaker(func() error {
 		return b.initializeClient(ctx)
 	}); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to initialize BigQuery client")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to initialize BigQuery client")
 	}
 
 	// Initialize dataset and table
 	if err := b.ExecuteWithCircuitBreaker(func() error {
 		return b.initializeDatasetAndTable(ctx)
 	}); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to initialize dataset and table")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to initialize dataset and table")
 	}
 
 	// Start worker pool
@@ -193,13 +193,13 @@ func (b *BigQueryDestination) CreateSchema(ctx context.Context, schema *core.Sch
 	if err != nil {
 		// Table doesn't exist, create it
 		if err := b.createTable(ctx, bqSchema); err != nil {
-			return errors.Wrap(err, errors.ErrorTypeConnection, "failed to create table")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to create table")
 		}
 	} else {
 		// Table exists, update schema if needed
 		if !b.schemasMatch(metadata.Schema, bqSchema) {
 			if err := b.updateTableSchema(ctx, bqSchema); err != nil {
-				return errors.Wrap(err, errors.ErrorTypeConnection, "failed to update table schema")
+				return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to update table schema")
 			}
 		}
 	}
@@ -223,7 +223,7 @@ func (b *BigQueryDestination) AlterSchema(ctx context.Context, oldSchema, newSch
 	if err := b.ExecuteWithCircuitBreaker(func() error {
 		return b.updateTableSchema(ctx, bqSchema)
 	}); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to alter schema")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to alter schema")
 	}
 
 	b.GetLogger().Info("schema altered",
@@ -275,12 +275,14 @@ func (b *BigQueryDestination) Write(ctx context.Context, stream *core.RecordStre
 
 		case err := <-stream.Errors:
 			if err != nil {
-				return errors.Wrap(err, errors.ErrorTypeData, "error in record stream")
+				return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "error in record stream")
 			}
 
 		case <-ctx.Done():
 			// Flush remaining micro-batch
-			b.flushMicroBatch(ctx)
+			if err := b.flushMicroBatch(ctx); err != nil {
+				b.GetLogger().Error("failed to flush micro-batch on context cancellation", zap.Error(err))
+			}
 			return ctx.Err()
 		}
 	}
@@ -330,11 +332,13 @@ func (b *BigQueryDestination) WriteBatch(ctx context.Context, stream *core.Batch
 
 		case err := <-stream.Errors:
 			if err != nil {
-				return errors.Wrap(err, errors.ErrorTypeData, "error in batch stream")
+				return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "error in batch stream")
 			}
 
 		case <-ctx.Done():
-			b.flushMicroBatch(ctx)
+			if err := b.flushMicroBatch(ctx); err != nil {
+				b.GetLogger().Error("failed to flush micro-batch on context cancellation", zap.Error(err))
+			}
 			return ctx.Err()
 		}
 	}
@@ -396,7 +400,7 @@ func (b *BigQueryDestination) SupportsStreaming() bool {
 // BulkLoad loads data in bulk (not implemented yet)
 func (b *BigQueryDestination) BulkLoad(ctx context.Context, reader interface{}, format string) error {
 	if b.table == nil {
-		return errors.New(errors.ErrorTypeConfig, "no table configured for bulk load")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "no table configured for bulk load")
 	}
 
 	// Start timing for performance metrics
@@ -415,15 +419,15 @@ func (b *BigQueryDestination) BulkLoad(ctx context.Context, reader interface{}, 
 	case chan *models.Record:
 		records, err = b.collectFromChannel(ctx, r)
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, "failed to collect records from channel")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to collect records from channel")
 		}
 	case *core.RecordStream:
 		records, err = b.collectFromStream(ctx, r)
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, "failed to collect records from stream")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to collect records from stream")
 		}
 	default:
-		return errors.New(errors.ErrorTypeValidation, "unsupported reader type for bulk load")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeValidation, "unsupported reader type for bulk load")
 	}
 
 	if len(records) == 0 {
@@ -451,11 +455,11 @@ func (b *BigQueryDestination) executeBulkLoadJob(ctx context.Context, records []
 	case "CSV":
 		source, err = b.createCSVSource(records)
 	default:
-		return errors.New(errors.ErrorTypeValidation, stringpool.Sprintf("unsupported bulk load format: %s", format))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeValidation, stringpool.Sprintf("unsupported bulk load format: %s", format))
 	}
 
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to create load source")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to create load source")
 	}
 
 	// Configure the load job
@@ -477,7 +481,7 @@ func (b *BigQueryDestination) executeBulkLoadJob(ctx context.Context, records []
 	// Submit the load job
 	job, err := loader.Run(ctx)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to submit BigQuery load job")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to submit BigQuery load job")
 	}
 
 	// Wait for completion with timeout
@@ -486,7 +490,7 @@ func (b *BigQueryDestination) executeBulkLoadJob(ctx context.Context, records []
 
 	status, err := job.Wait(jobCtx)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "load job failed or timed out")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "load job failed or timed out")
 	}
 
 	if status.Err() != nil {
@@ -506,7 +510,7 @@ func (b *BigQueryDestination) executeBulkLoadJob(ctx context.Context, records []
 			}
 		}
 
-		return errors.Wrap(status.Err(), errors.ErrorTypeConnection, "BigQuery load job failed")
+		return nebulaerrors.Wrap(status.Err(), nebulaerrors.ErrorTypeConnection, "BigQuery load job failed")
 	}
 
 	// Get job statistics
@@ -540,7 +544,7 @@ func (b *BigQueryDestination) createJSONSource(records []*models.Record) (bigque
 
 	// Start a goroutine to write JSON data
 	go func() {
-		defer writer.Close()
+		defer func() { _ = writer.Close() }() // Ignore close error in goroutine
 
 		for _, record := range records {
 			jsonData, err := jsonpool.Marshal(record.Data)
@@ -575,7 +579,7 @@ func (b *BigQueryDestination) createJSONSource(records []*models.Record) (bigque
 // createCSVSource creates a CSV source for BigQuery load job
 func (b *BigQueryDestination) createCSVSource(records []*models.Record) (bigquery.LoadSource, error) {
 	if len(records) == 0 {
-		return nil, errors.New(errors.ErrorTypeData, "no records to create CSV source")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeData, "no records to create CSV source")
 	}
 
 	// Create a pipe for streaming data
@@ -583,7 +587,7 @@ func (b *BigQueryDestination) createCSVSource(records []*models.Record) (bigquer
 
 	// Start a goroutine to write CSV data
 	go func() {
-		defer writer.Close()
+		defer func() { _ = writer.Close() }() // Ignore close error in goroutine
 
 		csvWriter := csv.NewWriter(writer)
 		defer csvWriter.Flush()
@@ -669,25 +673,25 @@ func (b *BigQueryDestination) collectFromStream(ctx context.Context, stream *cor
 
 // BeginTransaction begins a new transaction (not supported by BigQuery)
 func (b *BigQueryDestination) BeginTransaction(ctx context.Context) (core.Transaction, error) {
-	return nil, errors.New(errors.ErrorTypeCapability, "BigQuery does not support traditional transactions")
+	return nil, nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "BigQuery does not support traditional transactions")
 }
 
 // Upsert performs upsert operations using MERGE statement (not implemented yet)
 func (b *BigQueryDestination) Upsert(ctx context.Context, records []*models.Record, keys []string) error {
-	return errors.New(errors.ErrorTypeCapability, "upsert not yet implemented for BigQuery destination")
+	return nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "upsert not yet implemented for BigQuery destination")
 }
 
 // DropSchema removes the table
 func (b *BigQueryDestination) DropSchema(ctx context.Context, schema *core.Schema) error {
 	if b.table == nil {
-		return errors.New(errors.ErrorTypeConfig, "no table configured")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "no table configured")
 	}
 
 	// Delete the table
 	if err := b.ExecuteWithCircuitBreaker(func() error {
 		return b.table.Delete(ctx)
 	}); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to drop table")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to drop table")
 	}
 
 	b.GetLogger().Info("table dropped",
@@ -719,7 +723,7 @@ func (b *BigQueryDestination) GetStats() *BigQueryStats {
 func (b *BigQueryDestination) validateConfig(config *config.BaseConfig) error {
 	// Basic validation - in production, would validate specific BigQuery config fields
 	if config.Name == "" {
-		return errors.New(errors.ErrorTypeConfig, "connector name is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "connector name is required")
 	}
 
 	// For now, assume config contains required BigQuery fields
@@ -766,7 +770,7 @@ func (b *BigQueryDestination) initializeClient(ctx context.Context) error {
 	// Create client
 	client, err := bigquery.NewClient(ctx, b.projectID, opts...)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to create BigQuery client")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to create BigQuery client")
 	}
 
 	b.client = client
@@ -784,7 +788,7 @@ func (b *BigQueryDestination) initializeDatasetAndTable(ctx context.Context) err
 		if err := b.dataset.Create(ctx, &bigquery.DatasetMetadata{
 			Location: b.location,
 		}); err != nil {
-			return errors.Wrap(err, errors.ErrorTypeConnection, "failed to create dataset")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to create dataset")
 		}
 	}
 
@@ -958,7 +962,9 @@ func (b *BigQueryDestination) batchWorker(ctx context.Context, id int) {
 					zap.Int("worker_id", id),
 					zap.String("batch_id", batch.BatchID),
 					zap.Error(err))
-				b.HandleError(ctx, err, nil)
+				if handleErr := b.HandleError(ctx, err, nil); handleErr != nil {
+					b.GetLogger().Error("failed to handle error", zap.Error(handleErr))
+				}
 			}
 		}
 	}
@@ -1062,7 +1068,7 @@ func (b *BigQueryDestination) insertBatch(ctx context.Context, batch *RecordBatc
 	startTime := time.Now()
 
 	// Convert records to BigQuery format
-	var items []interface{}
+	items := make([]interface{}, 0, len(batch.Records))
 	for _, record := range batch.Records {
 		// Use record.Data directly as it's already a map
 		items = append(items, record.Data)
@@ -1070,7 +1076,7 @@ func (b *BigQueryDestination) insertBatch(ctx context.Context, batch *RecordBatc
 
 	// Insert into BigQuery
 	if err := b.inserter.Put(ctx, items); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to insert batch")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to insert batch")
 	}
 
 	// Update metrics

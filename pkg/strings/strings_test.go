@@ -262,7 +262,7 @@ func TestIntern(t *testing.T) {
 	}
 
 	// Check that they are actually the same underlying string
-	if unsafe.StringData(s1) != unsafe.StringData(s2) {
+	if unsafe.StringData(s1) != unsafe.StringData(s2) { //nolint:gosec // G103: Test verification of memory sharing
 		t.Error("interned strings should share memory")
 	}
 
@@ -368,7 +368,7 @@ func TestURLBuilder(t *testing.T) {
 			name: "basic URL with params",
 			build: func() string {
 				ub := NewURLBuilder("https://api.example.com")
-				defer ub.Close()
+				defer ub.Close() // Ignore close error
 				return ub.AddParam("key", "value").AddParam("foo", "bar").String()
 			},
 			expected: "https://api.example.com?key=value&foo=bar",
@@ -377,7 +377,7 @@ func TestURLBuilder(t *testing.T) {
 			name: "URL with path segments",
 			build: func() string {
 				ub := NewURLBuilder("https://api.example.com")
-				defer ub.Close()
+				defer ub.Close() // Ignore close error
 				return ub.AddPath("v1", "users", "123").String()
 			},
 			expected: "https://api.example.com/v1/users/123",
@@ -386,7 +386,7 @@ func TestURLBuilder(t *testing.T) {
 			name: "URL with path and params",
 			build: func() string {
 				ub := NewURLBuilder("https://api.example.com")
-				defer ub.Close()
+				defer ub.Close() // Ignore close error
 				return ub.AddPath("v1", "users").AddParam("limit", "10").String()
 			},
 			expected: "https://api.example.com/v1/users?limit=10",
@@ -395,7 +395,7 @@ func TestURLBuilder(t *testing.T) {
 			name: "URL with encoding",
 			build: func() string {
 				ub := NewURLBuilder("https://api.example.com")
-				defer ub.Close()
+				defer ub.Close() // Ignore close error
 				return ub.AddParam("query", "hello world").AddParam("special", "a+b=c").String()
 			},
 			expected: "https://api.example.com?query=hello+world&special=a%2Bb%3Dc",
@@ -404,7 +404,7 @@ func TestURLBuilder(t *testing.T) {
 			name: "form builder",
 			build: func() string {
 				fb := NewFormBuilder()
-				defer fb.Close()
+				defer fb.Close() // Ignore close error
 				return fb.AddParam("grant_type", "authorization_code").
 					AddParam("code", "abc123").
 					Query()
@@ -415,7 +415,7 @@ func TestURLBuilder(t *testing.T) {
 			name: "URL with integer param",
 			build: func() string {
 				ub := NewURLBuilder("https://api.example.com")
-				defer ub.Close()
+				defer ub.Close() // Ignore close error
 				return ub.AddParamInt("page", 5).AddParamInt("size", 100).String()
 			},
 			expected: "https://api.example.com?page=5&size=100",
@@ -424,7 +424,7 @@ func TestURLBuilder(t *testing.T) {
 			name: "URL with boolean param",
 			build: func() string {
 				ub := NewURLBuilder("https://api.example.com")
-				defer ub.Close()
+				defer ub.Close() // Ignore close error
 				return ub.AddParamBool("active", true).AddParamBool("deleted", false).String()
 			},
 			expected: "https://api.example.com?active=true&deleted=false",
@@ -433,7 +433,7 @@ func TestURLBuilder(t *testing.T) {
 			name: "empty path segments",
 			build: func() string {
 				ub := NewURLBuilder("https://api.example.com")
-				defer ub.Close()
+				defer ub.Close() // Ignore close error
 				return ub.AddPath("v1", "", "users").String()
 			},
 			expected: "https://api.example.com/v1/users",
@@ -442,7 +442,7 @@ func TestURLBuilder(t *testing.T) {
 			name: "path with special characters",
 			build: func() string {
 				ub := NewURLBuilder("https://api.example.com")
-				defer ub.Close()
+				defer ub.Close() // Ignore close error
 				return ub.AddPath("v1", "my file.txt").String()
 			},
 			expected: "https://api.example.com/v1/my%20file.txt",

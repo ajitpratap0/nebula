@@ -122,7 +122,9 @@ func BenchmarkBackpressureController(b *testing.B) {
 	controller := NewBackpressureController("benchmark", config, logger)
 
 	ctx := context.Background()
-	controller.Start(ctx)
+	if err := controller.Start(ctx); err != nil {
+		b.Fatalf("Failed to start controller: %v", err)
+	}
 
 	// Create test record
 	record := pool.GetRecord()

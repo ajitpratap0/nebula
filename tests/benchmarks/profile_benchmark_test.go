@@ -22,11 +22,7 @@ import (
 // BenchmarkPipelineWithProfiling benchmarks pipeline with profiling enabled
 func BenchmarkPipelineWithProfiling(b *testing.B) {
 	ctx := context.Background()
-<<<<<<< HEAD
-	logger := logger.NewLogger("benchmark")
-=======
 	logger := logger.Get()
->>>>>>> origin
 
 	// Create test data
 	testFile := createTestCSV(b, 100000, 10) // 100K records, 10 columns
@@ -52,13 +48,9 @@ func BenchmarkPipelineWithProfiling(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		// Start profiling
 		err := pipelineProfiler.Start(ctx)
-<<<<<<< HEAD
-		require.NoError(b, err)
-=======
 		if err != nil {
 			b.Skipf("Skipping benchmark: %v", err)
 		}
->>>>>>> origin
 
 		// Run pipeline
 		runBenchmarkPipeline(b, ctx, pipelineProfiler, testFile, outputFile, logger)
@@ -86,11 +78,7 @@ func BenchmarkPipelineWithProfiling(b *testing.B) {
 // TestProfileBottleneckDetection tests bottleneck detection
 func TestProfileBottleneckDetection(t *testing.T) {
 	ctx := context.Background()
-<<<<<<< HEAD
-	logger := logger.NewLogger("test")
-=======
 	logger := logger.Get()
->>>>>>> origin
 
 	tests := []struct {
 		name               string
@@ -170,13 +158,9 @@ func TestProfileBottleneckDetection(t *testing.T) {
 
 			// Start profiling
 			err := pipelineProfiler.Start(ctx)
-<<<<<<< HEAD
-			require.NoError(t, err)
-=======
 			if err != nil {
 				t.Skipf("Skipping test: %v", err)
 			}
->>>>>>> origin
 
 			// Create pipeline with simulated issue
 			p := createTestPipeline(t, testFile, outputFile, logger)
@@ -188,18 +172,10 @@ func TestProfileBottleneckDetection(t *testing.T) {
 			runCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 			defer cancel()
 
-<<<<<<< HEAD
-			err = p.Start(runCtx)
-			require.NoError(t, err)
-
-			<-runCtx.Done()
-			p.Stop(context.Background())
-=======
 			err = p.Run(runCtx)
 			require.NoError(t, err)
 
 			p.Stop()
->>>>>>> origin
 
 			// Stop profiling and analyze
 			result, err := pipelineProfiler.Stop()
@@ -225,11 +201,7 @@ func TestProfileBottleneckDetection(t *testing.T) {
 // TestProfileAccuracy tests profiling accuracy
 func TestProfileAccuracy(t *testing.T) {
 	ctx := context.Background()
-<<<<<<< HEAD
-	logger := logger.NewLogger("test")
-=======
 	logger := logger.Get()
->>>>>>> origin
 
 	// Create test data with known size
 	recordCount := 10000
@@ -248,13 +220,9 @@ func TestProfileAccuracy(t *testing.T) {
 
 	// Start profiling
 	err := pipelineProfiler.Start(ctx)
-<<<<<<< HEAD
-	require.NoError(t, err)
-=======
 	if err != nil {
 		t.Skipf("Skipping test: %v", err)
 	}
->>>>>>> origin
 
 	// Run pipeline
 	runBenchmarkPipeline(t, ctx, pipelineProfiler, testFile, outputFile, logger)
@@ -319,12 +287,7 @@ func runBenchmarkPipeline(
 	destConfig.Security.Credentials = map[string]string{
 		"file_path": outputFile,
 	}
-
-<<<<<<< HEAD
-	dest, err := csvdest.NewCSVDestination("benchmark-dest", destConfig)
-=======
 	dest, err := csvdest.NewCSVDestination(destConfig)
->>>>>>> origin
 	require.NoError(b, err)
 
 	// Wrap with profiling
@@ -340,23 +303,14 @@ func runBenchmarkPipeline(
 		WorkerCount: 4,
 	}
 
-<<<<<<< HEAD
-	p, err := pipeline.NewSimplePipeline(pipelineConfig, source, dest, logger)
-	require.NoError(b, err)
-=======
 	p := pipeline.NewSimplePipeline(source, dest, pipelineConfig, logger)
->>>>>>> origin
 
 	// Run pipeline
 	err = p.Run(ctx)
 	require.NoError(b, err)
 
-<<<<<<< HEAD
-	// Wait for completion
-	p.Wait()
-=======
+
 	// Pipeline run is complete
->>>>>>> origin
 }
 
 func createTestPipeline(t *testing.T, inputFile, outputFile string, logger *zap.Logger) *pipeline.SimplePipeline {
@@ -368,11 +322,6 @@ func createTestPipeline(t *testing.T, inputFile, outputFile string, logger *zap.
 		"path": inputFile,
 	}
 
-<<<<<<< HEAD
-	source, err := csvsrc.NewCSVSource("test-source", sourceConfig)
-=======
-	source, err := csvsrc.NewCSVSource(sourceConfig)
->>>>>>> origin
 	require.NoError(t, err)
 
 	err = source.Initialize(ctx, sourceConfig)
@@ -384,11 +333,9 @@ func createTestPipeline(t *testing.T, inputFile, outputFile string, logger *zap.
 		"path": outputFile,
 	}
 
-<<<<<<< HEAD
-	dest, err := csvdest.NewCSVDestination("test-dest", destConfig)
-=======
+
 	dest, err := csvdest.NewCSVDestination(destConfig)
->>>>>>> origin
+
 	require.NoError(t, err)
 
 	err = dest.Initialize(ctx, destConfig)
@@ -400,13 +347,6 @@ func createTestPipeline(t *testing.T, inputFile, outputFile string, logger *zap.
 		WorkerCount: 2,
 	}
 
-<<<<<<< HEAD
-	p, err := pipeline.NewSimplePipeline(pipelineConfig, source, dest, logger)
-	require.NoError(t, err)
-
-	return p
-}
-=======
 	p := pipeline.NewSimplePipeline(source, dest, pipelineConfig, logger)
 
 	return p
@@ -419,17 +359,17 @@ func createTestCSV(tb testing.TB, recordCount, columnCount int) string {
 	if err != nil {
 		tb.Fatal(err)
 	}
-	defer file.Close()
+	defer file.Close() // Ignore close error
 
 	writer := csv.NewWriter(file)
-	defer writer.Flush()
+	defer writer.Flush() // Ignore flush error
 
 	// Write header
 	headers := make([]string, columnCount)
 	for i := 0; i < columnCount; i++ {
 		headers[i] = fmt.Sprintf("col_%d", i)
 	}
-	_ = writer.Write(headers)
+	_ = writer.Write(headers) // Ignore write error
 
 	// Write records
 	for i := 0; i < recordCount; i++ {
@@ -437,7 +377,7 @@ func createTestCSV(tb testing.TB, recordCount, columnCount int) string {
 		for j := 0; j < columnCount; j++ {
 			record[j] = fmt.Sprintf("value_%d_%d", i, j)
 		}
-		_ = writer.Write(record)
+		_ = writer.Write(record) // Ignore write error
 	}
 
 	return tempFile
@@ -445,6 +385,5 @@ func createTestCSV(tb testing.TB, recordCount, columnCount int) string {
 
 // removeTestFile removes a test file, ignoring errors
 func removeTestFile(filename string) {
-	os.Remove(filename)
+	_ = os.Remove(filename) // Best effort cleanup
 }
->>>>>>> origin

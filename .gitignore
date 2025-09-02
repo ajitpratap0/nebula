@@ -66,6 +66,9 @@ Thumbs.db
 # Log files
 *.log
 
+# claude
+CLAUDE.md
+
 # Coverage files
 coverage.out
 coverage.html

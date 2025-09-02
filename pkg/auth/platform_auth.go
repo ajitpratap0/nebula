@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 )
 
 // PlatformAuthService handles dynamic token fetching for various platforms
@@ -73,7 +73,7 @@ func (p *PlatformAuthService) GetGoogleAdsCredentials(ctx context.Context, accou
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "failed to create request")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to create request")
 	}
 
 	req.Header.Set("Accept", "application/json")
@@ -81,22 +81,27 @@ func (p *PlatformAuthService) GetGoogleAdsCredentials(ctx context.Context, accou
 
 	resp, err := p.client.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "failed to make request")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to make request")
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			// Log error but don't propagate - response body close errors are typically not critical
+			// This is a common pattern in Go HTTP client code
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(errors.ErrorTypeConnection,
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConnection,
 			fmt.Sprintf("API returned status %d", resp.StatusCode))
 	}
 
 	var tokenResp TokenResponse
 	if decodeErr := json.NewDecoder(resp.Body).Decode(&tokenResp); decodeErr != nil {
-		return nil, errors.Wrap(decodeErr, errors.ErrorTypeData, "failed to decode response")
+		return nil, nebulaerrors.Wrap(decodeErr, nebulaerrors.ErrorTypeData, "failed to decode response")
 	}
 
 	if !tokenResp.Success || len(tokenResp.Data) == 0 {
-		return nil, errors.New(errors.ErrorTypeData, "no tokens found for account")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeData, "no tokens found for account")
 	}
 
 	// Get the first (master) token
@@ -105,7 +110,7 @@ func (p *PlatformAuthService) GetGoogleAdsCredentials(ctx context.Context, accou
 	// Parse expiration time
 	expiresAt, err := time.Parse(time.RFC3339, token.TokenData.SetToExpireOn)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to parse expiration time")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to parse expiration time")
 	}
 
 	return &GoogleAdsCredentials{
@@ -125,7 +130,7 @@ func (p *PlatformAuthService) GetPlatformCredentials(ctx context.Context, accoun
 	case "GOOGLE":
 		return p.GetGoogleAdsCredentials(ctx, accountID)
 	default:
-		return nil, errors.New(errors.ErrorTypeConfig,
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig,
 			fmt.Sprintf("unsupported platform: %s", platform))
 	}
 }

@@ -635,7 +635,7 @@ func (osd *OptimizedSnowflakeDestination) WriteBatch(ctx context.Context, stream
 // Close implements destination close
 func (osd *OptimizedSnowflakeDestination) Close(ctx context.Context) error {
 	if osd.writer != nil {
-		osd.writer.Close()
+		_ = osd.writer.Close()
 	}
 	return osd.destination.Close(ctx)
 }

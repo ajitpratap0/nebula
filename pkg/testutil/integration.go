@@ -163,7 +163,7 @@ func CreateTestData(t *testing.T, dir string, numFiles int, recordsPerFile int) 
 			require.NoError(t, err)
 		}
 
-		file.Close()
+		_ = file.Close() // Ignore close error
 		files = append(files, filename)
 	}
 

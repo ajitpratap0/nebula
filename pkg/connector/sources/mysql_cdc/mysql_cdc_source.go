@@ -10,8 +10,8 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
@@ -60,25 +60,25 @@ func NewMySQLCDCSource(config *config.BaseConfig) (core.Source, error) {
 func (s *MySQLCDCSource) Initialize(ctx context.Context, config *config.BaseConfig) error {
 	// Initialize base connector first
 	if err := s.BaseConnector.Initialize(ctx, config); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize base connector")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to initialize base connector")
 	}
 
 	// Extract CDC configuration from Security credentials
 	connectionStr, ok := config.Security.Credentials["connection_string"]
 	if !ok || connectionStr == "" {
-		return errors.New(errors.ErrorTypeConfig, "missing required property: connection_string in security.credentials")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "missing required property: connection_string in security.credentials")
 	}
 
 	database, ok := config.Security.Credentials["database"]
 	if !ok || database == "" {
-		return errors.New(errors.ErrorTypeConfig, "missing required property: database in security.credentials")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "missing required property: database in security.credentials")
 	}
 	s.database = database
 
 	// Extract tables from comma-separated string
 	tablesStr, ok := config.Security.Credentials["tables"]
 	if !ok || tablesStr == "" {
-		return errors.New(errors.ErrorTypeConfig, "missing required property: tables in security.credentials")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "missing required property: tables in security.credentials")
 	}
 
 	// Parse comma-separated tables
@@ -89,7 +89,7 @@ func (s *MySQLCDCSource) Initialize(ctx context.Context, config *config.BaseConf
 		}
 	}
 	if len(s.tables) == 0 {
-		return errors.New(errors.ErrorTypeConfig, "at least one table must be specified")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "at least one table must be specified")
 	}
 
 	// Create CDC configuration
@@ -117,12 +117,12 @@ func (s *MySQLCDCSource) Initialize(ctx context.Context, config *config.BaseConf
 	if err := s.ExecuteWithCircuitBreaker(func() error {
 		return s.cdcConnector.Connect(s.cdcConfig)
 	}); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to connect to MySQL")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to connect to MySQL")
 	}
 
 	// Subscribe to tables
 	if err := s.cdcConnector.Subscribe(s.tables); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to subscribe to tables")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to subscribe to tables")
 	}
 
 	s.UpdateHealth(true, map[string]interface{}{
@@ -171,7 +171,7 @@ func (s *MySQLCDCSource) Read(ctx context.Context) (*core.RecordStream, error) {
 	s.runningMu.Lock()
 	if s.running {
 		s.runningMu.Unlock()
-		return nil, errors.New(errors.ErrorTypeConnection, "CDC reader already running")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConnection, "CDC reader already running")
 	}
 	s.running = true
 	s.runningMu.Unlock()
@@ -198,7 +198,7 @@ func (s *MySQLCDCSource) Read(ctx context.Context) (*core.RecordStream, error) {
 		// Start CDC event reading
 		changesChan, err := s.cdcConnector.ReadChanges(ctx)
 		if err != nil {
-			errorsChan <- errors.Wrap(err, errors.ErrorTypeConnection, "failed to start reading changes")
+			errorsChan <- nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to start reading changes")
 			return
 		}
 
@@ -389,12 +389,12 @@ func (s *MySQLCDCSource) SupportsBatch() bool {
 // Subscribe enables real-time change streaming for specified tables
 func (s *MySQLCDCSource) Subscribe(ctx context.Context, tables []string) (*core.ChangeStream, error) {
 	if s.cdcConnector == nil {
-		return nil, errors.New(errors.ErrorTypeConnection, "CDC connector not initialized")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConnection, "CDC connector not initialized")
 	}
 
 	// Subscribe to tables via CDC connector
 	if err := s.cdcConnector.Subscribe(tables); err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConfig, "failed to subscribe to tables")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to subscribe to tables")
 	}
 
 	// Create change stream
@@ -417,12 +417,12 @@ func (s *MySQLCDCSource) Subscribe(ctx context.Context, tables []string) (*core.
 // Health returns the health status of the CDC connector
 func (s *MySQLCDCSource) Health(ctx context.Context) error {
 	if s.cdcConnector == nil {
-		return errors.New(errors.ErrorTypeConnection, "CDC connector not initialized")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConnection, "CDC connector not initialized")
 	}
 
 	health := s.cdcConnector.Health()
 	if !health.IsHealthy() {
-		return errors.New(errors.ErrorTypeConnection, health.Message)
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConnection, health.Message)
 	}
 
 	return nil
@@ -453,7 +453,7 @@ func (s *MySQLCDCSource) convertCDCEventToRecord(event cdc.ChangeEvent) (*models
 	// Use the built-in ConvertToRecord method
 	record, err := event.ConvertToRecord()
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to convert CDC event to record")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to convert CDC event to record")
 	}
 
 	// Add additional metadata
@@ -501,7 +501,7 @@ func (s *MySQLCDCSource) streamChangeEvents(ctx context.Context, changeCh chan *
 	// Get CDC event stream
 	eventStream, err := s.cdcConnector.ReadChanges(ctx)
 	if err != nil {
-		errorCh <- errors.Wrap(err, errors.ErrorTypeData, "failed to read CDC changes")
+		errorCh <- nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to read CDC changes")
 		return
 	}
 
