@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"math/rand //nolint:gosec"
+	"math/rand"
 	"time"
 )
 

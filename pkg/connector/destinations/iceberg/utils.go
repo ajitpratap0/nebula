@@ -469,34 +469,6 @@ func (d *IcebergDestination) appendToBuilder(dt arrow.DataType, b array.Builder,
 		for i, field := range structType.Fields() {
 			d.appendToBuilder(field.Type, builder.FieldBuilder(i), valueMap[field.Name])
 		}
-	case *array.ListBuilder:
-		// Handle list/array values
-		values, ok := val.([]interface{})
-		if !ok {
-			builder.AppendNull()
-			return
-		}
-
-		builder.Append(true)
-		elemBuilder := builder.ValueBuilder()
-		elemType := dt.(*arrow.ListType).Elem()
-
-		for _, v := range values {
-			d.appendToBuilder(elemType, elemBuilder, v)
-		}
-	case *array.StructBuilder:
-		// Handle struct/object values
-		valueMap, ok := val.(map[string]interface{})
-		if !ok {
-			builder.AppendNull()
-			return
-		}
-
-		builder.Append(true)
-		structType := dt.(*arrow.StructType)
-		for i, field := range structType.Fields() {
-			d.appendToBuilder(field.Type, builder.FieldBuilder(i), valueMap[field.Name])
-		}
 	default:
 		d.logger.Warn("Unsupported Arrow builder type",
 			zap.String("type", fmt.Sprintf("%T", builder)))
