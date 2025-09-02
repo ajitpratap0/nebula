@@ -333,7 +333,7 @@ func (a *StorageAdapter) triggerFlush() {
 
 // backgroundFlusher handles periodic flushing
 func (a *StorageAdapter) backgroundFlusher() {
-	ticker := time.NewTicker(time.Duration(a.config.Performance.FlushInterval) * time.Millisecond)
+	ticker := time.NewTicker(a.config.Performance.FlushInterval * time.Millisecond)
 	defer ticker.Stop()
 
 	for {

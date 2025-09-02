@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/stretchr/testify/assert"
@@ -162,7 +162,7 @@ func TestBigQueryDestination_MicroBatching(t *testing.T) {
 	ctx := context.Background()
 
 	// Create base connector and initialize it
-	baseConn := base.NewBaseConnector("test-bigquery", core.ConnectorTypeDestination, "1.0.0")
+	baseConn := baseconnector.NewBaseConnector("test-bigquery", core.ConnectorTypeDestination, "1.0.0")
 	testConfig := &config.BaseConfig{
 		Name: "test-bigquery",
 		Reliability: config.ReliabilityConfig{

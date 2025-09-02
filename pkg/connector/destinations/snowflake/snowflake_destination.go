@@ -11,7 +11,7 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/compression"
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
@@ -26,7 +26,7 @@ import (
 
 // SnowflakeOptimizedDestination is a high-performance Snowflake destination connector
 type SnowflakeOptimizedDestination struct {
-	*base.BaseConnector
+	*baseconnector.BaseConnector
 
 	// Connection configuration
 	account   string
@@ -129,7 +129,7 @@ func (st *SnowflakeTransaction) Rollback(ctx context.Context) error {
 
 // NewSnowflakeOptimizedDestination creates a new Snowflake optimized destination connector
 func NewSnowflakeOptimizedDestination(name string, config *config.BaseConfig) (core.Destination, error) {
-	base := base.NewBaseConnector(name, core.ConnectorTypeDestination, "2.0.0")
+	base := baseconnector.NewBaseConnector(name, core.ConnectorTypeDestination, "2.0.0")
 
 	dest := &SnowflakeOptimizedDestination{
 		BaseConnector: base,
@@ -573,7 +573,7 @@ func (s *SnowflakeOptimizedDestination) processBulkChunks(ctx context.Context, c
 	close(errorChan)
 
 	// Collect any errors
-	var errors []error
+	errors := make([]error, 0, len(chunks))
 	for err := range errorChan {
 		errors = append(errors, err)
 	}
@@ -1080,7 +1080,7 @@ func (s *SnowflakeOptimizedDestination) buildCreateTableSQL(schema *core.Schema)
 		s.currentTable = schema.Name
 	}
 
-	var columns []string
+	columns := make([]string, 0, len(schema.Fields))
 	for _, field := range schema.Fields {
 		// Use SQLBuilder for column definitions
 		colBuilder := stringpool.NewSQLBuilder(64)

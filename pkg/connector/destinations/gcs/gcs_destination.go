@@ -10,7 +10,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/ajitpratap0/nebula/pkg/compression"
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/formats/columnar"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
@@ -34,7 +34,7 @@ const (
 
 // GCSDestination represents a Google Cloud Storage destination connector
 type GCSDestination struct {
-	*base.BaseConnector
+	*baseconnector.BaseConnector
 
 	// Configuration
 	config            *config.BaseConfig
@@ -75,7 +75,7 @@ type GCSDestination struct {
 
 // NewGCSDestination creates a new GCS destination
 func NewGCSDestination(name string, config *config.BaseConfig) (*GCSDestination, error) {
-	baseConnector := base.NewBaseConnector(name, core.ConnectorTypeDestination, "1.0.0")
+	baseConnector := baseconnector.NewBaseConnector(name, core.ConnectorTypeDestination, "1.0.0")
 
 	// Parse configuration
 	if config.Security.Credentials == nil {
@@ -762,7 +762,7 @@ func (d *GCSDestination) checkUploadErrors() error {
 	}
 
 	// Combine all errors
-	var errMsgs []string
+	errMsgs := make([]string, 0, len(d.uploadErrors))
 	for _, err := range d.uploadErrors {
 		errMsgs = append(errMsgs, err.Error())
 	}

@@ -272,7 +272,7 @@ package myconnector
 
 import (
     "github.com/ajitpratap0/nebula/pkg/config"
-    "github.com/ajitpratap0/nebula/pkg/connector/base"
+    "github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
     "github.com/ajitpratap0/nebula/pkg/connector/core"
 )
 

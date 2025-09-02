@@ -6,7 +6,7 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/compression"
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/logger"
 	"github.com/ajitpratap0/nebula/pkg/models"
@@ -267,8 +267,8 @@ func (cb *ConnectorBuilder) CreateBaseConfig(name string) *config.BaseConfig {
 
 // CreateBaseConnector creates a BaseConnector instance with the builder's configuration.
 // The BaseConnector provides common functionality like circuit breakers and rate limiting.
-func (cb *ConnectorBuilder) CreateBaseConnector() *base.BaseConnector {
-	baseConnector := base.NewBaseConnector(cb.name, cb.connectorType, cb.version)
+func (cb *ConnectorBuilder) CreateBaseConnector() *baseconnector.BaseConnector {
+	baseConnector := baseconnector.NewBaseConnector(cb.name, cb.connectorType, cb.version)
 
 	// Unified pool system is always enabled
 	cb.logger.Debug("unified pool system enabled for connector", zap.String("name", cb.name))

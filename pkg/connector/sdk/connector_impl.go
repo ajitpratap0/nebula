@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
@@ -13,7 +13,7 @@ import (
 
 // SDKSourceConnector implements the core.Source interface using the SDK builder pattern
 type SDKSourceConnector struct {
-	*base.BaseConnector
+	*baseconnector.BaseConnector
 	builder *SourceBuilder
 	// OptimizationLayer removed - using unified pool system
 }
@@ -178,7 +178,7 @@ func (sc *SDKSourceConnector) Health(ctx context.Context) error {
 
 // SDKDestinationConnector implements the core.Destination interface using the SDK builder pattern
 type SDKDestinationConnector struct {
-	*base.BaseConnector
+	*baseconnector.BaseConnector
 	builder *DestinationBuilder
 	// OptimizationLayer removed - using unified pool system
 }

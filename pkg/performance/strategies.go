@@ -228,7 +228,7 @@ func (cs *CachingStrategy) Apply(ctx context.Context, data interface{}) (interfa
 	}
 
 	// Cache frequently accessed records
-	var optimized []*models.Record
+	optimized := make([]*models.Record, 0, len(records))
 	for _, record := range records {
 		key := cs.generateKey(record)
 

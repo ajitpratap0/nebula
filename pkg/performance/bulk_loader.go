@@ -272,7 +272,7 @@ func (bl *BulkLoader) splitIntoBatches(records []*models.Record) [][]*models.Rec
 
 	// Calculate batch size based on memory limit
 	recordSize := bl.estimateRecordSize(records[0])
-	maxBatchSize := int(bl.config.MemoryLimit / int64(recordSize))
+	maxBatchSize := int(bl.config.MemoryLimit / recordSize)
 	if maxBatchSize > bl.config.MaxBatchSize {
 		maxBatchSize = bl.config.MaxBatchSize
 	}

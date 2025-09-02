@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
@@ -22,7 +22,7 @@ import (
 
 // GoogleAdsSource is a production-ready Google Ads source connector using BaseConnector
 type GoogleAdsSource struct {
-	*base.BaseConnector
+	*baseconnector.BaseConnector
 
 	// Google Ads API configuration
 	config       *GoogleAdsConfig
@@ -94,7 +94,7 @@ type ResponseSummary struct {
 // NewGoogleAdsSource creates a new Google Ads source connector
 func NewGoogleAdsSource(name string, config *config.BaseConfig) (core.Source, error) {
 	// Create base connector with production features
-	base := base.NewBaseConnector("google_ads", core.ConnectorTypeSource, "1.0.0")
+	base := baseconnector.NewBaseConnector("google_ads", core.ConnectorTypeSource, "1.0.0")
 
 	source := &GoogleAdsSource{
 		BaseConnector:    base,

@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
@@ -21,7 +21,7 @@ import (
 
 // PostgreSQLSource implements the core.Source interface for PostgreSQL
 type PostgreSQLSource struct {
-	*base.BaseConnector
+	*baseconnector.BaseConnector
 
 	// Configuration
 	connectionStr string
@@ -76,7 +76,7 @@ func (p *PostgreSQLPosition) Compare(other core.Position) int {
 
 // NewPostgreSQLSource creates a new PostgreSQL source connector
 func NewPostgreSQLSource(config *config.BaseConfig) (core.Source, error) {
-	base := base.NewBaseConnector("postgresql", core.ConnectorTypeSource, "1.0.0")
+	base := baseconnector.NewBaseConnector("postgresql", core.ConnectorTypeSource, "1.0.0")
 
 	source := &PostgreSQLSource{
 		BaseConnector: base,
@@ -353,12 +353,12 @@ func (s *PostgreSQLSource) discoverSchemaFromQuery(ctx context.Context) error {
 
 	fieldDescriptions := rows.FieldDescriptions()
 
-	var columns []string
-	var columnTypes []string
+	columns := make([]string, 0, len(fieldDescriptions))
+	columnTypes := make([]string, 0, len(fieldDescriptions))
 	fields := make([]core.Field, len(fieldDescriptions))
 
 	for i, fd := range fieldDescriptions {
-		columnName := string(fd.Name)
+		columnName := fd.Name
 
 		columns = append(columns, columnName)
 		columnTypes = append(columnTypes, stringpool.Sprintf("oid_%d", fd.DataTypeOID))

@@ -12,7 +12,7 @@ import (
 	"cloud.google.com/go/bigquery"
 	"github.com/ajitpratap0/nebula/pkg/compression"
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
@@ -25,7 +25,7 @@ import (
 
 // BigQueryDestination is a high-performance BigQuery destination connector
 type BigQueryDestination struct {
-	*base.BaseConnector
+	*baseconnector.BaseConnector
 
 	// Connection configuration
 	projectID       string
@@ -105,7 +105,7 @@ type BigQueryStats struct {
 
 // NewBigQueryDestination creates a new BigQuery destination connector
 func NewBigQueryDestination(name string, config *config.BaseConfig) (core.Destination, error) {
-	base := base.NewBaseConnector(name, core.ConnectorTypeDestination, "1.0.0")
+	base := baseconnector.NewBaseConnector(name, core.ConnectorTypeDestination, "1.0.0")
 
 	dest := &BigQueryDestination{
 		BaseConnector: base,

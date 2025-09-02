@@ -69,7 +69,7 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/compression"
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	nerrors "github.com/ajitpratap0/nebula/pkg/nebulaerrors"
@@ -88,7 +88,7 @@ import (
 //   - Append and overwrite modes
 //   - Thread-safe concurrent writing
 type CSVDestination struct {
-	*base.BaseConnector
+	*baseconnector.BaseConnector
 
 	// CSV-specific fields
 	file              *os.File    // Open file handle
@@ -117,7 +117,7 @@ type CSVDestination struct {
 
 // NewCSVDestination creates a new CSV destination connector
 func NewCSVDestination(config *config.BaseConfig) (core.Destination, error) {
-	base := base.NewBaseConnector("csv", core.ConnectorTypeDestination, "2.0.0")
+	base := baseconnector.NewBaseConnector("csv", core.ConnectorTypeDestination, "2.0.0")
 
 	return &CSVDestination{
 		BaseConnector: base,

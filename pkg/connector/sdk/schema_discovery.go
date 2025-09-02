@@ -290,7 +290,7 @@ func (dsi *DataSampleInference) InferSchema(schemaName string) (*core.Schema, er
 		}
 	}
 
-	var fields []core.Field
+	fields := make([]core.Field, 0, len(fieldNames))
 	for fieldName := range fieldNames {
 		field, err := dsi.inferFieldType(fieldName)
 		if err != nil {

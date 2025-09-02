@@ -9,7 +9,7 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/cdc"
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
@@ -19,7 +19,7 @@ import (
 
 // MongoDBCDCSource is a MongoDB CDC source connector that implements core.Source
 type MongoDBCDCSource struct {
-	*base.BaseConnector
+	*baseconnector.BaseConnector
 
 	// CDC engine
 	cdcConnector *cdc.MongoDBConnector
@@ -47,7 +47,7 @@ type MongoDBCDCSource struct {
 
 // NewMongoDBCDCSource creates a new MongoDB CDC source connector
 func NewMongoDBCDCSource(cfg *config.BaseConfig) (core.Source, error) {
-	base := base.NewBaseConnector("mongodb-cdc", core.ConnectorTypeSource, "1.0.0")
+	base := baseconnector.NewBaseConnector("mongodb-cdc", core.ConnectorTypeSource, "1.0.0")
 
 	return &MongoDBCDCSource{
 		BaseConnector: base,

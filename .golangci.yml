@@ -1,5 +1,3 @@
-version: 2
-
 run:
   timeout: 5m
   issues-exit-code: 1
@@ -32,9 +30,6 @@ linters:
     
     # Security
     - gosec        # Security checks
-    
-  disable:
-    - govet        # Disable govet temporarily due to typecheck issues
     
   disable-all: true
 

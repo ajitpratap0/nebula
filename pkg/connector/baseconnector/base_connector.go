@@ -1,4 +1,4 @@
-// Package base provides the foundational BaseConnector that all Nebula connectors
+// Package baseconnector provides the foundational BaseConnector that all Nebula connectors
 // inherit from. It implements common functionality including circuit breakers,
 // rate limiting, health monitoring, metrics collection, and error handling.
 //
@@ -20,13 +20,13 @@
 // All connectors should embed BaseConnector to inherit its functionality:
 //
 //	type MyConnector struct {
-//	    *base.BaseConnector
+//	    *baseconnector.BaseConnector
 //	    // connector-specific fields
 //	}
 //
 //	func NewMyConnector() *MyConnector {
 //	    return &MyConnector{
-//	        BaseConnector: base.NewBaseConnector("my-connector", core.TypeSource, "1.0.0"),
+//	        BaseConnector: baseconnector.NewBaseConnector("my-connector", core.TypeSource, "1.0.0"),
 //	    }
 //	}
 //
@@ -44,7 +44,7 @@
 // Health Checks: Periodic health monitoring with automatic status updates
 // Metrics: Comprehensive performance and operational metrics
 // Error Handling: Intelligent retry logic with categorized error handling
-package base
+package baseconnector
 
 import (
 	"context"
