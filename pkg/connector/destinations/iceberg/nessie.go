@@ -163,7 +163,13 @@ func (n *NessieCatalog) convertSchema(icebergSchema *icebergGo.Schema) (*arrow.S
 	tempDest := &IcebergDestination{
 		logger:          n.logger,
 		schemaValidator: &SimpleSchemaValidator{},
+		bufferConfig: BufferConfig{
+			StringDataMultiplier:  32,
+			ListElementMultiplier: 5,
+		},
 	}
+
+	// Ensure proper initialization without builder pool (not needed for schema conversion)
 	return tempDest.icebergToArrowSchema(icebergSchema)
 }
 
@@ -171,11 +177,23 @@ func (n *NessieCatalog) convertBatch(arrowSchema *arrow.Schema, batch []*pool.Re
 	tempDest := &IcebergDestination{
 		logger:          n.logger,
 		schemaValidator: &SimpleSchemaValidator{},
+		bufferConfig: BufferConfig{
+			StringDataMultiplier:  32,
+			ListElementMultiplier: 5,
+		},
 	}
-	// Initialize builder pool
+
+	// Initialize builder pool with proper cleanup
 	allocator := memory.NewGoAllocator()
 	tempDest.builderPool = NewArrowBuilderPool(allocator, n.logger)
-	
+
+	// Ensure cleanup of temporary builder pool resources
+	defer func() {
+		if tempDest.builderPool != nil {
+			tempDest.builderPool.Clear()
+		}
+	}()
+
 	return tempDest.batchToArrowRecord(arrowSchema, batch)
 }
 

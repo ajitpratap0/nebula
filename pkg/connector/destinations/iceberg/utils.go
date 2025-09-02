@@ -58,18 +58,27 @@ func (d *IcebergDestination) extractConfig(config *config.BaseConfig) error {
 		}
 	}
 
-	// Configure buffer settings from memory config
+	// Configure buffer settings from memory config with bounds checking
 	d.bufferConfig = BufferConfig{
 		StringDataMultiplier:  config.Memory.StringDataMultiplier,
 		ListElementMultiplier: config.Memory.ListElementMultiplier,
 	}
 
-	// Use defaults if not configured
+	// Use defaults if not configured and enforce bounds to prevent excessive memory allocation
 	if d.bufferConfig.StringDataMultiplier <= 0 {
 		d.bufferConfig.StringDataMultiplier = 32
+	} else if d.bufferConfig.StringDataMultiplier > 1024 {
+		d.logger.Warn("StringDataMultiplier too high, capping at 1024",
+			zap.Int("requested", d.bufferConfig.StringDataMultiplier))
+		d.bufferConfig.StringDataMultiplier = 1024
 	}
+
 	if d.bufferConfig.ListElementMultiplier <= 0 {
 		d.bufferConfig.ListElementMultiplier = 5
+	} else if d.bufferConfig.ListElementMultiplier > 100 {
+		d.logger.Warn("ListElementMultiplier too high, capping at 100",
+			zap.Int("requested", d.bufferConfig.ListElementMultiplier))
+		d.bufferConfig.ListElementMultiplier = 100
 	}
 
 	return nil
@@ -176,7 +185,6 @@ func (d *IcebergDestination) batchToArrowRecord(schema *arrow.Schema, batch []*p
 	return d.buildArrowRecordUnified(schema, extractors)
 }
 
-
 // buildArrowRecordUnified creates Arrow records using the unified extractor approach with builder pooling
 func (d *IcebergDestination) buildArrowRecordUnified(schema *arrow.Schema, extractors []ValueExtractor) (arrow.Record, error) {
 	// Ensure builder pool is initialized (defensive programming)
@@ -221,7 +229,6 @@ func (d *IcebergDestination) buildArrowRecordUnified(schema *arrow.Schema, extra
 
 	// Use the pooled builder's NewRecord method which automatically returns builder to pool
 	rec := pooledBuilder.NewRecord()
-
 
 	return rec, nil
 }
@@ -314,7 +321,7 @@ func (d *IcebergDestination) appendToBuilder(dt arrow.DataType, b array.Builder,
 		values, ok := val.([]any)
 		if !ok {
 			// Try to convert from []interface{} for backward compatibility
-			if interfaceValues, ok := val.([]interface{}); ok {
+			if interfaceValues, ok := val.([]any); ok {
 				values = make([]any, len(interfaceValues))
 				copy(values, interfaceValues)
 			} else {
@@ -340,12 +347,9 @@ func (d *IcebergDestination) appendToBuilder(dt arrow.DataType, b array.Builder,
 		// Handle struct/object values
 		valueMap, ok := val.(map[string]any)
 		if !ok {
-			// Try to convert from map[string]interface{} for backward compatibility
-			if interfaceMap, ok := val.(map[string]interface{}); ok {
-				valueMap = make(map[string]any, len(interfaceMap))
-				for k, v := range interfaceMap {
-					valueMap[k] = v
-				}
+			// Try to convert from map[string]any for backward compatibility
+			if interfaceMap, ok := val.(map[string]any); ok {
+				valueMap = interfaceMap
 			} else {
 				builder.AppendNull()
 				return
@@ -375,7 +379,7 @@ type numeric interface {
 }
 
 // convertToTimestamp converts various input types to Arrow timestamp with proper unit handling
-func convertToTimestamp(val interface{}, unit arrow.TimeUnit) (arrow.Timestamp, bool) {
+func convertToTimestamp(val any, unit arrow.TimeUnit) (arrow.Timestamp, bool) {
 	getTimestampValue := func(t time.Time) arrow.Timestamp {
 		switch unit {
 		case arrow.Nanosecond:
@@ -414,7 +418,7 @@ func convertToTimestamp(val interface{}, unit arrow.TimeUnit) (arrow.Timestamp, 
 }
 
 // convertToDate32 converts various input types to Arrow Date32
-func convertToDate32(val interface{}) (arrow.Date32, bool) {
+func convertToDate32(val any) (arrow.Date32, bool) {
 	switch v := val.(type) {
 	case time.Time:
 		unixTime := v.Unix()
@@ -445,7 +449,7 @@ func convertToNumeric[T numeric](val any) (T, bool) {
 		var zero T
 		return zero, false
 	}
-	
+
 	switch v := val.(type) {
 	case T:
 		return v, true
@@ -493,7 +497,7 @@ func convertToBool(val any) (bool, bool) {
 	if val == nil {
 		return false, false
 	}
-	
+
 	if b, ok := val.(bool); ok {
 		return b, true
 	}
@@ -771,7 +775,7 @@ func (d *IcebergDestination) preallocateBuilder(builder array.Builder, capacity 
 	// Use interface method if available
 	if resizable, ok := builder.(interface{ Reserve(int) }); ok {
 		resizable.Reserve(capacity)
-		
+
 		// Special cases for complex builders
 		switch b := builder.(type) {
 		case *array.StringBuilder:
@@ -796,15 +800,23 @@ func (d *IcebergDestination) ensureBuilderPoolInitialized() error {
 	if d.builderPool != nil {
 		return nil
 	}
-	
-	d.logger.Warn("Builder pool was nil, initializing it now")
-	
-	allocator := memory.NewGoAllocator()
-	d.builderPool = NewArrowBuilderPool(allocator, d.logger)
-	
-	if d.builderPool == nil {
-		return fmt.Errorf("failed to create Arrow builder pool")
+
+	if d.logger == nil {
+		return fmt.Errorf("logger is nil, cannot initialize builder pool safely")
 	}
-	
+
+	d.logger.Warn("Builder pool was nil, initializing it now - this may indicate an improper destination initialization")
+
+	allocator := memory.NewGoAllocator()
+	if allocator == nil {
+		return fmt.Errorf("failed to create memory allocator")
+	}
+
+	d.builderPool = NewArrowBuilderPool(allocator, d.logger)
+	if d.builderPool == nil {
+		return fmt.Errorf("failed to create Arrow builder pool with valid allocator")
+	}
+
+	d.logger.Debug("Builder pool initialized successfully as fallback")
 	return nil
 }

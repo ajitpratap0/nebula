@@ -22,9 +22,10 @@ type ArrowBuilderPool struct {
 
 // PooledBuilder wraps a RecordBuilder with pooling metadata
 type PooledBuilder struct {
-	builder  *array.RecordBuilder
-	lastUsed time.Time
-	pool     *ArrowBuilderPool
+	builder        *array.RecordBuilder
+	lastUsed       time.Time
+	pool           *ArrowBuilderPool
+	returnedToPool bool // Track if already returned to pool to prevent double-release
 }
 
 // NewArrowBuilderPool creates a new builder pool with the given allocator
@@ -77,6 +78,7 @@ func (p *ArrowBuilderPool) Get(schema *arrow.Schema) *PooledBuilder {
 			if pooled.builder.Schema().Equal(schema) {
 				// Reuse pooled builder (all builders have same schema)
 				pooled.lastUsed = time.Now()
+				pooled.returnedToPool = false // Reset flag since we're taking it out of pool
 				pooled.resetBuilder()
 				return pooled
 			} else {
@@ -88,7 +90,7 @@ func (p *ArrowBuilderPool) Get(schema *arrow.Schema) *PooledBuilder {
 			if releaser, ok := item.(interface{ Release() }); ok {
 				releaser.Release()
 			}
-			p.logger.Warn("Unexpected item type in builder pool", 
+			p.logger.Warn("Unexpected item type in builder pool",
 				zap.String("type", fmt.Sprintf("%T", item)))
 		}
 	}
@@ -101,9 +103,10 @@ func (p *ArrowBuilderPool) Get(schema *arrow.Schema) *PooledBuilder {
 	}
 
 	pooled := &PooledBuilder{
-		builder:  builder,
-		lastUsed: time.Now(),
-		pool:     p,
+		builder:        builder,
+		lastUsed:       time.Now(),
+		pool:           p,
+		returnedToPool: false,
 	}
 
 	return pooled
@@ -111,20 +114,20 @@ func (p *ArrowBuilderPool) Get(schema *arrow.Schema) *PooledBuilder {
 
 // Put returns a builder to the pool for reuse
 func (p *ArrowBuilderPool) Put(pooled *PooledBuilder) {
-	if pooled == nil || pooled.builder == nil {
-		return
+	if pooled == nil || pooled.builder == nil || pooled.returnedToPool {
+		return // Already returned to pool or invalid
 	}
 
 	// Reset the builder for next use
 	pooled.resetBuilder()
 	pooled.lastUsed = time.Now()
+	pooled.returnedToPool = true // Mark as returned to prevent double-return
 
 	// Return to pool
 	p.pool.Put(pooled)
 }
 
-
-// Clear empties the pool 
+// Clear empties the pool
 func (p *ArrowBuilderPool) Clear() {
 	// Create new pool to clear all items
 	p.pool = sync.Pool{
@@ -145,8 +148,8 @@ func (pb *PooledBuilder) Builder() *array.RecordBuilder {
 
 // NewRecord creates a new record and automatically returns the builder to the pool
 func (pb *PooledBuilder) NewRecord() arrow.Record {
-	if pb.builder == nil {
-		return nil
+	if pb.builder == nil || pb.returnedToPool {
+		return nil // Already returned to pool or invalid
 	}
 
 	record := pb.builder.NewRecord()
@@ -160,6 +163,9 @@ func (pb *PooledBuilder) NewRecord() arrow.Record {
 
 // Release releases the builder without returning to pool (for cleanup)
 func (pb *PooledBuilder) Release() {
+	if pb.returnedToPool {
+		return // Already returned to pool, cannot release directly
+	}
 	pb.release()
 }
 
@@ -187,4 +193,3 @@ func (pb *PooledBuilder) release() {
 		pb.builder = nil
 	}
 }
-

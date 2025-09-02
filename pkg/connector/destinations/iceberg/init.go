@@ -19,9 +19,9 @@ func init() {
 }
 
 func (d *IcebergDestination) Initialize(ctx context.Context, config *config.BaseConfig) error {
-	d.logger.Debug("Initialize called", 
+	d.logger.Debug("Initialize called",
 		zap.Bool("builder_pool_nil", d.builderPool == nil))
-		
+
 	if err := d.extractConfig(config); err != nil {
 		return err
 	}
@@ -148,7 +148,6 @@ func (d *IcebergDestination) Metrics() map[string]interface{} {
 		"table":          fmt.Sprintf("%s.%s", d.database, d.tableName),
 		"initialized":    d.catalogProvider != nil,
 	}
-
 
 	return metrics
 }
