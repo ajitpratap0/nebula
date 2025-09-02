@@ -62,6 +62,8 @@ func (d *IcebergDestination) extractConfig(config *config.BaseConfig) error {
 
 func (d *IcebergDestination) icebergToArrowSchema(icebergSchema *icebergGo.Schema) (*arrow.Schema, error) {
 	// Check if already validated and converted
+	// NOTE: Schema caching is safe for CLI applications as schema remains constant during runtime.
+	// In long-running services, consider adding cache invalidation if schema evolution is expected.
 	if d.schemaValidator != nil && d.schemaValidator.validated && d.schemaValidator.arrowSchema != nil {
 		return d.schemaValidator.arrowSchema, nil
 	}
@@ -89,6 +91,8 @@ func (d *IcebergDestination) icebergToArrowSchema(icebergSchema *icebergGo.Schem
 	arrowSchema := arrow.NewSchema(fields, nil)
 
 	// Store for reuse during this CLI run
+	// This cache persists for the entire application lifecycle, which is appropriate
+	// for CLI tools where schema doesn't change during execution
 	if d.schemaValidator != nil {
 		d.schemaValidator.icebergSchema = icebergSchema
 		d.schemaValidator.arrowSchema = arrowSchema
@@ -170,13 +174,37 @@ func (d *IcebergDestination) batchToArrowRecord(schema *arrow.Schema, batch []*p
 }
 
 // extractTypedRecords attempts to extract TypedRecords from regular Records
+// Returns nil if any conversion fails, ensuring no memory leaks
 func (d *IcebergDestination) extractTypedRecords(batch []*pool.Record) []*pool.TypedRecord {
 	typedBatch := make([]*pool.TypedRecord, len(batch))
+	
+	// Track successfully created records for cleanup on failure
+	var createdCount int
+	defer func() {
+		// Clean up on any failure during conversion
+		if r := recover(); r != nil {
+			d.logger.Error("Panic during TypedRecord extraction", zap.Any("error", r))
+			for i := 0; i < createdCount; i++ {
+				if typedBatch[i] != nil {
+					typedBatch[i].Release()
+				}
+			}
+		}
+	}()
 
 	for i, record := range batch {
 		// Try to convert regular record to TypedRecord for better performance
 		typedRecord := pool.GetTypedRecord()
-
+		if typedRecord == nil {
+			// Failed to get typed record - clean up previously created ones
+			for j := 0; j < i; j++ {
+				if typedBatch[j] != nil {
+					typedBatch[j].Release()
+				}
+			}
+			return nil
+		}
+		
 		// Copy data to typed fields based on type inference
 		for key, value := range record.Data {
 			switch v := value.(type) {
@@ -210,6 +238,7 @@ func (d *IcebergDestination) extractTypedRecords(batch []*pool.Record) []*pool.T
 		typedRecord.Schema = record.Schema
 
 		typedBatch[i] = typedRecord
+		createdCount++
 	}
 
 	return typedBatch
@@ -536,7 +565,13 @@ func convertToDate32(val interface{}) (arrow.Date32, bool) {
 }
 
 // convertToNumeric converts various input types to specific numeric type with zero-copy performance
-func convertToNumeric[T numeric](val interface{}) (T, bool) {
+// Returns zero value and false if conversion is not safe or possible
+func convertToNumeric[T numeric](val any) (T, bool) {
+	if val == nil {
+		var zero T
+		return zero, false
+	}
+	
 	switch v := val.(type) {
 	case T:
 		return v, true
@@ -547,16 +582,44 @@ func convertToNumeric[T numeric](val interface{}) (T, bool) {
 	case int64:
 		return T(v), true
 	case float32:
+		// Check for potential precision loss when converting to int types
+		if isIntType[T]() && (v != float32(int64(v))) {
+			// Float has fractional part, cannot safely convert to int
+			var zero T
+			return zero, false
+		}
 		return T(v), true
 	case float64:
+		// Check for potential precision loss when converting to int types
+		if isIntType[T]() && (v != float64(int64(v))) {
+			// Float has fractional part, cannot safely convert to int
+			var zero T
+			return zero, false
+		}
 		return T(v), true
 	}
 	var zero T
 	return zero, false
 }
 
+// isIntType checks if the generic type T is an integer type
+func isIntType[T numeric]() bool {
+	var zero T
+	switch any(zero).(type) {
+	case int, int32, int64:
+		return true
+	default:
+		return false
+	}
+}
+
 // convertToBool converts various input types to boolean
-func convertToBool(val interface{}) (bool, bool) {
+// Only accepts actual boolean values to prevent data corruption
+func convertToBool(val any) (bool, bool) {
+	if val == nil {
+		return false, false
+	}
+	
 	if b, ok := val.(bool); ok {
 		return b, true
 	}

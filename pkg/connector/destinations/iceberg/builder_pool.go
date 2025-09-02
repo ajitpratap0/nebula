@@ -1,6 +1,7 @@
 package iceberg
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -65,7 +66,8 @@ func (p *ArrowBuilderPool) Get(schema *arrow.Schema) *PooledBuilder {
 
 	// Try to get from pool first
 	if item := p.pool.Get(); item != nil {
-		if pooled := item.(*PooledBuilder); pooled != nil {
+		// Safe type assertion with ok check
+		if pooled, ok := item.(*PooledBuilder); ok && pooled != nil {
 			// Check if schema matches
 			if p.schemasEqual(pooled.schema, schema) {
 				p.incrementHits()
@@ -75,6 +77,10 @@ func (p *ArrowBuilderPool) Get(schema *arrow.Schema) *PooledBuilder {
 			}
 			// Schema mismatch - release and create new
 			pooled.release()
+		} else {
+			// Unexpected type in pool - log warning but continue
+			p.logger.Warn("Unexpected item type in builder pool", 
+				zap.String("type", fmt.Sprintf("%T", item)))
 		}
 	}
 
