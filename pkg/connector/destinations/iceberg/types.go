@@ -61,6 +61,9 @@ func NewIcebergDestination(config *config.BaseConfig) (core.Destination, error) 
 	// Create Arrow builder pool for efficient memory reuse
 	allocator := memory.NewGoAllocator()
 	builderPool := NewArrowBuilderPool(allocator, logger)
+	
+	logger.Debug("Created IcebergDestination with builder pool", 
+		zap.Bool("builder_pool_nil", builderPool == nil))
 
 	return &IcebergDestination{
 		properties:      make(map[string]string),

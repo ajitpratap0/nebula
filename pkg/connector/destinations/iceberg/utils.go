@@ -68,9 +68,6 @@ func (d *IcebergDestination) icebergToArrowSchema(icebergSchema *icebergGo.Schem
 		return d.schemaValidator.arrowSchema, nil
 	}
 
-	d.logger.Debug("Converting Iceberg to Arrow schema",
-		zap.Int("schema_id", icebergSchema.ID),
-		zap.Int("field_count", len(icebergSchema.Fields())))
 
 	fields := make([]arrow.Field, 0, len(icebergSchema.Fields()))
 
@@ -117,8 +114,6 @@ func (d *IcebergDestination) icebergTypeToArrowType(icebergType icebergGo.Type) 
 	case icebergGo.StringType:
 		return arrow.BinaryTypes.String, nil
 	case icebergGo.TimestampType:
-		d.logger.Debug("Converting Iceberg timestamp type",
-			zap.String("type", t.String()))
 		// Create timestamp type without timezone to match Iceberg requirements
 		return &arrow.TimestampType{
 			Unit:     arrow.Microsecond,
@@ -149,8 +144,6 @@ func (d *IcebergDestination) icebergTypeToArrowType(icebergType icebergGo.Type) 
 		}
 		return arrow.StructOf(fields...), nil
 	default:
-		d.logger.Warn("Unsupported Iceberg type, defaulting to string",
-			zap.String("type", t.String()))
 		return arrow.BinaryTypes.String, nil
 	}
 }
@@ -160,113 +153,7 @@ func (d *IcebergDestination) batchToArrowRecord(schema *arrow.Schema, batch []*p
 		return nil, fmt.Errorf("no records to convert")
 	}
 
-	d.logger.Debug("Starting optimized Arrow conversion",
-		zap.Int("num_records", len(batch)),
-		zap.Int("num_fields", len(schema.Fields())))
-
-	// Check if we can use TypedRecords for better performance
-	if typedBatch := d.extractTypedRecords(batch); typedBatch != nil {
-		return d.batchToArrowRecordTyped(schema, typedBatch)
-	}
-
-	// Fallback to regular record processing
-	return d.batchToArrowRecordRegular(schema, batch)
-}
-
-// extractTypedRecords attempts to extract TypedRecords from regular Records
-// Returns nil if any conversion fails, ensuring no memory leaks
-func (d *IcebergDestination) extractTypedRecords(batch []*pool.Record) []*pool.TypedRecord {
-	typedBatch := make([]*pool.TypedRecord, len(batch))
-	
-	// Track successfully created records for cleanup on failure
-	var createdCount int
-	defer func() {
-		// Clean up on any failure during conversion
-		if r := recover(); r != nil {
-			d.logger.Error("Panic during TypedRecord extraction", zap.Any("error", r))
-			for i := 0; i < createdCount; i++ {
-				if typedBatch[i] != nil {
-					typedBatch[i].Release()
-				}
-			}
-		}
-	}()
-
-	for i, record := range batch {
-		// Try to convert regular record to TypedRecord for better performance
-		typedRecord := pool.GetTypedRecord()
-		if typedRecord == nil {
-			// Failed to get typed record - clean up previously created ones
-			for j := 0; j < i; j++ {
-				if typedBatch[j] != nil {
-					typedBatch[j].Release()
-				}
-			}
-			return nil
-		}
-		
-		// Copy data to typed fields based on type inference
-		for key, value := range record.Data {
-			switch v := value.(type) {
-			case string:
-				typedRecord.SetString(key, v)
-			case int64:
-				typedRecord.SetInt(key, v)
-			case int:
-				typedRecord.SetInt(key, int64(v))
-			case int32:
-				typedRecord.SetInt(key, int64(v))
-			case float64:
-				typedRecord.SetFloat(key, v)
-			case float32:
-				typedRecord.SetFloat(key, float64(v))
-			case bool:
-				typedRecord.SetBool(key, v)
-			case time.Time:
-				typedRecord.SetTime(key, v)
-			case []byte:
-				typedRecord.SetBytes(key, v)
-			default:
-				// Keep in generic map for unsupported types
-				typedRecord.SetData(key, value)
-			}
-		}
-
-		// Copy metadata
-		typedRecord.Metadata = record.Metadata
-		typedRecord.ID = record.ID
-		typedRecord.Schema = record.Schema
-
-		typedBatch[i] = typedRecord
-		createdCount++
-	}
-
-	return typedBatch
-}
-
-// batchToArrowRecordTyped handles TypedRecord conversion for optimal performance
-func (d *IcebergDestination) batchToArrowRecordTyped(schema *arrow.Schema, batch []*pool.TypedRecord) (arrow.Record, error) {
-	d.logger.Debug("Using TypedRecord optimization", zap.Int("batch_size", len(batch)))
-
-	// Convert TypedRecords to unified extractors
-	extractors := make([]ValueExtractor, len(batch))
-	for i, record := range batch {
-		extractors[i] = &TypedRecordExtractor{record: record}
-	}
-
-	// Clean up TypedRecords after conversion
-	defer func() {
-		for _, tr := range batch {
-			tr.Release()
-		}
-	}()
-
-	return d.buildArrowRecordUnified(schema, extractors)
-}
-
-// batchToArrowRecordRegular handles regular Record conversion
-func (d *IcebergDestination) batchToArrowRecordRegular(schema *arrow.Schema, batch []*pool.Record) (arrow.Record, error) {
-	// Convert Records to unified extractors
+	// Convert to unified extractors (handles both typed and regular records)
 	extractors := make([]ValueExtractor, len(batch))
 	for i, record := range batch {
 		extractors[i] = &RegularRecordExtractor{record: record}
@@ -275,13 +162,13 @@ func (d *IcebergDestination) batchToArrowRecordRegular(schema *arrow.Schema, bat
 	return d.buildArrowRecordUnified(schema, extractors)
 }
 
+
 // buildArrowRecordUnified creates Arrow records using the unified extractor approach with builder pooling
 func (d *IcebergDestination) buildArrowRecordUnified(schema *arrow.Schema, extractors []ValueExtractor) (arrow.Record, error) {
-	// Initialize builder pool if not already done (defensive programming)
-	if d.builderPool == nil {
-		d.logger.Warn("Builder pool was nil, initializing it now")
-		allocator := memory.NewGoAllocator()
-		d.builderPool = NewArrowBuilderPool(allocator, d.logger)
+	// Ensure builder pool is initialized (defensive programming)
+	// This handles cases where the destination struct may have been copied or not properly initialized
+	if err := d.ensureBuilderPoolInitialized(); err != nil {
+		return nil, fmt.Errorf("failed to initialize builder pool: %w", err)
 	}
 
 	// Get pooled builder to eliminate allocation overhead
@@ -297,31 +184,23 @@ func (d *IcebergDestination) buildArrowRecordUnified(schema *arrow.Schema, extra
 		builder := recBuilder.Field(i)
 		d.preallocateBuilder(builder, len(extractors))
 
-		// Use unified field appenders for all types
+		// Append field data based on type
 		switch field.Type.ID() {
 		case arrow.STRING:
-			appendStringField(builder.(*array.StringBuilder), field.Name, extractors)
-		case arrow.INT64:
-			appendInt64Field(builder.(*array.Int64Builder), field.Name, extractors)
-		case arrow.INT32:
-			appendInt32Field(builder.(*array.Int32Builder), field.Name, extractors)
-		case arrow.FLOAT64:
-			appendFloat64Field(builder.(*array.Float64Builder), field.Name, extractors)
-		case arrow.FLOAT32:
-			appendFloat32Field(builder.(*array.Float32Builder), field.Name, extractors)
+			d.appendStringField(builder.(*array.StringBuilder), field.Name, extractors)
+		case arrow.INT64, arrow.INT32, arrow.FLOAT64, arrow.FLOAT32:
+			d.appendNumericField(builder, field.Name, extractors)
 		case arrow.BOOL:
-			appendBoolField(builder.(*array.BooleanBuilder), field.Name, extractors)
+			d.appendBoolField(builder.(*array.BooleanBuilder), field.Name, extractors)
 		case arrow.TIMESTAMP:
-			appendTimestampField(builder.(*array.TimestampBuilder), field.Name, extractors, field.Type.(*arrow.TimestampType))
+			d.appendTimestampField(builder.(*array.TimestampBuilder), field.Name, extractors, field.Type.(*arrow.TimestampType))
 		case arrow.DATE32:
-			appendDate32Field(builder.(*array.Date32Builder), field.Name, extractors)
+			d.appendDateField(builder.(*array.Date32Builder), field.Name, extractors)
 		case arrow.LIST:
 			d.appendListFieldUnified(builder.(*array.ListBuilder), field.Name, extractors, field.Type.(*arrow.ListType))
 		case arrow.STRUCT:
 			d.appendStructFieldUnified(builder.(*array.StructBuilder), field.Name, extractors, field.Type.(*arrow.StructType))
 		default:
-			d.logger.Warn("Unsupported Arrow type, using generic fallback",
-				zap.String("type", field.Type.String()))
 			d.appendFieldGenericUnified(builder, field.Name, field.Type, extractors)
 		}
 	}
@@ -329,35 +208,22 @@ func (d *IcebergDestination) buildArrowRecordUnified(schema *arrow.Schema, extra
 	// Use the pooled builder's NewRecord method which automatically returns builder to pool
 	rec := pooledBuilder.NewRecord()
 
-	d.logger.Debug("Unified Arrow record built with pooled builder",
-		zap.Int64("rows", rec.NumRows()),
-		zap.Int64("cols", rec.NumCols()))
 
 	return rec, nil
 }
 
-// Unified complex type handlers
+// appendListFieldUnified handles list type fields
 func (d *IcebergDestination) appendListFieldUnified(builder *array.ListBuilder, fieldName string, extractors []ValueExtractor, listType *arrow.ListType) {
-	elemType := listType.Elem()
-
 	for _, extractor := range extractors {
 		if val, ok := extractor.GetValue(fieldName); ok {
-			// Handle both []any and []interface{} for compatibility
-			var values []any
-			if vals, ok := val.([]any); ok {
-				values = vals
-			} else if interfaceVals, ok := val.([]interface{}); ok {
-				values = make([]any, len(interfaceVals))
-				copy(values, interfaceVals)
+			if values, ok := val.([]any); ok {
+				builder.Append(true)
+				elemBuilder := builder.ValueBuilder()
+				for _, v := range values {
+					d.appendToBuilder(listType.Elem(), elemBuilder, v)
+				}
 			} else {
 				builder.AppendNull()
-				continue
-			}
-
-			builder.Append(true)
-			elemBuilder := builder.ValueBuilder()
-			for _, v := range values {
-				d.appendToBuilder(elemType, elemBuilder, v)
 			}
 		} else {
 			builder.AppendNull()
@@ -368,23 +234,13 @@ func (d *IcebergDestination) appendListFieldUnified(builder *array.ListBuilder, 
 func (d *IcebergDestination) appendStructFieldUnified(builder *array.StructBuilder, fieldName string, extractors []ValueExtractor, structType *arrow.StructType) {
 	for _, extractor := range extractors {
 		if val, ok := extractor.GetValue(fieldName); ok {
-			// Handle both map[string]any and map[string]interface{} for compatibility
-			var valueMap map[string]any
-			if valMap, ok := val.(map[string]any); ok {
-				valueMap = valMap
-			} else if interfaceMap, ok := val.(map[string]interface{}); ok {
-				valueMap = make(map[string]any, len(interfaceMap))
-				for k, v := range interfaceMap {
-					valueMap[k] = v
+			if valueMap, ok := val.(map[string]any); ok {
+				builder.Append(true)
+				for i, field := range structType.Fields() {
+					d.appendToBuilder(field.Type, builder.FieldBuilder(i), valueMap[field.Name])
 				}
 			} else {
 				builder.AppendNull()
-				continue
-			}
-
-			builder.Append(true)
-			for i, field := range structType.Fields() {
-				d.appendToBuilder(field.Type, builder.FieldBuilder(i), valueMap[field.Name])
 			}
 		} else {
 			builder.AppendNull()
@@ -415,30 +271,8 @@ func (d *IcebergDestination) appendToBuilder(dt arrow.DataType, b array.Builder,
 		} else {
 			builder.AppendNull()
 		}
-	case *array.Int32Builder:
-		if v, ok := convertToNumeric[int32](val); ok {
-			builder.Append(v)
-		} else {
-			builder.AppendNull()
-		}
-	case *array.Int64Builder:
-		if v, ok := convertToNumeric[int64](val); ok {
-			builder.Append(v)
-		} else {
-			builder.AppendNull()
-		}
-	case *array.Float32Builder:
-		if v, ok := convertToNumeric[float32](val); ok {
-			builder.Append(v)
-		} else {
-			builder.AppendNull()
-		}
-	case *array.Float64Builder:
-		if v, ok := convertToNumeric[float64](val); ok {
-			builder.Append(v)
-		} else {
-			builder.AppendNull()
-		}
+	case *array.Int32Builder, *array.Int64Builder, *array.Float32Builder, *array.Float64Builder:
+		d.appendNumericValue(builder, val)
 	case *array.StringBuilder:
 		builder.Append(convertToString(val))
 	case *array.TimestampBuilder:
@@ -756,8 +590,8 @@ func (t *TypedRecordExtractor) GetTime(fieldName string) (time.Time, bool) {
 	return time.Time{}, false
 }
 
-// Generic field appender functions for zero-copy performance
-func appendStringField(builder *array.StringBuilder, fieldName string, extractors []ValueExtractor) {
+// Simplified field appender methods
+func (d *IcebergDestination) appendStringField(builder *array.StringBuilder, fieldName string, extractors []ValueExtractor) {
 	for _, extractor := range extractors {
 		if val, ok := extractor.GetString(fieldName); ok {
 			builder.Append(val)
@@ -767,47 +601,17 @@ func appendStringField(builder *array.StringBuilder, fieldName string, extractor
 	}
 }
 
-func appendInt64Field(builder *array.Int64Builder, fieldName string, extractors []ValueExtractor) {
+func (d *IcebergDestination) appendNumericField(builder array.Builder, fieldName string, extractors []ValueExtractor) {
 	for _, extractor := range extractors {
-		if val, ok := extractor.GetInt(fieldName); ok {
-			builder.Append(val)
+		if val, ok := extractor.GetValue(fieldName); ok {
+			d.appendNumericValue(builder, val)
 		} else {
 			builder.AppendNull()
 		}
 	}
 }
 
-func appendInt32Field(builder *array.Int32Builder, fieldName string, extractors []ValueExtractor) {
-	for _, extractor := range extractors {
-		if val, ok := extractor.GetInt(fieldName); ok {
-			builder.Append(int32(val))
-		} else {
-			builder.AppendNull()
-		}
-	}
-}
-
-func appendFloat64Field(builder *array.Float64Builder, fieldName string, extractors []ValueExtractor) {
-	for _, extractor := range extractors {
-		if val, ok := extractor.GetFloat(fieldName); ok {
-			builder.Append(val)
-		} else {
-			builder.AppendNull()
-		}
-	}
-}
-
-func appendFloat32Field(builder *array.Float32Builder, fieldName string, extractors []ValueExtractor) {
-	for _, extractor := range extractors {
-		if val, ok := extractor.GetFloat(fieldName); ok {
-			builder.Append(float32(val))
-		} else {
-			builder.AppendNull()
-		}
-	}
-}
-
-func appendBoolField(builder *array.BooleanBuilder, fieldName string, extractors []ValueExtractor) {
+func (d *IcebergDestination) appendBoolField(builder *array.BooleanBuilder, fieldName string, extractors []ValueExtractor) {
 	for _, extractor := range extractors {
 		if val, ok := extractor.GetBool(fieldName); ok {
 			builder.Append(val)
@@ -817,18 +621,16 @@ func appendBoolField(builder *array.BooleanBuilder, fieldName string, extractors
 	}
 }
 
-func appendTimestampField(builder *array.TimestampBuilder, fieldName string, extractors []ValueExtractor, tsType *arrow.TimestampType) {
-	unit := tsType.Unit
-
+func (d *IcebergDestination) appendTimestampField(builder *array.TimestampBuilder, fieldName string, extractors []ValueExtractor, tsType *arrow.TimestampType) {
 	for _, extractor := range extractors {
 		if val, ok := extractor.GetTime(fieldName); ok {
-			if ts, ok := convertToTimestamp(val, unit); ok {
+			if ts, ok := convertToTimestamp(val, tsType.Unit); ok {
 				builder.Append(ts)
 			} else {
 				builder.AppendNull()
 			}
 		} else if val, ok := extractor.GetValue(fieldName); ok {
-			if ts, ok := convertToTimestamp(val, unit); ok {
+			if ts, ok := convertToTimestamp(val, tsType.Unit); ok {
 				builder.Append(ts)
 			} else {
 				builder.AppendNull()
@@ -839,7 +641,7 @@ func appendTimestampField(builder *array.TimestampBuilder, fieldName string, ext
 	}
 }
 
-func appendDate32Field(builder *array.Date32Builder, fieldName string, extractors []ValueExtractor) {
+func (d *IcebergDestination) appendDateField(builder *array.Date32Builder, fieldName string, extractors []ValueExtractor) {
 	for _, extractor := range extractors {
 		if val, ok := extractor.GetTime(fieldName); ok {
 			if date, ok := convertToDate32(val); ok {
@@ -887,28 +689,82 @@ func convertIcebergFieldToCore(field icebergGo.NestedField) core.Field {
 	}
 }
 
-// Enhanced builder preallocation with better type support
-func (d *IcebergDestination) preallocateBuilder(builder array.Builder, capacity int) {
-	switch b := builder.(type) {
-	case *array.StringBuilder:
-		b.Reserve(capacity)
-	case *array.Int64Builder:
-		b.Reserve(capacity)
-	case *array.Int32Builder:
-		b.Reserve(capacity)
-	case *array.Float64Builder:
-		b.Reserve(capacity)
-	case *array.Float32Builder:
-		b.Reserve(capacity)
-	case *array.BooleanBuilder:
-		b.Reserve(capacity)
-	case *array.TimestampBuilder:
-		b.Reserve(capacity)
-	case *array.Date32Builder:
-		b.Reserve(capacity)
-	case *array.ListBuilder:
-		b.Reserve(capacity)
-	case *array.StructBuilder:
-		b.Reserve(capacity)
+// appendNumericValue handles all numeric types with a unified approach
+func (d *IcebergDestination) appendNumericValue(builder array.Builder, val any) {
+	if val == nil {
+		builder.AppendNull()
+		return
 	}
+
+	switch b := builder.(type) {
+	case *array.Int32Builder:
+		if v, ok := convertToNumeric[int32](val); ok {
+			b.Append(v)
+		} else {
+			b.AppendNull()
+		}
+	case *array.Int64Builder:
+		if v, ok := convertToNumeric[int64](val); ok {
+			b.Append(v)
+		} else {
+			b.AppendNull()
+		}
+	case *array.Float32Builder:
+		if v, ok := convertToNumeric[float32](val); ok {
+			b.Append(v)
+		} else {
+			b.AppendNull()
+		}
+	case *array.Float64Builder:
+		if v, ok := convertToNumeric[float64](val); ok {
+			b.Append(v)
+		} else {
+			b.AppendNull()
+		}
+	default:
+		builder.AppendNull()
+	}
+}
+
+// preallocateBuilder reserves capacity for array builders
+func (d *IcebergDestination) preallocateBuilder(builder array.Builder, capacity int) {
+	// Use interface method if available
+	if resizable, ok := builder.(interface{ Reserve(int) }); ok {
+		resizable.Reserve(capacity)
+		
+		// Special cases for complex builders
+		switch b := builder.(type) {
+		case *array.StringBuilder:
+			b.ReserveData(capacity * 32) // Estimate 32 chars per string
+		case *array.ListBuilder:
+			if valueBuilder := b.ValueBuilder(); valueBuilder != nil {
+				d.preallocateBuilder(valueBuilder, capacity*5) // Est. 5 elements per list
+			}
+		case *array.StructBuilder:
+			for i := 0; i < b.NumField(); i++ {
+				if fieldBuilder := b.FieldBuilder(i); fieldBuilder != nil {
+					d.preallocateBuilder(fieldBuilder, capacity)
+				}
+			}
+		}
+	}
+}
+
+// ensureBuilderPoolInitialized ensures the builder pool is properly initialized
+// This is thread-safe and handles cases where the destination may have been copied
+func (d *IcebergDestination) ensureBuilderPoolInitialized() error {
+	if d.builderPool != nil {
+		return nil
+	}
+	
+	d.logger.Warn("Builder pool was nil, initializing it now")
+	
+	allocator := memory.NewGoAllocator()
+	d.builderPool = NewArrowBuilderPool(allocator, d.logger)
+	
+	if d.builderPool == nil {
+		return fmt.Errorf("failed to create Arrow builder pool")
+	}
+	
+	return nil
 }

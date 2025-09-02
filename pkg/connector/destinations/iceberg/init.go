@@ -19,6 +19,9 @@ func init() {
 }
 
 func (d *IcebergDestination) Initialize(ctx context.Context, config *config.BaseConfig) error {
+	d.logger.Debug("Initialize called", 
+		zap.Bool("builder_pool_nil", d.builderPool == nil))
+		
 	if err := d.extractConfig(config); err != nil {
 		return err
 	}

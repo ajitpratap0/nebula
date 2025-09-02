@@ -10,6 +10,7 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	icebergGo "github.com/shubham-tomar/iceberg-go"
 	"github.com/shubham-tomar/iceberg-go/catalog"
 	"github.com/shubham-tomar/iceberg-go/catalog/rest"
@@ -160,6 +161,27 @@ func (n *NessieCatalog) WriteBulkBatches(ctx context.Context, database, table st
 	return fmt.Errorf("Nessie catalog WriteBulkBatches not implemented yet")
 }
 
+// Utility methods for schema and batch conversion
+func (n *NessieCatalog) convertSchema(icebergSchema *icebergGo.Schema) (*arrow.Schema, error) {
+	tempDest := &IcebergDestination{
+		logger:          n.logger,
+		schemaValidator: &SimpleSchemaValidator{},
+	}
+	return tempDest.icebergToArrowSchema(icebergSchema)
+}
+
+func (n *NessieCatalog) convertBatch(arrowSchema *arrow.Schema, batch []*pool.Record) (arrow.Record, error) {
+	tempDest := &IcebergDestination{
+		logger:          n.logger,
+		schemaValidator: &SimpleSchemaValidator{},
+	}
+	// Initialize builder pool
+	allocator := memory.NewGoAllocator()
+	tempDest.builderPool = NewArrowBuilderPool(allocator, n.logger)
+	
+	return tempDest.batchToArrowRecord(arrowSchema, batch)
+}
+
 func (n *NessieCatalog) WriteData(ctx context.Context, database, table string, batch []*pool.Record) error {
 	if n.catalog == nil {
 		return fmt.Errorf("catalog not initialized for data writing")
@@ -179,8 +201,7 @@ func (n *NessieCatalog) WriteData(ctx context.Context, database, table string, b
 		zap.String("database", database))
 
 	icebergSchema := tbl.Schema()
-	tempDest := &IcebergDestination{logger: n.logger}
-	arrowSchema, err := tempDest.icebergToArrowSchema(icebergSchema)
+	arrowSchema, err := n.convertSchema(icebergSchema)
 	if err != nil {
 		return fmt.Errorf("failed to convert schema: %w", err)
 	}
@@ -189,7 +210,7 @@ func (n *NessieCatalog) WriteData(ctx context.Context, database, table string, b
 		zap.Int("batch_size", len(batch)),
 		zap.Int("schema_fields", len(arrowSchema.Fields())))
 
-	arrowRecord, err := tempDest.batchToArrowRecord(arrowSchema, batch)
+	arrowRecord, err := n.convertBatch(arrowSchema, batch)
 	if err != nil {
 		return fmt.Errorf("failed to convert batch to Arrow: %w", err)
 	}
