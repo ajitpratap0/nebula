@@ -24,6 +24,8 @@ docker_test_output.*
 quick_test.*
 memory_test.*
 continuous_test.*
+test/benchmarks/pipeline_profile_*.json
+test/benchmarks/test_profiles/*
 
 # Benchmark results
 benchmark-results/
