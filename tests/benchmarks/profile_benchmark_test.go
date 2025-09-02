@@ -269,7 +269,7 @@ func runBenchmarkPipeline(
 	// Create source
 	sourceConfig := config.NewBaseConfig("csv-source", "source")
 	sourceConfig.Security.Credentials = map[string]string{
-		"file_path": inputFile,
+		"path": inputFile,
 	}
 
 	source, err := csvsrc.NewCSVSource(sourceConfig)
@@ -285,7 +285,7 @@ func runBenchmarkPipeline(
 	// Create destination
 	destConfig := config.NewBaseConfig("csv-destination", "destination")
 	destConfig.Security.Credentials = map[string]string{
-		"file_path": outputFile,
+		"path": outputFile,
 	}
   
 	dest, err := csvdest.NewCSVDestination(destConfig)
