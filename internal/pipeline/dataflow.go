@@ -342,7 +342,7 @@ func (df *DataFlow) runStageWorker(ctx context.Context, executor *StageExecutor,
 			}
 
 		case <-ctx.Done():
-			worker.logger.Debug("worker context cancelled")
+			worker.logger.Debug("worker context canceled")
 			return
 		}
 	}

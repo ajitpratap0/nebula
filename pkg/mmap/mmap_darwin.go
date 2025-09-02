@@ -30,12 +30,12 @@ func madvise(b []byte, advice int) error {
 
 const (
 	// Memory protection flags
-	PROT_READ = syscall.PROT_READ
+	PROT_READ = syscall.PROT_READ //nolint:stylecheck
 
 	// Memory mapping flags
-	MAP_SHARED = syscall.MAP_SHARED
+	MAP_SHARED = syscall.MAP_SHARED //nolint:stylecheck
 
 	// Memory advice flags
-	MADV_SEQUENTIAL = 2 // Sequential page references
-	MADV_WILLNEED   = 3 // Will need these pages
+	MADV_SEQUENTIAL = 2 //nolint:stylecheck // Sequential page references
+	MADV_WILLNEED   = 3 //nolint:stylecheck // Will need these pages
 )

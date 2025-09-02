@@ -334,14 +334,14 @@ func (sp *StreamingPipeline) processRecord(ctx context.Context, record *Streamin
 	result := models.NewRecord(record.Metadata.Source, record.Data)
 	result.ID = record.ID
 	result.SetTimestamp(record.GetTimestamp())
-	
+
 	// Copy custom metadata if it exists
 	if record.Metadata.Custom != nil {
 		for k, v := range record.Metadata.Custom {
 			result.SetMetadata(k, v)
 		}
 	}
-	
+
 	return result
 }
 
@@ -560,7 +560,10 @@ func (sp *StreamingPipeline) loadStage(ctx context.Context, in <-chan *Streaming
 	workerWg.Wait()
 }
 
-func (sp *StreamingPipeline) loadWorker(ctx context.Context, workerID int, in <-chan *StreamingRecord, errors chan<- *StreamingError, wg *sync.WaitGroup) {
+func (sp *StreamingPipeline) loadWorker(
+	ctx context.Context, workerID int,
+	in <-chan *StreamingRecord, errors chan<- *StreamingError,
+	wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	batch := pool.GetBatchSlice(sp.config.BatchSize)

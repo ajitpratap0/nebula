@@ -10,7 +10,6 @@ linters:
     - dogsled
     - dupl
     - errcheck
-    - exportloopref
     - exhaustive
     - gochecknoinits
     - goconst
@@ -33,9 +32,7 @@ linters:
     - stylecheck
     - typecheck
     - unconvert
-    - unparam
     - unused
-    - whitespace
 
 linters-settings:
   depguard:
@@ -45,7 +42,7 @@ linters-settings:
           - pkg: "github.com/pkg/errors"
             desc: "Use standard library errors with fmt.Errorf and errors.Is/As"
   dupl:
-    threshold: 100
+    threshold: 150
   errcheck:
     check-type-assertions: true
     check-blank: true

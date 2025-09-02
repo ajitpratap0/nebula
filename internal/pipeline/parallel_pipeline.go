@@ -114,9 +114,9 @@ func NewParallelPipeline(source core.Source, destination core.Destination, confi
 func (p *ParallelPipeline) AddTransform(transform Transform) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	p.transforms = append(p.transforms, transform)
-	
+
 	// Update parallel processor transforms if enabled
 	if p.parallelProcessor != nil {
 		p.parallelProcessor.transforms = p.transforms
@@ -334,7 +334,7 @@ func (p *ParallelPipeline) destinationWorker(ctx context.Context, id int, batche
 	// Create a batch stream for this worker
 	batchChan := make(chan []*models.Record, 1)
 	errorChan := make(chan error, 1)
-	
+
 	stream := &core.BatchStream{
 		Batches: batchChan,
 		Errors:  errorChan,

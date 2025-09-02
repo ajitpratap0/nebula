@@ -43,7 +43,7 @@ func WrapConfig(cfg *nebulaConfig.BaseConfig) *nebulaConfig.BaseConfig {
 		Name:    cfg.Name,
 		Type:    cfg.Type,
 		Version: cfg.Version,
-		
+
 		Performance:   cfg.Performance,
 		Timeouts:      cfg.Timeouts,
 		Reliability:   cfg.Reliability,

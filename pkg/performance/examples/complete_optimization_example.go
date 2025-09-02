@@ -17,7 +17,7 @@ import (
 
 // CompleteOptimizationWorkflow demonstrates full optimization pipeline
 func CompleteOptimizationWorkflow() {
-	fmt.Println("=== Complete Performance Optimization Workflow ===\n")
+	fmt.Println("=== Complete Performance Optimization Workflow ===")
 
 	// Step 1: Profile baseline performance
 	fmt.Println("Step 1: Profiling Baseline Performance")
@@ -424,7 +424,7 @@ func estimateRecordSize(record *models.Record) int64 {
 
 // FullPipelineExample demonstrates complete data pipeline with all optimizations
 func FullPipelineExample() {
-	fmt.Println("\n=== Full Optimized Data Pipeline Example ===\n")
+	fmt.Println("\n=== Full Optimized Data Pipeline Example ===")
 
 	// Initialize all optimizers
 	memOptimizer := performance.NewMemoryOptimizer(nil)

@@ -10,9 +10,9 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/compression"
 	"github.com/ajitpratap0/nebula/pkg/errors"
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/ajitpratap0/nebula/pkg/formats/columnar"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 )
 
@@ -347,7 +347,7 @@ func (bl *BulkLoader) createParquetFile(records []*models.Record) *LoadFile {
 	// Get data from pooled builder
 	originalSize := builder.Len()
 	data := stringpool.StringToBytes(builder.String())
-	
+
 	// Compress if needed
 	if bl.compressor != nil {
 		compressed, _ := bl.compressor.Compress(data)

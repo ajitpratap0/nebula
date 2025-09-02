@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"go.uber.org/zap"
 
 	"github.com/ajitpratap0/nebula/pkg/config"
@@ -180,7 +180,7 @@ func (s *PostgreSQLSource) setupConnectionPool(ctx context.Context) error {
 	if s.poolConfig.MaxConns <= 0 {
 		s.poolConfig.MaxConns = 10 // Default
 	}
-	
+
 	// Use Workers/4 for min connections (typically want fewer idle connections than workers)
 	s.poolConfig.MinConns = int32(s.GetConfig().Performance.Workers / 4)
 	if s.poolConfig.MinConns <= 0 {
@@ -189,18 +189,18 @@ func (s *PostgreSQLSource) setupConnectionPool(ctx context.Context) error {
 	if s.poolConfig.MinConns > s.poolConfig.MaxConns {
 		s.poolConfig.MinConns = s.poolConfig.MaxConns / 2
 	}
-	
+
 	// Use timeout configurations from BaseConfig
 	s.poolConfig.MaxConnLifetime = s.GetConfig().Timeouts.Connection
 	if s.poolConfig.MaxConnLifetime <= 0 {
 		s.poolConfig.MaxConnLifetime = time.Hour // Default
 	}
-	
+
 	s.poolConfig.MaxConnIdleTime = s.GetConfig().Timeouts.Idle
 	if s.poolConfig.MaxConnIdleTime <= 0 {
 		s.poolConfig.MaxConnIdleTime = 30 * time.Minute // Default
 	}
-	
+
 	// Set health check interval based on keep alive timeout
 	s.poolConfig.HealthCheckPeriod = s.GetConfig().Timeouts.KeepAlive
 	if s.poolConfig.HealthCheckPeriod <= 0 {
@@ -225,7 +225,7 @@ func (s *PostgreSQLSource) setupConnectionPool(ctx context.Context) error {
 		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to validate connection")
 	}
 
-	s.GetLogger().Info("Connected to PostgreSQL", 
+	s.GetLogger().Info("Connected to PostgreSQL",
 		zap.String("version", version),
 		zap.Int32("max_connections", s.poolConfig.MaxConns),
 		zap.Int32("min_connections", s.poolConfig.MinConns),
@@ -544,7 +544,6 @@ func (s *PostgreSQLSource) streamBatches(ctx context.Context, query string, batc
 
 	batch := pool.GetBatchSlice(batchSize)
 
-
 	defer pool.PutBatchSlice(batch)
 
 	for rows.Next() {
@@ -731,17 +730,17 @@ func (s *PostgreSQLSource) Metrics() map[string]interface{} {
 	if s.pool != nil {
 		stat := s.pool.Stat()
 		metrics["pool_stats"] = map[string]interface{}{
-			"total_conns":        stat.TotalConns(),
-			"acquired_conns":     stat.AcquiredConns(),
-			"idle_conns":         stat.IdleConns(),
-			"constructing_conns": stat.ConstructingConns(),
-			"empty_acquire":      stat.EmptyAcquireCount(),
-			"acquire_count":      stat.AcquireCount(),
-			"acquired_duration":  stat.AcquireDuration().Milliseconds(),
-			"canceled_acquire":   stat.CanceledAcquireCount(),
-			"max_conns":          s.poolConfig.MaxConns,
-			"min_conns":          s.poolConfig.MinConns,
-			"conn_utilization":   float64(stat.AcquiredConns()) / float64(s.poolConfig.MaxConns) * 100,
+			"total_conns":         stat.TotalConns(),
+			"acquired_conns":      stat.AcquiredConns(),
+			"idle_conns":          stat.IdleConns(),
+			"constructing_conns":  stat.ConstructingConns(),
+			"empty_acquire":       stat.EmptyAcquireCount(),
+			"acquire_count":       stat.AcquireCount(),
+			"acquired_duration":   stat.AcquireDuration().Milliseconds(),
+			"canceled_acquire":    stat.CanceledAcquireCount(),
+			"max_conns":           s.poolConfig.MaxConns,
+			"min_conns":           s.poolConfig.MinConns,
+			"conn_utilization":    float64(stat.AcquiredConns()) / float64(s.poolConfig.MaxConns) * 100,
 			"health_check_period": s.poolConfig.HealthCheckPeriod.Seconds(),
 		}
 	}
@@ -812,7 +811,7 @@ func convertPostgreSQLValue(value interface{}) interface{} {
 func (s *PostgreSQLSource) warmUpConnectionPool(ctx context.Context) error {
 	// Acquire minimum number of connections to warm up the pool
 	conns := make([]pgxpool.Conn, 0, s.poolConfig.MinConns)
-	
+
 	for i := int32(0); i < s.poolConfig.MinConns; i++ {
 		conn, err := s.pool.Acquire(ctx)
 		if err != nil {
@@ -820,20 +819,20 @@ func (s *PostgreSQLSource) warmUpConnectionPool(ctx context.Context) error {
 			for _, c := range conns {
 				c.Release()
 			}
-			return errors.Wrap(err, errors.ErrorTypeConnection, 
+			return errors.Wrap(err, errors.ErrorTypeConnection,
 				stringpool.Sprintf("failed to warm up connection %d/%d", i+1, s.poolConfig.MinConns))
 		}
 		conns = append(conns, *conn)
 	}
-	
+
 	// Release all connections back to the pool
 	for _, conn := range conns {
 		conn.Release()
 	}
-	
-	s.GetLogger().Debug("Connection pool warmed up", 
+
+	s.GetLogger().Debug("Connection pool warmed up",
 		zap.Int32("connections", s.poolConfig.MinConns))
-	
+
 	return nil
 }
 
@@ -844,14 +843,14 @@ func (s *PostgreSQLSource) validateConnection(ctx context.Context, version *stri
 		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to acquire connection for validation")
 	}
 	defer conn.Release()
-	
+
 	// Simple validation query
 	var result int
 	err = conn.QueryRow(ctx, "SELECT 1").Scan(&result)
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeQuery, "validation query failed")
 	}
-	
+
 	// Get version if requested
 	if version != nil {
 		err = conn.QueryRow(ctx, "SELECT version()").Scan(version)
@@ -859,6 +858,6 @@ func (s *PostgreSQLSource) validateConnection(ctx context.Context, version *stri
 			return errors.Wrap(err, errors.ErrorTypeQuery, "failed to get server version")
 		}
 	}
-	
+
 	return nil
 }

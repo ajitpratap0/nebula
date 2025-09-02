@@ -10,8 +10,8 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/logger"
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 	"go.uber.org/zap"
 )
 
@@ -66,9 +66,9 @@ func NewConnectorBuilder() *ConnectorBuilder {
 		defaultRetryDelay:     time.Second,
 		defaultRateLimit:      0, // No limit by default
 		// Unified pool system is always enabled
-		capabilities:          make([]string, 0),
-		configSchema:          make(map[string]interface{}),
-		logger:                logger.Get().With(zap.String("component", "connector_builder")),
+		capabilities: make([]string, 0),
+		configSchema: make(map[string]interface{}),
+		logger:       logger.Get().With(zap.String("component", "connector_builder")),
 	}
 }
 
@@ -235,7 +235,7 @@ func (cb *ConnectorBuilder) Validate() error {
 func (cb *ConnectorBuilder) CreateBaseConfig(name string) *config.BaseConfig {
 	cfg := config.NewBaseConfig(name, string(cb.connectorType))
 	cfg.Version = cb.version
-	
+
 	// Override with builder defaults
 	if cb.defaultBatchSize > 0 {
 		cfg.Performance.BatchSize = cb.defaultBatchSize
@@ -258,10 +258,10 @@ func (cb *ConnectorBuilder) CreateBaseConfig(name string) *config.BaseConfig {
 	if cb.defaultRateLimit > 0 {
 		cfg.Reliability.RateLimitPerSec = cb.defaultRateLimit
 	}
-	
+
 	// Set default flush interval
 	cfg.Performance.FlushInterval = 10 * time.Second
-	
+
 	return cfg
 }
 

@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/linkedin/goavro/v2"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
+	"github.com/linkedin/goavro/v2"
 )
 
 // avroWriter implements Writer for Avro format
@@ -56,7 +56,7 @@ func newAvroWriter(w io.Writer, config *WriterConfig) (*avroWriter, error) {
 		config:    config,
 		codec:     codec,
 		ocfWriter: ocfWriter,
-		buffer: pool.GetBatchSlice(config.BatchSize),
+		buffer:    pool.GetBatchSlice(config.BatchSize),
 	}, nil
 }
 
@@ -251,14 +251,14 @@ func nebulaToAvroSchema(schema *core.Schema) string {
 		fields = append(fields, avroField)
 	}
 
-	schema_map := map[string]interface{}{
+	schemaMap := map[string]interface{}{
 		"type":   "record",
 		"name":   schema.Name,
 		"fields": fields,
 	}
 
 	// Convert to JSON string
-	schemaBytes, _ := jsonpool.Marshal(schema_map)
+	schemaBytes, _ := jsonpool.Marshal(schemaMap)
 	return string(schemaBytes)
 }
 
@@ -290,7 +290,7 @@ func nebulaToAvroType(fieldType core.FieldType) string {
 func avroToNebulaSchema(avroSchema string) *core.Schema {
 	// Parse Avro schema JSON
 	var schemaMap map[string]interface{}
-	jsonpool.Unmarshal([]byte(avroSchema), &schemaMap)
+	_ = jsonpool.Unmarshal([]byte(avroSchema), &schemaMap)
 
 	fields := make([]core.Field, 0)
 

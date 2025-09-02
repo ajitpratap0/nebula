@@ -59,12 +59,11 @@ import (
 	"io"
 	"sync"
 
+	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"github.com/klauspost/compress/s2"
 	"github.com/klauspost/compress/snappy"
 	"github.com/klauspost/compress/zstd"
 	"github.com/pierrec/lz4/v4"
-	"github.com/ajitpratap0/nebula/pkg/pool"
-	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 )
 
 // Algorithm represents a compression algorithm.
@@ -113,22 +112,22 @@ type Compressor interface {
 	// Compress compresses data and returns the compressed bytes.
 	// The input data is not modified.
 	Compress(data []byte) ([]byte, error)
-	
+
 	// Decompress decompresses data and returns the original bytes.
 	// The input data is not modified.
 	Decompress(data []byte) ([]byte, error)
-	
+
 	// CompressStream compresses from reader to writer.
 	// Useful for large files or streaming scenarios.
 	CompressStream(dst io.Writer, src io.Reader) error
-	
+
 	// DecompressStream decompresses from reader to writer.
 	// Useful for large files or streaming scenarios.
 	DecompressStream(dst io.Writer, src io.Reader) error
-	
+
 	// Algorithm returns the compression algorithm used.
 	Algorithm() Algorithm
-	
+
 	// Level returns the compression level configured.
 	Level() Level
 }
@@ -155,10 +154,10 @@ type Config struct {
 // with 64KB buffers.
 func DefaultConfig() *Config {
 	return &Config{
-		Algorithm:   Snappy,     // Fast with decent compression
-		Level:       Default,    // Balanced settings
-		BufferSize:  64 * 1024,  // 64KB buffers
-		Concurrency: 4,          // Moderate parallelism
+		Algorithm:   Snappy,    // Fast with decent compression
+		Level:       Default,   // Balanced settings
+		BufferSize:  64 * 1024, // 64KB buffers
+		Concurrency: 4,         // Moderate parallelism
 	}
 }
 
@@ -351,7 +350,7 @@ func (gc *gzipCompressor) Compress(data []byte) ([]byte, error) {
 	// Use pooled builder for compression buffer
 	builder := stringpool.GetBuilder(stringpool.Medium)
 	defer stringpool.PutBuilder(builder, stringpool.Medium)
-	
+
 	w := gc.writerPool.Get().(*gzip.Writer)
 	defer gc.writerPool.Put(w)
 
@@ -363,12 +362,8 @@ func (gc *gzipCompressor) Compress(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// Copy data from pooled builder to result
-	result := pool.GetByteSlice()
-	if cap(result) < builder.Len() {
-		result = make([]byte, builder.Len())
-	}
-	defer pool.PutByteSlice(result)
+	// Create result slice with proper size
+	result := make([]byte, builder.Len())
 	copy(result, builder.Bytes())
 	return result, nil
 }
@@ -384,17 +379,13 @@ func (gc *gzipCompressor) Decompress(data []byte) ([]byte, error) {
 	// Use pooled builder for decompression buffer
 	builder := stringpool.GetBuilder(stringpool.Medium)
 	defer stringpool.PutBuilder(builder, stringpool.Medium)
-	
+
 	if _, err := io.Copy(builder, r); err != nil {
 		return nil, err
 	}
 
-	// Copy data from pooled builder to result
-	result := pool.GetByteSlice()
-	if cap(result) < builder.Len() {
-		result = make([]byte, builder.Len())
-	}
-	defer pool.PutByteSlice(result)
+	// Create result slice with proper size
+	result := make([]byte, builder.Len())
 	copy(result, builder.Bytes())
 	return result, nil
 }
@@ -483,7 +474,7 @@ func (lc *lz4Compressor) Compress(data []byte) ([]byte, error) {
 	// Use pooled builder for compression buffer
 	builder := stringpool.GetBuilder(stringpool.Medium)
 	defer stringpool.PutBuilder(builder, stringpool.Medium)
-	
+
 	w := lz4.NewWriter(builder)
 
 	// Apply compression level using the v4 API
@@ -498,33 +489,25 @@ func (lc *lz4Compressor) Compress(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// Copy data from pooled builder to result
-	result := pool.GetByteSlice()
-	if cap(result) < builder.Len() {
-		result = make([]byte, builder.Len())
-	}
-	defer pool.PutByteSlice(result)
+	// Create result slice with proper size
+	result := make([]byte, builder.Len())
 	copy(result, builder.Bytes())
 	return result, nil
 }
 
 func (lc *lz4Compressor) Decompress(data []byte) ([]byte, error) {
 	r := lz4.NewReader(bytes.NewReader(data))
-	
+
 	// Use pooled builder for decompression buffer
 	builder := stringpool.GetBuilder(stringpool.Medium)
 	defer stringpool.PutBuilder(builder, stringpool.Medium)
-	
+
 	if _, err := io.Copy(builder, r); err != nil {
 		return nil, err
 	}
-	
-	// Copy data from pooled builder to result
-	result := pool.GetByteSlice()
-	if cap(result) < builder.Len() {
-		result = make([]byte, builder.Len())
-	}
-	defer pool.PutByteSlice(result)
+
+	// Create result slice with proper size
+	result := make([]byte, builder.Len())
 	copy(result, builder.Bytes())
 	return result, nil
 }
@@ -680,7 +663,7 @@ func (dc *deflateCompressor) Compress(data []byte) ([]byte, error) {
 	// Use pooled builder for compression buffer
 	builder := stringpool.GetBuilder(stringpool.Medium)
 	defer stringpool.PutBuilder(builder, stringpool.Medium)
-	
+
 	w, err := flate.NewWriter(builder, dc.level)
 	if err != nil {
 		return nil, err
@@ -693,12 +676,8 @@ func (dc *deflateCompressor) Compress(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// Copy data from pooled builder to result
-	result := pool.GetByteSlice()
-	if cap(result) < builder.Len() {
-		result = make([]byte, builder.Len())
-	}
-	defer pool.PutByteSlice(result)
+	// Create result slice with proper size
+	result := make([]byte, builder.Len())
 	copy(result, builder.Bytes())
 	return result, nil
 }
@@ -710,17 +689,13 @@ func (dc *deflateCompressor) Decompress(data []byte) ([]byte, error) {
 	// Use pooled builder for decompression buffer
 	builder := stringpool.GetBuilder(stringpool.Medium)
 	defer stringpool.PutBuilder(builder, stringpool.Medium)
-	
+
 	if _, err := io.Copy(builder, r); err != nil {
 		return nil, err
 	}
 
-	// Copy data from pooled builder to result
-	result := pool.GetByteSlice()
-	if cap(result) < builder.Len() {
-		result = make([]byte, builder.Len())
-	}
-	defer pool.PutByteSlice(result)
+	// Create result slice with proper size
+	result := make([]byte, builder.Len())
 	copy(result, builder.Bytes())
 	return result, nil
 }

@@ -690,7 +690,7 @@ func (kc *KafkaConsumer) buildSaramaConfig() *sarama.Config {
 	config := sarama.NewConfig()
 
 	// Consumer settings
-	config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRoundRobin
+	config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
 
 	switch kc.config.AutoOffsetReset {
 	case "earliest":

@@ -77,4 +77,3 @@ docker-compose.override.yml
 # Development-specific documents
 PRD.md
 localfile.json
-go.sum

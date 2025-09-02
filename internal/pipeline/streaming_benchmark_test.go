@@ -8,8 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 	"go.uber.org/zap"
 )
 
@@ -124,13 +125,13 @@ func BenchmarkBackpressureController(b *testing.B) {
 	controller.Start(ctx)
 
 	// Create test record
-	record := &models.Record{
-		ID:        "test",
-		Source:    "benchmark",
-		Data:      map[string]interface{}{"test": "data"},
-		Metadata:  map[string]interface{}{"priority": 5},
-		Timestamp: time.Now().UnixNano(),
-	}
+	record := pool.GetRecord()
+	defer record.Release()
+	record.ID = "test"
+	record.Metadata.Source = "benchmark"
+	record.SetData("test", "data")
+	record.SetMetadata("priority", 5)
+	record.SetTimestamp(time.Now())
 
 	b.ResetTimer()
 
@@ -140,13 +141,9 @@ func BenchmarkBackpressureController(b *testing.B) {
 		controller.UpdateBufferMetrics(utilization, 1000, 10000)
 
 		// Apply backpressure
-		allowed, err := controller.Apply(ctx, record)
+		_, err := controller.Apply(ctx, record)
 		if err != nil {
 			b.Fatalf("Backpressure error: %v", err)
-		}
-
-		if !allowed {
-			// Record was dropped/throttled
 		}
 	}
 }
@@ -186,7 +183,7 @@ func (s *MockHighThroughputSource) SetRecordsProcessedCounter(counter *int64) {
 	s.recordsProcessedCounter = counter
 }
 
-func (s *MockHighThroughputSource) Initialize(ctx context.Context, config *core.Config) error {
+func (s *MockHighThroughputSource) Initialize(ctx context.Context, config *config.BaseConfig) error {
 	return nil
 }
 
@@ -198,7 +195,7 @@ func (s *MockHighThroughputSource) Discover(ctx context.Context) (*core.Schema, 
 }
 
 func (s *MockHighThroughputSource) Read(ctx context.Context) (*core.RecordStream, error) {
-	recordsChan := make(chan *models.Record, 10000)
+	recordsChan := make(chan *pool.Record, 10000)
 	errorsChan := make(chan error, 10)
 
 	go func() {
@@ -210,13 +207,13 @@ func (s *MockHighThroughputSource) Read(ctx context.Context) (*core.RecordStream
 			case <-ctx.Done():
 				return
 			default:
-				record := &models.Record{
-					ID:        fmt.Sprintf("record_%d", i),
-					Source:    "benchmark",
-					Data:      map[string]interface{}{"value": i, "timestamp": time.Now().UnixNano()},
-					Metadata:  map[string]interface{}{"batch": i / 1000},
-					Timestamp: time.Now().UnixNano(),
-				}
+				record := pool.GetRecord()
+				record.ID = fmt.Sprintf("record_%d", i)
+				record.Metadata.Source = "benchmark"
+				record.SetData("value", i)
+				record.SetData("timestamp", time.Now().UnixNano())
+				record.SetMetadata("batch", i/1000)
+				record.SetTimestamp(time.Now())
 
 				recordsChan <- record
 
@@ -287,7 +284,7 @@ func (s *MockHighThroughputSource) Metrics() map[string]interface{} {
 // MockHighThroughputDestination simulates a high-throughput data destination
 type MockHighThroughputDestination struct{}
 
-func (d *MockHighThroughputDestination) Initialize(ctx context.Context, config *core.Config) error {
+func (d *MockHighThroughputDestination) Initialize(ctx context.Context, config *config.BaseConfig) error {
 	return nil
 }
 
@@ -371,7 +368,7 @@ func (d *MockHighThroughputDestination) BeginTransaction(ctx context.Context) (c
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (d *MockHighThroughputDestination) Upsert(ctx context.Context, records []*models.Record, keys []string) error {
+func (d *MockHighThroughputDestination) Upsert(ctx context.Context, records []*pool.Record, keys []string) error {
 	return fmt.Errorf("not implemented")
 }
 

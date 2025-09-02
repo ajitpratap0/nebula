@@ -4,7 +4,6 @@ package benchmarks
 import (
 	"bytes"
 	"compress/gzip"
-	"context"
 	"fmt"
 	"io"
 	"sync"
@@ -12,8 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/connector/destinations"
 	"github.com/ajitpratap0/nebula/pkg/models"
 )
 
@@ -132,7 +129,6 @@ func BenchmarkSnowflakeOptimizedWrite(b *testing.B) {
 		b.Run(scenario.name, func(b *testing.B) {
 			stage := NewMockSnowflakeStage()
 
-			totalRecords := scenario.recordsPerBatch * scenario.batchCount
 			var recordsWritten int64
 			var bytesUploaded int64
 			var uploadDuration time.Duration
@@ -295,7 +291,7 @@ func BenchmarkSnowflakeCompression(b *testing.B) {
 					start := time.Now()
 					var compBuf bytes.Buffer
 					gw, _ := gzip.NewWriterLevel(&compBuf, comp.level)
-					io.Copy(gw, &csvBuf)
+					_, _ = io.Copy(gw, &csvBuf)
 					gw.Close()
 					compressionTime = time.Since(start)
 					compressedSize = compBuf.Len()
@@ -384,7 +380,7 @@ func BenchmarkSnowflakeParallelism(b *testing.B) {
 
 				for w := 0; w < parallel; w++ {
 					wg.Add(1)
-					go func(workerID int) {
+					go func(_ int) {
 						defer wg.Done()
 
 						// Simulate worker processing
@@ -437,7 +433,7 @@ func generateBatchData(recordCount int, compressionType string) []byte {
 	if compressionType == "GZIP" {
 		var compBuf bytes.Buffer
 		gw := gzip.NewWriter(&compBuf)
-		io.Copy(gw, &buf)
+		_, _ = io.Copy(gw, &buf)
 		gw.Close()
 		return compBuf.Bytes()
 	}

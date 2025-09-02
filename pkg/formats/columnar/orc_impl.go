@@ -17,11 +17,11 @@ import (
 
 // ORC constants
 const (
-	orcMagic       = "ORC"
-	orcVersion     = 1
-	defaultStripeSize = 64 * 1024 * 1024 // 64MB
+	orcMagic              = "ORC"
+	orcVersion            = 1
+	defaultStripeSize     = 64 * 1024 * 1024 // 64MB
 	defaultRowIndexStride = 10000
-	compressionBlockSize = 256 * 1024 // 256KB
+	compressionBlockSize  = 256 * 1024 // 256KB
 )
 
 // orcWriter implements Writer for ORC format
@@ -31,21 +31,21 @@ type orcWriter struct {
 	schema         *core.Schema
 	bytesWritten   int64
 	recordsWritten int64
-	
+
 	// ORC specific
-	stripes        []stripeInfo
-	currentStripe  *stripe
-	footer         *orcFooter
-	postscript     *orcPostscript
-	
+	stripes       []stripeInfo
+	currentStripe *stripe
+	footer        *orcFooter
+	postscript    *orcPostscript
+
 	// Buffering
-	buffer         []byte
-	bufferPool     sync.Pool
-	
+	buffer     []byte
+	bufferPool sync.Pool
+
 	// Compression
 	compressionKind CompressionKind
-	compressor     func([]byte) ([]byte, error)
-	
+	compressor      func([]byte) ([]byte, error)
+
 	mu sync.Mutex
 }
 
@@ -59,36 +59,36 @@ type stripeInfo struct {
 }
 
 type stripe struct {
-	rowData      [][]interface{}
-	indexData    []byte
-	rowCount     int
-	memorySize   int64
+	rowData    [][]interface{}
+	indexData  []byte
+	rowCount   int
+	memorySize int64
 }
 
 type orcFooter struct {
-	headerLength    uint64
-	contentLength   uint64
-	stripes         []stripeInfo
-	types           []orcType
-	numberOfRows    uint64
-	statistics      []columnStatistics
-	rowIndexStride  uint32
+	headerLength   uint64
+	contentLength  uint64
+	stripes        []stripeInfo
+	types          []orcType
+	numberOfRows   uint64
+	statistics     []columnStatistics
+	rowIndexStride uint32
 }
 
 type orcPostscript struct {
-	footerLength       uint64
-	compressionKind    CompressionKind
-	compressionSize    uint64
-	version            []uint32
-	metadataLength     uint64
-	writerVersion      uint32
-	magic              string
+	footerLength    uint64
+	compressionKind CompressionKind
+	compressionSize uint64
+	version         []uint32
+	metadataLength  uint64
+	writerVersion   uint32
+	magic           string
 }
 
 type orcType struct {
-	kind         TypeKind
-	subtypes     []uint32
-	fieldNames   []string
+	kind          TypeKind
+	subtypes      []uint32
+	fieldNames    []string
 	maximumLength uint32
 	precision     uint32
 	scale         uint32
@@ -98,7 +98,7 @@ type columnStatistics struct {
 	numberOfValues uint64
 	hasNull        bool
 	bytesOnDisk    uint64
-	
+
 	// Type-specific stats
 	intStats    *integerStatistics
 	doubleStats *doubleStatistics
@@ -257,11 +257,11 @@ func (ow *orcWriter) initializeTypes() error {
 		fieldType := orcType{
 			kind: mapFieldType(field.Type),
 		}
-		
+
 		ow.footer.types = append(ow.footer.types, fieldType)
 		ow.footer.types[0].subtypes = append(ow.footer.types[0].subtypes, uint32(i+1))
 		ow.footer.types[0].fieldNames = append(ow.footer.types[0].fieldNames, field.Name)
-		
+
 		// Initialize statistics
 		ow.footer.statistics = append(ow.footer.statistics, columnStatistics{})
 	}
@@ -361,7 +361,7 @@ func (ow *orcWriter) writeRowIndex() ([]byte, error) {
 	}
 
 	defer pool.PutByteSlice(indexData)
-	
+
 	// Write placeholder index
 	for range ow.schema.Fields {
 		// Position list for each column
@@ -369,7 +369,7 @@ func (ow *orcWriter) writeRowIndex() ([]byte, error) {
 		for j := 0; j < ow.currentStripe.rowCount; j += int(ow.footer.rowIndexStride) {
 			positions = append(positions, uint64(j))
 		}
-		
+
 		// Encode positions (simplified)
 		for _, pos := range positions {
 			indexData = binary.AppendUvarint(indexData, pos)
@@ -397,7 +397,7 @@ func (ow *orcWriter) writeRowData() (int, error) {
 	// Write each column separately (columnar storage)
 	for colIdx, field := range ow.schema.Fields {
 		columnData := make([]interface{}, ow.currentStripe.rowCount)
-		
+
 		// Extract column data
 		for rowIdx, row := range ow.currentStripe.rowData {
 			columnData[rowIdx] = row[colIdx]
@@ -422,7 +422,7 @@ func (ow *orcWriter) writeRowData() (int, error) {
 
 		totalBytes += len(compressed)
 		ow.bytesWritten += int64(len(compressed))
-		
+
 		// Update statistics
 		ow.updateColumnStatistics(colIdx, columnData)
 	}
@@ -433,7 +433,7 @@ func (ow *orcWriter) writeRowData() (int, error) {
 func (ow *orcWriter) encodeColumn(data []interface{}, fieldType core.FieldType) ([]byte, error) {
 	buffer := pool.GlobalBufferPool.Get(len(data) * 16)
 	defer pool.GlobalBufferPool.Put(buffer)
-	
+
 	encoded := buffer[:0]
 
 	switch fieldType {
@@ -466,7 +466,7 @@ func (ow *orcWriter) encodeColumn(data []interface{}, fieldType core.FieldType) 
 			if v == nil {
 				encoded = binary.LittleEndian.AppendUint64(encoded, 0)
 			} else {
-				encoded = binary.LittleEndian.AppendUint64(encoded, 
+				encoded = binary.LittleEndian.AppendUint64(encoded,
 					uint64(float64ToUint64(v.(float64))))
 			}
 		}
@@ -537,10 +537,10 @@ func (ow *orcWriter) writeStripeFooter() (int, error) {
 	}
 
 	defer pool.PutByteSlice(footer)
-	
+
 	// Write stream count
 	footer = binary.AppendUvarint(footer, uint64(len(ow.schema.Fields)))
-	
+
 	// Write stream information for each column
 	for i := range ow.schema.Fields {
 		// Stream kind (DATA)
@@ -569,7 +569,7 @@ func (ow *orcWriter) updateColumnStatistics(colIdx int, data []interface{}) {
 	case core.FieldTypeInt:
 		if stats.intStats == nil {
 			stats.intStats = &integerStatistics{
-				minimum: int64(^uint64(0) >> 1), // MaxInt64
+				minimum: int64(^uint64(0) >> 1),    // MaxInt64
 				maximum: -int64(^uint64(0)>>1) - 1, // MinInt64
 			}
 		}
@@ -612,7 +612,7 @@ func (ow *orcWriter) updateColumnStatistics(colIdx int, data []interface{}) {
 func (ow *orcWriter) Flush() error {
 	ow.mu.Lock()
 	defer ow.mu.Unlock()
-	
+
 	// Flush current stripe
 	return ow.flushStripe()
 }
@@ -772,17 +772,17 @@ func (ow *orcWriter) RecordsWritten() int64 {
 
 // orcReader implements Reader for ORC format
 type orcReader struct {
-	reader       io.Reader
-	config       *ReaderConfig
-	schema       *core.Schema
-	footer       *orcFooter
-	postscript   *orcPostscript
-	
+	reader     io.Reader
+	config     *ReaderConfig
+	schema     *core.Schema
+	footer     *orcFooter
+	postscript *orcPostscript
+
 	// Current reading state
 	currentStripe int
 	currentRow    int
 	stripeData    [][]interface{}
-	
+
 	// Decompression
 	decompressor func([]byte) ([]byte, error)
 }
@@ -818,7 +818,7 @@ func (or *orcReader) readFileMetadata() error {
 	// 3. Read postscript length
 	// 4. Read postscript
 	// 5. Read footer
-	
+
 	// For now, return a placeholder
 	or.footer = &orcFooter{
 		numberOfRows: 0,
@@ -826,7 +826,7 @@ func (or *orcReader) readFileMetadata() error {
 		stripes:      []stripeInfo{},
 		statistics:   []columnStatistics{},
 	}
-	
+
 	or.postscript = &orcPostscript{
 		compressionKind: NONE,
 		version:         []uint32{0, 12},
@@ -889,7 +889,7 @@ func (or *orcReader) buildSchema() error {
 
 func (or *orcReader) ReadRecords() ([]*models.Record, error) {
 	records := make([]*models.Record, 0)
-	
+
 	for or.HasNext() {
 		record, err := or.Next()
 		if err != nil {
@@ -899,7 +899,7 @@ func (or *orcReader) ReadRecords() ([]*models.Record, error) {
 			records = append(records, record)
 		}
 	}
-	
+
 	return records, nil
 }
 
@@ -921,7 +921,7 @@ func (or *orcReader) Next() (*models.Record, error) {
 	// Create record from current row
 	record := pool.GetRecord()
 	rowData := or.stripeData[or.currentRow]
-	
+
 	for i, field := range or.schema.Fields {
 		if i < len(rowData) && rowData[i] != nil {
 			record.SetData(field.Name, rowData[i])
@@ -942,7 +942,7 @@ func (or *orcReader) loadNextStripe() error {
 	// 2. Read stripe data
 	// 3. Decompress
 	// 4. Decode columns
-	
+
 	// For now, return empty data
 	or.stripeData = make([][]interface{}, 0)
 	or.currentRow = 0
@@ -952,7 +952,7 @@ func (or *orcReader) loadNextStripe() error {
 }
 
 func (or *orcReader) HasNext() bool {
-	return or.currentStripe < len(or.footer.stripes) || 
+	return or.currentStripe < len(or.footer.stripes) ||
 		(or.stripeData != nil && or.currentRow < len(or.stripeData))
 }
 
@@ -1078,7 +1078,7 @@ func estimateRowSize(row []interface{}) int64 {
 			size += 1
 			continue
 		}
-		
+
 		switch v := value.(type) {
 		case string:
 			size += int64(len(v)) + 8 // string + length

@@ -15,16 +15,16 @@
 //	// Using the global Record pool
 //	record := pool.GetRecord()
 //	defer record.Release()
-//	
+//
 //	record.SetData("name", "John")
 //	record.SetData("age", 30)
-//	
+//
 //	// Using custom pools
 //	myPool := pool.New(
 //	    func() *MyType { return &MyType{} },
 //	    func(obj *MyType) { obj.Reset() },
 //	)
-//	obj := myPool.Get()
+//	obj, _ := myPool.Get()
 //	defer myPool.Put(obj)
 package pool
 
@@ -88,7 +88,7 @@ func New[T any](new func() T, reset func(T)) *Pool[T] {
 // longer needed to enable reuse and reduce allocations.
 func (p *Pool[T]) Get() T {
 	atomic.AddInt64(&p.stats.inUse, 1)
-	obj := p.pool.Get().(T)
+	obj, _ := p.pool.Get().(T) //nolint:errcheck
 	atomic.AddInt64(&p.stats.hits, 1)
 	return obj
 }
@@ -128,29 +128,29 @@ func (p *Pool[T]) Stats() (allocated, inUse, hits, misses int64) {
 // and batch processing. All fields are optional to support different use cases.
 type RecordMetadata struct {
 	// Source identifies the origin system or connector
-	Source      string                 `json:"source,omitempty"`
+	Source string `json:"source,omitempty"`
 	// Table name for database sources
-	Table       string                 `json:"table,omitempty"`
+	Table string `json:"table,omitempty"`
 	// Operation type for CDC records (INSERT, UPDATE, DELETE)
-	Operation   string                 `json:"operation,omitempty"`
+	Operation string `json:"operation,omitempty"`
 	// Offset position for streaming sources
-	Offset      int64                  `json:"offset,omitempty"`
+	Offset int64 `json:"offset,omitempty"`
 	// StreamID identifies the stream for multi-stream sources
-	StreamID    string                 `json:"stream_id,omitempty"`
+	StreamID string `json:"stream_id,omitempty"`
 	// Timestamp when the record was created or captured
-	Timestamp   time.Time              `json:"timestamp"`
+	Timestamp time.Time `json:"timestamp"`
 	// Database name for database sources
-	Database    string                 `json:"database,omitempty"`
+	Database string `json:"database,omitempty"`
 	// Schema name for database sources
-	Schema      string                 `json:"schema,omitempty"`
+	Schema string `json:"schema,omitempty"`
 	// Position in the replication log for CDC sources
-	Position    string                 `json:"position,omitempty"`
+	Position string `json:"position,omitempty"`
 	// Transaction ID for transactional sources
-	Transaction string                 `json:"transaction,omitempty"`
+	Transaction string `json:"transaction,omitempty"`
 	// Before state for UPDATE/DELETE operations in CDC
-	Before      map[string]interface{} `json:"before,omitempty"`
+	Before map[string]interface{} `json:"before,omitempty"`
 	// Custom metadata fields for extensibility
-	Custom      map[string]interface{} `json:"custom,omitempty"`
+	Custom map[string]interface{} `json:"custom,omitempty"`
 }
 
 // Record represents the unified record type used throughout Nebula for data processing.
@@ -162,15 +162,15 @@ type RecordMetadata struct {
 // global pool using GetRecord() rather than created directly.
 type Record struct {
 	// ID is a unique identifier for the record
-	ID       string                 `json:"id"`
+	ID string `json:"id"`
 	// Data contains the actual record payload
-	Data     map[string]interface{} `json:"data"`
+	Data map[string]interface{} `json:"data"`
 	// Metadata contains source, timing, and processing information
-	Metadata RecordMetadata         `json:"metadata"`
+	Metadata RecordMetadata `json:"metadata"`
 	// Schema optionally describes the structure of the data
-	Schema   interface{}            `json:"schema,omitempty"`
+	Schema interface{} `json:"schema,omitempty"`
 	// RawData stores the original raw bytes if needed (not serialized)
-	RawData  []byte                 `json:"-"`
+	RawData []byte `json:"-"`
 }
 
 // Global unified pools for the entire system.
@@ -232,7 +232,7 @@ var (
 			for i := range s {
 				s[i] = ""
 			}
-			s = s[:0]
+			// Reset slice length (assignment not needed)
 		},
 	)
 
@@ -243,7 +243,7 @@ var (
 			return make([]byte, 0, 1024)
 		},
 		func(b []byte) {
-			b = b[:0]
+			// Reset slice length (assignment not needed)
 		},
 	)
 
@@ -254,7 +254,7 @@ var (
 			return make([]byte, 0, 64)
 		},
 		func(b []byte) {
-			b = b[:0]
+			// Reset slice length (assignment not needed)
 		},
 	)
 
@@ -269,7 +269,7 @@ var (
 			for i := range s {
 				s[i] = nil
 			}
-			s = s[:0]
+			// Reset slice length (assignment not needed)
 		},
 	)
 )
@@ -288,7 +288,7 @@ var idCounter uint64
 //
 //	record := pool.GetRecord()
 //	defer record.Release()
-//	
+//
 //	record.SetData("key", "value")
 //	// Use record...
 func GetRecord() *Record {
@@ -376,7 +376,7 @@ func PutByteSlice(b []byte) {
 //
 //	batch := pool.GetBatchSlice(5000)
 //	defer pool.PutBatchSlice(batch)
-//	
+//
 //	for _, record := range records {
 //	    batch = append(batch, record)
 //	}
@@ -488,7 +488,7 @@ func NewBufferPool() *BufferPool {
 				return make([]byte, size)
 			},
 			func(b []byte) {
-				b = b[:0]
+				// Reset slice length (assignment not needed)
 			},
 		)
 	}
@@ -947,11 +947,11 @@ type Stats struct {
 	// Allocated is the total number of objects created by the pool
 	Allocated int64
 	// InUse is the current number of objects checked out from the pool
-	InUse     int64
+	InUse int64
 	// Hits is the number of successful pool retrievals
-	Hits      int64
+	Hits int64
 	// Misses is the number of times a new object had to be created
-	Misses    int64
+	Misses int64
 }
 
 // GetGlobalStats returns comprehensive statistics for all global pools.

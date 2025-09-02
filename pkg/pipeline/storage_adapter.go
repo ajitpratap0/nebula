@@ -12,13 +12,13 @@
 //
 //	adapter := pipeline.NewStorageAdapter(pipeline.StorageModeHybrid, cfg)
 //	defer adapter.Close()
-//	
+//
 //	for _, record := range records {
 //	    if err := adapter.AddRecord(record); err != nil {
 //	        log.Error(err)
 //	    }
 //	}
-//	
+//
 //	memPerRecord := adapter.GetMemoryPerRecord()
 //	log.Printf("Memory efficiency: %.2f bytes/record", memPerRecord)
 package pipeline
@@ -28,7 +28,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	
+
 	"github.com/ajitpratap0/nebula/pkg/columnar"
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/pool"
@@ -42,11 +42,11 @@ const (
 	// StorageModeRow uses traditional row-based storage (225 bytes/record).
 	// Best for streaming workloads and real-time processing with random access.
 	StorageModeRow StorageMode = "row"
-	
+
 	// StorageModeColumnar uses columnar storage (84 bytes/record).
 	// Best for batch processing and analytics with sequential access.
 	StorageModeColumnar StorageMode = "columnar"
-	
+
 	// StorageModeHybrid automatically selects based on workload characteristics.
 	// Switches to columnar at 10K+ records for optimal efficiency.
 	StorageModeHybrid StorageMode = "hybrid"
@@ -78,25 +78,25 @@ func ParseStorageMode(mode string) StorageMode {
 //   - Background optimization for non-blocking operation
 //   - Comprehensive metrics for monitoring efficiency
 type StorageAdapter struct {
-	mode          StorageMode
-	config        *config.BaseConfig
-	
+	mode   StorageMode
+	config *config.BaseConfig
+
 	// Row-based storage components
-	rowBuffer     chan *pool.Record
-	rowBatch      []*pool.Record
-	
+	rowBuffer chan *pool.Record
+	rowBatch  []*pool.Record
+
 	// Columnar storage components
 	columnarStore *columnar.ColumnStore
 	columnarBatch *columnar.DirectCSVToColumnar
-	
+
 	// Metrics for monitoring
-	recordCount   atomic.Int64
-	bytesUsed     atomic.Int64
-	
+	recordCount atomic.Int64
+	bytesUsed   atomic.Int64
+
 	// Synchronization primitives
-	mu            sync.RWMutex
-	flushCh       chan struct{}
-	done          chan struct{}
+	mu      sync.RWMutex
+	flushCh chan struct{}
+	done    chan struct{}
 }
 
 // NewStorageAdapter creates a new storage adapter with the specified mode.
@@ -110,13 +110,13 @@ type StorageAdapter struct {
 // The adapter starts a background flusher for periodic batch processing.
 func NewStorageAdapter(mode StorageMode, cfg *config.BaseConfig) *StorageAdapter {
 	adapter := &StorageAdapter{
-		mode:     mode,
-		config:   cfg,
+		mode:      mode,
+		config:    cfg,
 		rowBuffer: make(chan *pool.Record, cfg.Performance.BatchSize),
-		flushCh:  make(chan struct{}, 1),
-		done:     make(chan struct{}),
+		flushCh:   make(chan struct{}, 1),
+		done:      make(chan struct{}),
 	}
-	
+
 	// Initialize based on mode
 	switch mode {
 	case StorageModeColumnar:
@@ -130,10 +130,10 @@ func NewStorageAdapter(mode StorageMode, cfg *config.BaseConfig) *StorageAdapter
 		adapter.columnarBatch = columnar.NewDirectCSVToColumnar()
 		adapter.rowBatch = make([]*pool.Record, 0, cfg.Performance.BatchSize)
 	}
-	
+
 	// Start background flusher
 	go adapter.backgroundFlusher()
-	
+
 	return adapter
 }
 
@@ -147,7 +147,7 @@ func NewStorageAdapter(mode StorageMode, cfg *config.BaseConfig) *StorageAdapter
 // Returns an error if the storage operation fails.
 func (a *StorageAdapter) AddRecord(record *pool.Record) error {
 	a.recordCount.Add(1)
-	
+
 	switch a.mode {
 	case StorageModeRow:
 		return a.addRowRecord(record)
@@ -156,7 +156,7 @@ func (a *StorageAdapter) AddRecord(record *pool.Record) error {
 	case StorageModeHybrid:
 		return a.addHybridRecord(record)
 	}
-	
+
 	return fmt.Errorf("unknown storage mode: %s", a.mode)
 }
 
@@ -174,17 +174,17 @@ func (a *StorageAdapter) addRowRecord(record *pool.Record) error {
 			return nil
 		}
 	}
-	
+
 	// For batch mode, accumulate
 	a.mu.Lock()
 	a.rowBatch = append(a.rowBatch, record)
 	shouldFlush := len(a.rowBatch) >= a.config.Performance.BatchSize
 	a.mu.Unlock()
-	
+
 	if shouldFlush {
 		a.triggerFlush()
 	}
-	
+
 	return nil
 }
 
@@ -192,18 +192,18 @@ func (a *StorageAdapter) addRowRecord(record *pool.Record) error {
 func (a *StorageAdapter) addColumnarRecord(record *pool.Record) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	
+
 	// Convert record to map for columnar storage
 	data := make(map[string]interface{})
 	for k, v := range record.Data {
 		data[k] = v
 	}
-	
+
 	// Add metadata fields
 	data["_id"] = record.ID
 	data["_source"] = record.Metadata.Source
 	data["_timestamp"] = record.Metadata.Timestamp.Unix()
-	
+
 	return a.columnarStore.AppendRow(data)
 }
 
@@ -211,12 +211,12 @@ func (a *StorageAdapter) addColumnarRecord(record *pool.Record) error {
 func (a *StorageAdapter) addHybridRecord(record *pool.Record) error {
 	// Simple heuristic: use columnar for large batches
 	count := a.recordCount.Load()
-	
+
 	if count > 10000 {
 		// Switch to columnar for large datasets
 		return a.addColumnarRecord(record)
 	}
-	
+
 	// Use row-based for small datasets or streaming
 	return a.addRowRecord(record)
 }
@@ -225,7 +225,7 @@ func (a *StorageAdapter) addHybridRecord(record *pool.Record) error {
 func (a *StorageAdapter) GetRecords(offset, limit int) ([]*pool.Record, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	
+
 	switch a.mode {
 	case StorageModeRow:
 		return a.getRowRecords(offset, limit)
@@ -238,7 +238,7 @@ func (a *StorageAdapter) GetRecords(offset, limit int) ([]*pool.Record, error) {
 		}
 		return a.getRowRecords(offset, limit)
 	}
-	
+
 	return nil, fmt.Errorf("unknown storage mode: %s", a.mode)
 }
 
@@ -247,12 +247,12 @@ func (a *StorageAdapter) getRowRecords(offset, limit int) ([]*pool.Record, error
 	if offset >= len(a.rowBatch) {
 		return nil, nil
 	}
-	
+
 	end := offset + limit
 	if end > len(a.rowBatch) {
 		end = len(a.rowBatch)
 	}
-	
+
 	result := make([]*pool.Record, end-offset)
 	copy(result, a.rowBatch[offset:end])
 	return result, nil
@@ -261,16 +261,16 @@ func (a *StorageAdapter) getRowRecords(offset, limit int) ([]*pool.Record, error
 // getColumnarRecords retrieves from columnar storage
 func (a *StorageAdapter) getColumnarRecords(offset, limit int) ([]*pool.Record, error) {
 	records := make([]*pool.Record, 0, limit)
-	
+
 	for i := offset; i < offset+limit && i < a.columnarStore.RowCount(); i++ {
 		row, err := a.columnarStore.GetRow(i)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		// Convert back to record
 		record := pool.GetRecord()
-		
+
 		// Extract metadata
 		if id, ok := row["_id"].(string); ok {
 			record.ID = id
@@ -284,15 +284,15 @@ func (a *StorageAdapter) getColumnarRecords(offset, limit int) ([]*pool.Record, 
 			record.Metadata.Timestamp = time.Unix(ts, 0)
 			delete(row, "_timestamp")
 		}
-		
+
 		// Copy data
 		for k, v := range row {
 			record.Data[k] = v
 		}
-		
+
 		records = append(records, record)
 	}
-	
+
 	return records, nil
 }
 
@@ -300,7 +300,7 @@ func (a *StorageAdapter) getColumnarRecords(offset, limit int) ([]*pool.Record, 
 func (a *StorageAdapter) Flush() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	
+
 	switch a.mode {
 	case StorageModeRow:
 		// Row mode doesn't need explicit flush
@@ -318,7 +318,7 @@ func (a *StorageAdapter) Flush() error {
 		}
 		return nil
 	}
-	
+
 	return nil
 }
 
@@ -335,7 +335,7 @@ func (a *StorageAdapter) triggerFlush() {
 func (a *StorageAdapter) backgroundFlusher() {
 	ticker := time.NewTicker(time.Duration(a.config.Performance.FlushInterval) * time.Millisecond)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-a.done:
@@ -352,7 +352,7 @@ func (a *StorageAdapter) backgroundFlusher() {
 func (a *StorageAdapter) GetMemoryUsage() int64 {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	
+
 	switch a.mode {
 	case StorageModeRow:
 		// Estimate: 225 bytes per record (current optimized)
@@ -369,7 +369,7 @@ func (a *StorageAdapter) GetMemoryUsage() int64 {
 		}
 		return total
 	}
-	
+
 	return 0
 }
 
@@ -379,7 +379,7 @@ func (a *StorageAdapter) GetMemoryPerRecord() float64 {
 	if count == 0 {
 		return 0
 	}
-	
+
 	usage := a.GetMemoryUsage()
 	return float64(usage) / float64(count)
 }
@@ -388,7 +388,7 @@ func (a *StorageAdapter) GetMemoryPerRecord() float64 {
 func (a *StorageAdapter) Close() error {
 	close(a.done)
 	close(a.rowBuffer)
-	
+
 	// Release row records
 	a.mu.Lock()
 	for _, rec := range a.rowBatch {
@@ -396,7 +396,7 @@ func (a *StorageAdapter) Close() error {
 	}
 	a.rowBatch = nil
 	a.mu.Unlock()
-	
+
 	return nil
 }
 
@@ -414,7 +414,7 @@ func (a *StorageAdapter) GetRecordCount() int64 {
 func (a *StorageAdapter) OptimizeStorage() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	
+
 	switch a.mode {
 	case StorageModeColumnar:
 		// Run type optimization on columnar storage
@@ -422,6 +422,6 @@ func (a *StorageAdapter) OptimizeStorage() error {
 			return a.columnarBatch.OptimizeTypes()
 		}
 	}
-	
+
 	return nil
 }

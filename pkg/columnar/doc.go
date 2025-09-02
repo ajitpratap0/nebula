@@ -2,7 +2,7 @@
 // achieves 94% memory reduction (from 1,365 to 84 bytes per record) through
 // intelligent row/columnar storage with automatic mode selection.
 //
-// Overview
+// # Overview
 //
 // The columnar package provides the foundation for Nebula's memory efficiency
 // breakthrough. It implements:
@@ -12,7 +12,7 @@
 //   - Dictionary encoding for repetitive strings
 //   - Compression integration across all storage modes
 //
-// Architecture
+// # Architecture
 //
 // The package consists of several key components:
 //
@@ -22,7 +22,7 @@
 //   - CompressionManager: Multi-algorithm compression support
 //   - StorageAdapter: Intelligent mode selection logic
 //
-// Memory Efficiency
+// # Memory Efficiency
 //
 // The columnar storage achieves 84 bytes/record through:
 //   - Dictionary encoding: ~25 bytes for strings
@@ -31,43 +31,43 @@
 //
 // This represents a 94% reduction from the original 1,365 bytes/record.
 //
-// Storage Modes
+// # Storage Modes
 //
 // Three storage modes are available:
 //
-//   1. Row Mode (225 bytes/record):
-//      - Best for streaming and real-time processing
-//      - Low latency record access
-//      - Individual record pooling
+//  1. Row Mode (225 bytes/record):
+//     - Best for streaming and real-time processing
+//     - Low latency record access
+//     - Individual record pooling
 //
-//   2. Columnar Mode (84 bytes/record):
-//      - Best for batch processing and analytics
-//      - Maximum memory efficiency
-//      - Type-optimized column storage
+//  2. Columnar Mode (84 bytes/record):
+//     - Best for batch processing and analytics
+//     - Maximum memory efficiency
+//     - Type-optimized column storage
 //
-//   3. Hybrid Mode (automatic selection):
-//      - Intelligently switches between modes
-//      - Threshold-based selection (10K records)
-//      - Best overall performance
+//  3. Hybrid Mode (automatic selection):
+//     - Intelligently switches between modes
+//     - Threshold-based selection (10K records)
+//     - Best overall performance
 //
-// Usage Example
+// # Usage Example
 //
 // Basic columnar storage:
 //
 //	store := columnar.NewColumnStore()
-//	
+//
 //	// Add columns
 //	store.AddColumn("name", columnar.TypeString)
 //	store.AddColumn("age", columnar.TypeInt)
 //	store.AddColumn("active", columnar.TypeBool)
-//	
+//
 //	// Append data
 //	store.Append(map[string]any{
 //		"name": "John",
 //		"age": 30,
 //		"active": true,
 //	})
-//	
+//
 //	// Get memory usage
 //	bytesPerRecord := store.GetBytesPerRecord()
 //
@@ -83,13 +83,13 @@
 //			StorageMode: "hybrid",
 //		},
 //	}
-//	
+//
 //	storageAdapter := pipeline.NewStorageAdapter(
 //		pipeline.StorageModeHybrid,
 //		config,
 //	)
 //
-// Type Optimization
+// # Type Optimization
 //
 // The columnar engine automatically optimizes types:
 //   - Strings that look like numbers are stored as numbers
@@ -98,7 +98,7 @@
 //   - Sequential integers use delta encoding
 //   - Timestamps are stored as integers
 //
-// Compression Integration
+// # Compression Integration
 //
 // Multiple compression algorithms are supported:
 //   - LZ4: Best speed/compression balance
@@ -106,7 +106,7 @@
 //   - Snappy: Fastest compression
 //   - Gzip: Compatibility
 //
-// Performance Characteristics
+// # Performance Characteristics
 //
 // Row Mode:
 //   - Write latency: <1μs per record
@@ -118,7 +118,7 @@
 //   - Read latency: <50ns per record (sequential)
 //   - Memory: 84 bytes per record
 //
-// Best Practices
+// # Best Practices
 //
 // 1. Use hybrid mode unless you have specific requirements
 // 2. For streaming: Use row mode with small batches
@@ -128,7 +128,7 @@
 // 6. Pre-declare schemas when known
 // 7. Use type hints for better optimization
 //
-// Integration Example
+// # Integration Example
 //
 // With pipeline processing:
 //
@@ -139,22 +139,22 @@
 //			config,
 //		)
 //		defer adapter.Close()
-//		
+//
 //		// Process records - adapter chooses optimal storage
 //		for _, record := range records {
 //			if err := adapter.AddRecord(record); err != nil {
 //				return err
 //			}
 //		}
-//		
+//
 //		// Check efficiency
 //		log.Printf("Memory per record: %.2f bytes",
 //			adapter.GetMemoryPerRecord())
-//		
+//
 //		return nil
 //	}
 //
-// Advanced Features
+// # Advanced Features
 //
 // Custom type optimization:
 //

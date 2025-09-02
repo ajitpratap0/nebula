@@ -116,7 +116,7 @@ type RecordBatch struct {
 	// Records holds the actual record pointers
 	Records []*Record
 	// size tracks the current number of records
-	size    int
+	size int
 }
 
 // NewRecordBatch creates a new record batch with the specified capacity.

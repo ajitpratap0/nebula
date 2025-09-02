@@ -24,7 +24,12 @@ func NewChannelPool[T any](size int) *ChannelPool[T] {
 
 // Get retrieves a channel from the pool
 func (p *ChannelPool[T]) Get() chan T {
-	return p.pool.Get().(chan T)
+	ch, ok := p.pool.Get().(chan T)
+	if !ok {
+		// Create new channel if type assertion fails
+		return make(chan T, p.size)
+	}
+	return ch
 }
 
 // Put returns a channel to the pool after draining it
@@ -32,7 +37,7 @@ func (p *ChannelPool[T]) Put(ch chan T) {
 	if ch == nil {
 		return
 	}
-	
+
 	// Drain channel before returning to pool
 	for len(ch) > 0 {
 		select {
@@ -41,7 +46,7 @@ func (p *ChannelPool[T]) Put(ch chan T) {
 			break
 		}
 	}
-	
+
 	p.pool.Put(ch)
 }
 
@@ -49,13 +54,13 @@ func (p *ChannelPool[T]) Put(ch chan T) {
 var (
 	// RecordChannelPool for single record channels
 	RecordChannelPool = NewChannelPool[*Record](10000)
-	
+
 	// BatchChannelPool for batch channels
 	BatchChannelPool = NewChannelPool[[]*Record](100)
-	
+
 	// SmallRecordChannelPool for smaller buffers
 	SmallRecordChannelPool = NewChannelPool[*Record](100)
-	
+
 	// ErrorChannelPool for error channels
 	ErrorChannelPool = NewChannelPool[error](10)
 )
@@ -73,7 +78,7 @@ func PutRecordChannel(ch chan *Record) {
 	if ch == nil {
 		return
 	}
-	
+
 	// Determine which pool based on capacity
 	if cap(ch) <= 100 {
 		SmallRecordChannelPool.Put(ch)

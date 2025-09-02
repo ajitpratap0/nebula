@@ -1,4 +1,4 @@
-package meta_ads
+package metaads
 
 import (
 	"context"
@@ -26,10 +26,10 @@ type MetaAdsSource struct {
 	*base.BaseConnector
 
 	// Meta Marketing API configuration
-	config            *MetaAdsConfig
-	httpClient        *http.Client
-	oauth2Config      *oauth2.Config
-	accessToken       string
+	config       *MetaAdsConfig
+	httpClient   *http.Client
+	oauth2Config *oauth2.Config
+	accessToken  string
 
 	// API state management
 	accountIDs       []string
@@ -59,13 +59,13 @@ type MetaAdsConfig struct {
 	AppSecret        string   `json:"app_secret"`
 	AccountIDs       []string `json:"account_ids"`
 	Fields           []string `json:"fields"`
-	Level            string   `json:"level"`           // campaign, adset, ad, creative
-	DateRange        string   `json:"date_range"`     // Custom date range or preset
-	DatePreset       string   `json:"date_preset"`    // yesterday, last_7_days, etc.
+	Level            string   `json:"level"`       // campaign, adset, ad, creative
+	DateRange        string   `json:"date_range"`  // Custom date range or preset
+	DatePreset       string   `json:"date_preset"` // yesterday, last_7_days, etc.
 	PageSize         int      `json:"page_size"`
 	MaxConcurrency   int      `json:"max_concurrency"`
 	StreamingEnabled bool     `json:"streaming_enabled"`
-	APIVersion       string   `json:"api_version"`    // Default: v18.0
+	APIVersion       string   `json:"api_version"` // Default: v18.0
 }
 
 // MetaAdsResponse represents the API response structure
@@ -76,34 +76,34 @@ type MetaAdsResponse struct {
 
 // MetaAdsResult represents a single result from Meta Marketing API
 type MetaAdsResult struct {
-	ID                string                 `json:"id"`
-	AccountID         string                 `json:"account_id,omitempty"`
-	CampaignID        string                 `json:"campaign_id,omitempty"`
-	AdsetID           string                 `json:"adset_id,omitempty"`
-	AdID              string                 `json:"ad_id,omitempty"`
-	Name              string                 `json:"name,omitempty"`
-	Status            string                 `json:"status,omitempty"`
-	Objective         string                 `json:"objective,omitempty"`
-	CreatedTime       string                 `json:"created_time,omitempty"`
-	UpdatedTime       string                 `json:"updated_time,omitempty"`
-	Insights          *InsightsData          `json:"insights,omitempty"`
-	CustomFields      map[string]interface{} `json:"-"` // For additional fields
+	ID           string                 `json:"id"`
+	AccountID    string                 `json:"account_id,omitempty"`
+	CampaignID   string                 `json:"campaign_id,omitempty"`
+	AdsetID      string                 `json:"adset_id,omitempty"`
+	AdID         string                 `json:"ad_id,omitempty"`
+	Name         string                 `json:"name,omitempty"`
+	Status       string                 `json:"status,omitempty"`
+	Objective    string                 `json:"objective,omitempty"`
+	CreatedTime  string                 `json:"created_time,omitempty"`
+	UpdatedTime  string                 `json:"updated_time,omitempty"`
+	Insights     *InsightsData          `json:"insights,omitempty"`
+	CustomFields map[string]interface{} `json:"-"` // For additional fields
 }
 
 // InsightsData represents performance metrics
 type InsightsData struct {
-	Impressions    string `json:"impressions,omitempty"`
-	Clicks         string `json:"clicks,omitempty"`
-	Spend          string `json:"spend,omitempty"`
-	CPM            string `json:"cpm,omitempty"`
-	CPC            string `json:"cpc,omitempty"`
-	CTR            string `json:"ctr,omitempty"`
-	Conversions    string `json:"conversions,omitempty"`
-	CostPerResult  string `json:"cost_per_result,omitempty"`
-	Reach          string `json:"reach,omitempty"`
-	Frequency      string `json:"frequency,omitempty"`
-	DateStart      string `json:"date_start,omitempty"`
-	DateStop       string `json:"date_stop,omitempty"`
+	Impressions   string `json:"impressions,omitempty"`
+	Clicks        string `json:"clicks,omitempty"`
+	Spend         string `json:"spend,omitempty"`
+	CPM           string `json:"cpm,omitempty"`
+	CPC           string `json:"cpc,omitempty"`
+	CTR           string `json:"ctr,omitempty"`
+	Conversions   string `json:"conversions,omitempty"`
+	CostPerResult string `json:"cost_per_result,omitempty"`
+	Reach         string `json:"reach,omitempty"`
+	Frequency     string `json:"frequency,omitempty"`
+	DateStart     string `json:"date_start,omitempty"`
+	DateStop      string `json:"date_stop,omitempty"`
 }
 
 // PagingInfo represents pagination information
@@ -124,11 +124,11 @@ func NewMetaAdsSource(name string, config *config.BaseConfig) (core.Source, erro
 	base := base.NewBaseConnector("meta_ads", core.ConnectorTypeSource, "1.0.0")
 
 	source := &MetaAdsSource{
-		BaseConnector:     base,
-		pageSize:          1000, // Default page size
-		maxConcurrency:    5,    // Default concurrency
-		streamingEnabled:  true, // Default streaming enabled
-		level:             "campaign", // Default level
+		BaseConnector:    base,
+		pageSize:         1000,       // Default page size
+		maxConcurrency:   5,          // Default concurrency
+		streamingEnabled: true,       // Default streaming enabled
+		level:            "campaign", // Default level
 	}
 
 	// Initialize connection pools for request/response objects
@@ -360,8 +360,8 @@ func (s *MetaAdsSource) validateAccessToken(ctx context.Context) error {
 		// Use pooled buffer for error response reading
 		errorBuffer := stringpool.GetBuilder(stringpool.Small)
 		defer stringpool.PutBuilder(errorBuffer, stringpool.Small)
-		
-		io.Copy(errorBuffer, resp.Body)
+
+		_, _ = io.Copy(errorBuffer, resp.Body)
 		return errors.New(errors.ErrorTypeAuthentication,
 			stringpool.Sprintf("access token validation failed: %d %s", resp.StatusCode, errorBuffer.String()))
 	}
@@ -664,9 +664,9 @@ func (s *MetaAdsSource) makeAPIRequest(ctx context.Context, accountID, cursor st
 	default:
 		endpoint = "campaigns"
 	}
-	
+
 	// Build API URL using URLBuilder for optimized string handling
-	ub := stringpool.NewURLBuilder(stringpool.Sprintf("https://graph.facebook.com/%s/act_%s/%s", 
+	ub := stringpool.NewURLBuilder(stringpool.Sprintf("https://graph.facebook.com/%s/act_%s/%s",
 		s.config.APIVersion, accountID, endpoint))
 	defer ub.Close()
 
@@ -715,8 +715,8 @@ func (s *MetaAdsSource) makeAPIRequest(ctx context.Context, accountID, cursor st
 		// Use pooled buffer for error response reading
 		errorBuffer := stringpool.GetBuilder(stringpool.Small)
 		defer stringpool.PutBuilder(errorBuffer, stringpool.Small)
-		
-		io.Copy(errorBuffer, resp.Body)
+
+		_, _ = io.Copy(errorBuffer, resp.Body)
 		return nil, errors.New(errors.ErrorTypeConnection,
 			stringpool.Sprintf("API returned status %d: %s", resp.StatusCode, errorBuffer.String()))
 	}

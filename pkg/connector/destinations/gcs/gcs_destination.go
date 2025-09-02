@@ -35,7 +35,7 @@ const (
 // GCSDestination represents a Google Cloud Storage destination connector
 type GCSDestination struct {
 	*base.BaseConnector
-	
+
 	// Configuration
 	config            *config.BaseConfig
 	bucket            string
@@ -48,85 +48,85 @@ type GCSDestination struct {
 	batchSize         int
 	uploadTimeout     time.Duration
 	maxConcurrency    int
-	
+
 	// GCS clients
-	gcsClient   *storage.Client
+	gcsClient    *storage.Client
 	bucketHandle *storage.BucketHandle
-	
+
 	// State management
-	currentBatch      []*models.Record
-	batchMutex        sync.Mutex
-	uploadWG          sync.WaitGroup
-	uploadErrors      []error
-	errorMutex        sync.Mutex
-	
+	currentBatch []*models.Record
+	batchMutex   sync.Mutex
+	uploadWG     sync.WaitGroup
+	uploadErrors []error
+	errorMutex   sync.Mutex
+
 	// Columnar writer
-	columnarWriter    columnar.Writer
-	
+	columnarWriter columnar.Writer
+
 	// Memory pool
-	bufferPool        *pool.BufferPool
-	
+	bufferPool *pool.BufferPool
+
 	// Metrics
-	recordsWritten    int64
-	bytesWritten      int64
-	filesCreated      int64
-	uploadDuration    time.Duration
+	recordsWritten int64
+	bytesWritten   int64
+	filesCreated   int64
+	uploadDuration time.Duration
 }
 
 // NewGCSDestination creates a new GCS destination
 func NewGCSDestination(name string, config *config.BaseConfig) (*GCSDestination, error) {
 	baseConnector := base.NewBaseConnector(name, core.ConnectorTypeDestination, "1.0.0")
-	
+
 	// Parse configuration
 	if config.Security.Credentials == nil {
 		return nil, errors.New(errors.ErrorTypeConfig, "security credentials are required")
 	}
-	
+
 	bucket := config.Security.Credentials["bucket"]
 	if bucket == "" {
 		return nil, errors.New(errors.ErrorTypeConfig, "bucket is required")
 	}
-	
+
 	prefix := config.Security.Credentials["prefix"]
 	projectID := config.Security.Credentials["project_id"]
 	if projectID == "" {
 		return nil, errors.New(errors.ErrorTypeConfig, "project_id is required")
 	}
-	
+
 	credentialsFile := config.Security.Credentials["credentials_file"]
-	
+
 	fileFormat := config.Security.Credentials["file_format"]
 	if fileFormat == "" {
 		fileFormat = defaultFileFormat
 	}
-	
+
 	compressionType := config.Security.Credentials["compression"]
 	if compressionType == "" {
 		compressionType = defaultCompressionType
 	}
-	
+
 	partitionStrategy := config.Security.Credentials["partition_strategy"]
 	if partitionStrategy == "" {
 		partitionStrategy = defaultPartitionStrategy
 	}
-	
+
 	batchSize := config.Performance.BatchSize
 	if batchSize <= 0 {
 		batchSize = defaultBatchSize
 	}
-	
+
 	uploadTimeout := defaultUploadTimeout
 	if ut := config.Security.Credentials["upload_timeout"]; ut != "" {
 		if parsed, err := time.ParseDuration(ut); err == nil {
 			uploadTimeout = parsed
 		}
 	}
-	
+
 	maxConcurrency := config.Performance.MaxConcurrency
 	if maxConcurrency <= 0 {
 		maxConcurrency = defaultMaxConcurrency
 	}
-	
+
 	return &GCSDestination{
 		BaseConnector:     baseConnector,
 		config:            config,
@@ -140,7 +140,7 @@ func NewGCSDestination(name string, config *config.BaseConfig) (*GCSDestination,
 		batchSize:         batchSize,
 		uploadTimeout:     uploadTimeout,
 		maxConcurrency:    maxConcurrency,
-		currentBatch: pool.GetBatchSlice(batchSize),
+		currentBatch:      pool.GetBatchSlice(batchSize),
 		uploadErrors:      make([]error, 0),
 		bufferPool:        pool.NewBufferPool(),
 	}, nil
@@ -151,28 +151,28 @@ func (d *GCSDestination) Initialize(ctx context.Context, config *config.BaseConf
 	if err := d.BaseConnector.Initialize(ctx, config); err != nil {
 		return err
 	}
-	
+
 	// Initialize GCS client
 	if err := d.initializeGCSClient(ctx); err != nil {
 		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to initialize GCS client")
 	}
-	
+
 	// Initialize columnar writer based on format
 	if err := d.initializeColumnarWriter(); err != nil {
 		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize columnar writer")
 	}
-	
+
 	// Test bucket access
 	if err := d.testBucketAccess(ctx); err != nil {
 		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to access GCS bucket")
 	}
-	
+
 	d.GetLogger().Info("GCS destination initialized",
 		zap.String("bucket", d.bucket),
 		zap.String("prefix", d.prefix),
 		zap.String("format", d.fileFormat),
 		zap.String("compression", d.compressionType))
-	
+
 	return nil
 }
 
@@ -181,7 +181,7 @@ func (d *GCSDestination) Write(ctx context.Context, stream *core.RecordStream) e
 	if stream == nil {
 		return errors.New(errors.ErrorTypeValidation, "stream cannot be nil")
 	}
-	
+
 	// Process records from stream
 	for {
 		select {
@@ -193,20 +193,20 @@ func (d *GCSDestination) Write(ctx context.Context, stream *core.RecordStream) e
 				}
 				return nil
 			}
-			
+
 			// Add record to batch
 			if err := d.addToBatch(ctx, record); err != nil {
 				d.GetLogger().Error("failed to add record to batch", zap.Error(err))
 				d.GetMetricsCollector().RecordCounter("errors", 1, "type", "batch_add_error")
 				continue
 			}
-			
+
 		case err := <-stream.Errors:
 			if err != nil {
 				d.GetLogger().Error("stream error", zap.Error(err))
 				d.GetMetricsCollector().RecordCounter("errors", 1, "type", "stream_error")
 			}
-			
+
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -218,7 +218,7 @@ func (d *GCSDestination) WriteBatch(ctx context.Context, stream *core.BatchStrea
 	if stream == nil {
 		return errors.New(errors.ErrorTypeValidation, "stream cannot be nil")
 	}
-	
+
 	for {
 		select {
 		case batch, ok := <-stream.Batches:
@@ -231,7 +231,7 @@ func (d *GCSDestination) WriteBatch(ctx context.Context, stream *core.BatchStrea
 				d.uploadWG.Wait()
 				return d.checkUploadErrors()
 			}
-			
+
 			// Process batch
 			for _, record := range batch {
 				if err := d.addToBatch(ctx, record); err != nil {
@@ -239,13 +239,13 @@ func (d *GCSDestination) WriteBatch(ctx context.Context, stream *core.BatchStrea
 					d.GetMetricsCollector().RecordCounter("errors", 1, "type", "batch_add_error")
 				}
 			}
-			
+
 		case err := <-stream.Errors:
 			if err != nil {
 				d.GetLogger().Error("batch stream error", zap.Error(err))
 				d.GetMetricsCollector().RecordCounter("errors", 1, "type", "batch_stream_error")
 			}
-			
+
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -259,26 +259,26 @@ func (d *GCSDestination) CreateSchema(ctx context.Context, schema *core.Schema) 
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeData, "failed to marshal schema")
 	}
-	
+
 	// Build GCS object name using URLBuilder for optimized string handling
 	ub := stringpool.NewURLBuilder(d.prefix)
 	defer ub.Close()
 	objectName := ub.AddPath("_schema", "schema.json").String()
-	
+
 	obj := d.bucketHandle.Object(objectName)
 	writer := obj.NewWriter(ctx)
 	writer.ContentType = "application/json"
-	
+
 	_, err = writer.Write(schemaJSON)
 	if err != nil {
 		writer.Close()
 		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to write schema metadata")
 	}
-	
+
 	if err = writer.Close(); err != nil {
 		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to close schema writer")
 	}
-	
+
 	d.GetLogger().Info("schema metadata created", zap.String("object", objectName))
 	return nil
 }
@@ -295,29 +295,29 @@ func (d *GCSDestination) Close(ctx context.Context) error {
 	if err := d.flushBatch(ctx); err != nil {
 		d.GetLogger().Error("failed to flush final batch", zap.Error(err))
 	}
-	
+
 	// Wait for all uploads to complete
 	d.uploadWG.Wait()
-	
+
 	// Check for upload errors
 	if err := d.checkUploadErrors(); err != nil {
 		d.GetLogger().Error("upload errors detected", zap.Error(err))
 	}
-	
+
 	// Close GCS client
 	if d.gcsClient != nil {
 		if err := d.gcsClient.Close(); err != nil {
 			d.GetLogger().Error("failed to close GCS client", zap.Error(err))
 		}
 	}
-	
+
 	// Log final metrics
 	d.GetLogger().Info("GCS destination closed",
 		zap.Int64("records_written", d.recordsWritten),
 		zap.Int64("bytes_written", d.bytesWritten),
 		zap.Int64("files_created", d.filesCreated),
 		zap.Duration("total_upload_duration", d.uploadDuration))
-	
+
 	return d.BaseConnector.Close(ctx)
 }
 
@@ -368,12 +368,12 @@ func (d *GCSDestination) DropSchema(ctx context.Context, schema *core.Schema) er
 	ub := stringpool.NewURLBuilder(d.prefix)
 	defer ub.Close()
 	objectName := ub.AddPath("_schema", "schema.json").String()
-	
+
 	err := d.bucketHandle.Object(objectName).Delete(ctx)
 	if err != nil {
 		d.GetLogger().Warn("failed to delete schema metadata", zap.Error(err))
 	}
-	
+
 	d.GetLogger().Info("schema dropped for GCS destination")
 	return nil
 }
@@ -382,21 +382,21 @@ func (d *GCSDestination) DropSchema(ctx context.Context, schema *core.Schema) er
 
 func (d *GCSDestination) initializeGCSClient(ctx context.Context) error {
 	var opts []option.ClientOption
-	
+
 	// Add credentials if provided
 	if d.credentialsFile != "" {
 		opts = append(opts, option.WithCredentialsFile(d.credentialsFile))
 	}
-	
+
 	// Create GCS client
 	client, err := storage.NewClient(ctx, opts...)
 	if err != nil {
 		return err
 	}
-	
+
 	d.gcsClient = client
 	d.bucketHandle = client.Bucket(d.bucket)
-	
+
 	return nil
 }
 
@@ -406,27 +406,27 @@ func (d *GCSDestination) initializeColumnarWriter() error {
 	case "parquet":
 		// For Parquet format
 		d.columnarWriter = nil // Will be created when needed
-		
+
 	case "avro":
 		// For Avro format
 		d.columnarWriter = nil // Will be created when needed
-		
+
 	case "orc":
 		// For ORC format
 		d.columnarWriter = nil // Will be created when needed
-		
+
 	case "csv":
 		// For CSV, we'll handle it differently
 		d.columnarWriter = nil
-		
+
 	case "json", "jsonl":
 		// For JSON formats, we'll handle them differently
 		d.columnarWriter = nil
-		
+
 	default:
 		return errors.New(errors.ErrorTypeConfig, stringpool.Sprintf("unsupported file format: %s", d.fileFormat))
 	}
-	
+
 	return nil
 }
 
@@ -436,7 +436,7 @@ func (d *GCSDestination) testBucketAccess(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeConnection, stringpool.Sprintf("failed to access GCS bucket %s", d.bucket))
 	}
-	
+
 	d.GetLogger().Info("GCS bucket access verified", zap.String("bucket", d.bucket))
 	return nil
 }
@@ -444,15 +444,15 @@ func (d *GCSDestination) testBucketAccess(ctx context.Context) error {
 func (d *GCSDestination) addToBatch(ctx context.Context, record *models.Record) error {
 	d.batchMutex.Lock()
 	defer d.batchMutex.Unlock()
-	
+
 	d.currentBatch = append(d.currentBatch, record)
-	
+
 	// Check if batch is full
 	if len(d.currentBatch) >= d.batchSize {
 		// Flush batch asynchronously
 		batch := d.currentBatch
 		d.currentBatch = pool.GetBatchSlice(d.batchSize)
-		
+
 		d.uploadWG.Add(1)
 		go func() {
 			defer d.uploadWG.Done()
@@ -461,22 +461,22 @@ func (d *GCSDestination) addToBatch(ctx context.Context, record *models.Record) 
 			}
 		}()
 	}
-	
+
 	return nil
 }
 
 func (d *GCSDestination) flushBatch(ctx context.Context) error {
 	d.batchMutex.Lock()
 	defer d.batchMutex.Unlock()
-	
+
 	if len(d.currentBatch) == 0 {
 		return nil
 	}
-	
+
 	// Upload remaining batch
 	batch := d.currentBatch
 	d.currentBatch = pool.GetBatchSlice(d.batchSize)
-	
+
 	return d.uploadBatch(ctx, batch)
 }
 
@@ -484,24 +484,24 @@ func (d *GCSDestination) uploadBatch(ctx context.Context, batch []*models.Record
 	if len(batch) == 0 {
 		return nil
 	}
-	
+
 	start := time.Now()
 	defer func() {
 		d.uploadDuration += time.Since(start)
 	}()
-	
+
 	// Generate file path with partitioning
 	filePath := d.generateFilePath()
-	
+
 	// Get buffer from pool
 	buf := d.bufferPool.Get(1024 * 1024) // 1MB buffer
 	defer d.bufferPool.Put(buf)
-	
+
 	// Convert batch to file format
 	var data io.Reader
 	var size int64
 	var err error
-	
+
 	if d.fileFormat == "parquet" || d.fileFormat == "avro" || d.fileFormat == "orc" {
 		// For columnar formats, we need to handle differently
 		// In production, use actual columnar libraries
@@ -525,11 +525,11 @@ func (d *GCSDestination) uploadBatch(ctx context.Context, batch []*models.Record
 		default:
 			return errors.New(errors.ErrorTypeConfig, stringpool.Sprintf("unsupported format: %s", d.fileFormat))
 		}
-		
+
 		if err != nil {
 			return errors.Wrap(err, errors.ErrorTypeData, "failed to convert batch")
 		}
-		
+
 		// Apply compression if needed
 		if d.compressionType != "" && d.compressionType != "none" {
 			var algorithm compression.Algorithm
@@ -545,7 +545,7 @@ func (d *GCSDestination) uploadBatch(ctx context.Context, batch []*models.Record
 			default:
 				algorithm = compression.None
 			}
-			
+
 			if algorithm != compression.None {
 				config := &compression.Config{
 					Algorithm: algorithm,
@@ -561,11 +561,11 @@ func (d *GCSDestination) uploadBatch(ctx context.Context, batch []*models.Record
 				}
 			}
 		}
-		
+
 		data = bytes.NewReader(content)
 		size = int64(len(content))
 	}
-	
+
 	// Upload to GCS
 	obj := d.bucketHandle.Object(filePath)
 	writer := obj.NewWriter(ctx)
@@ -576,36 +576,36 @@ func (d *GCSDestination) uploadBatch(ctx context.Context, batch []*models.Record
 		"compression": d.compressionType,
 		"created":     time.Now().UTC().Format(time.RFC3339),
 	}
-	
+
 	// Copy data to GCS
 	_, err = io.Copy(writer, data)
 	if err != nil {
 		writer.Close()
 		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to write to GCS")
 	}
-	
+
 	if err = writer.Close(); err != nil {
 		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to close GCS writer")
 	}
-	
+
 	// Update metrics
 	d.recordsWritten += int64(len(batch))
 	d.bytesWritten += size
 	d.filesCreated++
-	
+
 	d.GetLogger().Info("batch uploaded to GCS",
 		zap.String("object", filePath),
 		zap.Int("records", len(batch)),
 		zap.Int64("bytes", size),
 		zap.Duration("duration", time.Since(start)))
-	
+
 	return nil
 }
 
 func (d *GCSDestination) generateFilePath() string {
 	now := time.Now().UTC()
 	var partitionPath string
-	
+
 	switch d.partitionStrategy {
 	case "hourly":
 		partitionPath = stringpool.Sprintf("year=%d/month=%02d/day=%02d/hour=%02d",
@@ -621,27 +621,27 @@ func (d *GCSDestination) generateFilePath() string {
 	default:
 		partitionPath = ""
 	}
-	
+
 	// Generate unique filename
-	filename := stringpool.Sprintf("data_%s_%d.%s", 
-		now.Format("20060102_150405"), 
+	filename := stringpool.Sprintf("data_%s_%d.%s",
+		now.Format("20060102_150405"),
 		now.UnixNano(),
 		d.getFileExtension())
-	
+
 	// Build GCS object name using URLBuilder for optimized string handling
 	ub := stringpool.NewURLBuilder(d.prefix)
 	defer ub.Close()
-	
+
 	if partitionPath != "" {
 		return ub.AddPath(partitionPath, filename).String()
 	}
-	
+
 	return ub.AddPath(filename).String()
 }
 
 func (d *GCSDestination) getFileExtension() string {
 	ext := d.fileFormat
-	
+
 	// Add compression extension if applicable
 	switch d.compressionType {
 	case "gzip":
@@ -657,7 +657,7 @@ func (d *GCSDestination) getFileExtension() string {
 	case "zstd":
 		ext += ".zst"
 	}
-	
+
 	return ext
 }
 
@@ -682,19 +682,19 @@ func (d *GCSDestination) batchToCSV(batch []*models.Record) ([]byte, error) {
 	if len(batch) == 0 {
 		return []byte{}, nil
 	}
-	
+
 	// Estimate size: assume average 20 chars per field
 	estimatedCols := len(batch[0].Data)
 	csvBuilder := stringpool.NewCSVBuilder(len(batch), estimatedCols)
 	defer csvBuilder.Close()
-	
+
 	// Write headers from first record
 	headers := make([]string, 0, len(batch[0].Data))
 	for key := range batch[0].Data {
 		headers = append(headers, key)
 	}
 	csvBuilder.WriteHeader(headers)
-	
+
 	// Write data rows
 	for _, record := range batch {
 		row := make([]string, len(headers))
@@ -707,7 +707,7 @@ func (d *GCSDestination) batchToCSV(batch []*models.Record) ([]byte, error) {
 		}
 		csvBuilder.WriteRow(row)
 	}
-	
+
 	csvString := csvBuilder.String()
 	return stringpool.StringToBytes(csvString), nil
 }
@@ -718,24 +718,24 @@ func (d *GCSDestination) batchToJSON(batch []*models.Record) ([]byte, error) {
 	for i, record := range batch {
 		data[i] = record.Data
 	}
-	
+
 	return jsonpool.Marshal(data)
 }
 
 func (d *GCSDestination) batchToJSONL(batch []*models.Record) ([]byte, error) {
 	buf := jsonpool.GetBuffer()
 	defer jsonpool.PutBuffer(buf)
-	
+
 	encoder := jsonpool.GetEncoder(buf)
 	defer jsonpool.PutEncoder(encoder)
-	
+
 	// Write each record as a separate JSON line
 	for _, record := range batch {
 		if err := encoder.Encode(record.Data); err != nil {
 			return nil, err
 		}
 	}
-	
+
 	// Copy data since we're returning the buffer to the pool
 	result := pool.GetByteSlice()
 
@@ -756,17 +756,17 @@ func (d *GCSDestination) recordUploadError(err error) {
 func (d *GCSDestination) checkUploadErrors() error {
 	d.errorMutex.Lock()
 	defer d.errorMutex.Unlock()
-	
+
 	if len(d.uploadErrors) == 0 {
 		return nil
 	}
-	
+
 	// Combine all errors
 	var errMsgs []string
 	for _, err := range d.uploadErrors {
 		errMsgs = append(errMsgs, err.Error())
 	}
-	
-	return errors.New(errors.ErrorTypeData, 
+
+	return errors.New(errors.ErrorTypeData,
 		stringpool.Sprintf("upload errors: %s", stringpool.JoinPooled(errMsgs, "; ")))
 }

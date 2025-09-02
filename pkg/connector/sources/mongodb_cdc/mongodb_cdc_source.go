@@ -1,4 +1,4 @@
-package mongodb_cdc
+package mongodbcdc
 
 import (
 	"context"
@@ -10,10 +10,10 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/cdc"
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/base"
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 	"go.uber.org/zap"
 )
 
@@ -330,7 +330,6 @@ func (s *MongoDBCDCSource) ReadBatch(ctx context.Context, batchSize int) (*core.
 		}()
 
 		batch := pool.GetBatchSlice(batchSize)
-
 
 		defer pool.PutBatchSlice(batch)
 		timeout := time.NewTimer(5 * time.Second)

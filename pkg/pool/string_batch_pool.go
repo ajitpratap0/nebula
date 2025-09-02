@@ -12,7 +12,7 @@ var (
 			return make([][]string, 0, 5000)
 		},
 	}
-	
+
 	// Pool for []string slices (individual CSV rows)
 	csvRowPool = &sync.Pool{
 		New: func() interface{} {
@@ -23,7 +23,14 @@ var (
 
 // GetStringBatch gets a [][]string from the pool
 func GetStringBatch(capacity int) [][]string {
-	batch := StringBatchPool.Get().([][]string)
+	obj := StringBatchPool.Get()
+	if obj == nil {
+		return make([][]string, 0, 5000)
+	}
+	batch, ok := obj.([][]string)
+	if !ok {
+		return make([][]string, 0, 5000)
+	}
 	if cap(batch) < capacity {
 		batch = make([][]string, 0, capacity)
 	}
@@ -40,12 +47,19 @@ func PutStringBatch(batch [][]string) {
 		batch[i] = nil
 	}
 	batch = batch[:0]
-	StringBatchPool.Put(batch)
+	StringBatchPool.Put(&batch)
 }
 
 // GetCSVRow gets a []string from the pool for CSV row operations
 func GetCSVRow(capacity int) []string {
-	slice := csvRowPool.Get().([]string)
+	obj := csvRowPool.Get()
+	if obj == nil {
+		return make([]string, 0, 20)
+	}
+	slice, ok := obj.([]string)
+	if !ok {
+		return make([]string, 0, 20)
+	}
 	if cap(slice) < capacity {
 		return make([]string, 0, capacity)
 	}
@@ -62,5 +76,5 @@ func PutCSVRow(slice []string) {
 		slice[i] = ""
 	}
 	slice = slice[:0]
-	csvRowPool.Put(slice)
+	csvRowPool.Put(&slice)
 }

@@ -1,10 +1,8 @@
 // Package compression provides compression benchmarks
 package compression
 
-import "github.com/ajitpratap0/nebula/pkg/pool"
-
 import (
-	"github.com/ajitpratap0/nebula/pkg/pool"
+	crypto_rand "crypto/rand"
 	"bytes"
 	"fmt"
 	"math/rand"
@@ -12,6 +10,7 @@ import (
 	"testing"
 
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 )
 
 // Test data generators
@@ -35,27 +34,33 @@ func generateJSONData(size int) []byte {
 }
 
 func generateCSVData(size int) []byte {
-	buf := pool.GlobalBufferPool.Get()
-
+	buf := pool.GlobalBufferPool.Get(size * 2) // Estimate buffer size
 	defer pool.GlobalBufferPool.Put(buf)
-	buf.WriteString("id,name,email,age,score,active\n")
+
+	// Use bytes.Buffer for writer operations
+	var writer bytes.Buffer
+	writer.WriteString("id,name,email,age,score,active\n")
 	for i := 0; i < size/50; i++ {
-		fmt.Fprintf(&buf, "%d,User %d,user%d@example.com,%d,%.2f,%t\n",
+		fmt.Fprintf(&writer, "%d,User %d,user%d@example.com,%d,%.2f,%t\n",
 			i, i, i, rand.Intn(80)+20, rand.Float64()*100, rand.Intn(2) == 1)
 	}
-	return buf.Bytes()
+	return writer.Bytes()
 }
 
 func generateTextData(size int) []byte {
 	words := []string{"the", "quick", "brown", "fox", "jumps", "over", "lazy", "dog"}
-	buf := pool.GlobalBufferPool.Get()
 
-	defer pool.GlobalBufferPool.Put(buf)
-	for buf.Len() < size {
-		buf.WriteString(words[rand.Intn(len(words))])
-		buf.WriteString(" ")
+	// Use bytes.Buffer for writer operations
+	var writer bytes.Buffer
+	for writer.Len() < size {
+		writer.WriteString(words[rand.Intn(len(words))])
+		writer.WriteString(" ")
 	}
-	return buf.Bytes()[:size]
+	result := writer.Bytes()
+	if len(result) > size {
+		return result[:size]
+	}
+	return result
 }
 
 func generateBinaryData(size int) []byte {
@@ -68,7 +73,7 @@ func generateBinaryData(size int) []byte {
 	}
 
 	defer pool.PutByteSlice(data)
-	rand.Read(data)
+	_, _ = crypto_rand.Read(data)
 	return data
 }
 
@@ -273,10 +278,12 @@ func BenchmarkStreamingCompression(b *testing.B) {
 			b.SetBytes(int64(len(testData)))
 
 			for i := 0; i < b.N; i++ {
-				buf := pool.GlobalBufferPool.Get()
-
+				buf := pool.GlobalBufferPool.Get(len(testData) * 2) // Estimate compressed size
 				defer pool.GlobalBufferPool.Put(buf)
-				err := compressor.CompressStream(&buf, bytes.NewReader(testData))
+
+				// Use bytes.Buffer for writer operations
+				var writer bytes.Buffer
+				err := compressor.CompressStream(&writer, bytes.NewReader(testData))
 				if err != nil {
 					b.Fatal(err)
 				}

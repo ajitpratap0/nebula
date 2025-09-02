@@ -2,7 +2,7 @@
 // storage engine. It implements intelligent mode selection between row-based
 // and columnar storage to achieve optimal memory efficiency and performance.
 //
-// Overview
+// # Overview
 //
 // The pipeline package is the interface between Nebula's data processing pipeline
 // and the underlying storage implementations. It provides:
@@ -12,35 +12,35 @@
 //   - Transparent conversion between storage formats
 //   - Performance monitoring and optimization
 //
-// Storage Modes
+// # Storage Modes
 //
 // The package supports three storage modes:
 //
-//   1. Row Mode (StorageModeRow):
-//      - Traditional row-based storage
-//      - 225 bytes per record
-//      - Best for streaming and real-time processing
-//      - Low latency record access
+//  1. Row Mode (StorageModeRow):
+//     - Traditional row-based storage
+//     - 225 bytes per record
+//     - Best for streaming and real-time processing
+//     - Low latency record access
 //
-//   2. Columnar Mode (StorageModeColumnar):
-//      - Column-oriented storage with compression
-//      - 84 bytes per record (94% reduction)
-//      - Best for batch processing and analytics
-//      - High compression ratios
+//  2. Columnar Mode (StorageModeColumnar):
+//     - Column-oriented storage with compression
+//     - 84 bytes per record (94% reduction)
+//     - Best for batch processing and analytics
+//     - High compression ratios
 //
-//   3. Hybrid Mode (StorageModeHybrid):
-//      - Automatic selection between row and columnar
-//      - Switches at 10K record threshold
-//      - Best overall performance
-//      - Default mode for most use cases
+//  3. Hybrid Mode (StorageModeHybrid):
+//     - Automatic selection between row and columnar
+//     - Switches at 10K record threshold
+//     - Best overall performance
+//     - Default mode for most use cases
 //
-// Basic Usage
+// # Basic Usage
 //
 // Creating a storage adapter:
 //
 //	config := config.NewBaseConfig("processor", "pipeline")
 //	config.Advanced.StorageMode = "hybrid"
-//	
+//
 //	adapter := pipeline.NewStorageAdapter(
 //		pipeline.StorageModeHybrid,
 //		config,
@@ -54,12 +54,12 @@
 //			return err
 //		}
 //	}
-//	
+//
 //	// Check efficiency
 //	memPerRecord := adapter.GetMemoryPerRecord()
 //	log.Printf("Memory efficiency: %.2f bytes/record", memPerRecord)
 //
-// Automatic Mode Selection
+// # Automatic Mode Selection
 //
 // In hybrid mode, the adapter automatically selects the optimal storage:
 //
@@ -74,19 +74,19 @@
 //   - Memory pressure
 //   - Performance requirements
 //
-// Configuration
+// # Configuration
 //
 // Storage mode is configured through BaseConfig:
 //
 //	advanced:
 //	  storage_mode: "hybrid"    # Options: row, columnar, hybrid
 //	  compression: "lz4"        # Compression algorithm
-//	  
+//
 //	performance:
 //	  batch_size: 10000         # Affects mode switching
 //	  streaming_mode: false     # Forces row mode when true
 //
-// Integration with Connectors
+// # Integration with Connectors
 //
 // Source connectors integrate with storage adapters:
 //
@@ -96,31 +96,31 @@
 //			s.config,
 //		)
 //		defer adapter.Close()
-//		
+//
 //		for s.hasMoreData() {
 //			record := s.readRecord()
 //			if err := adapter.AddRecord(record); err != nil {
 //				return err
 //			}
 //		}
-//		
+//
 //		return adapter.Flush()
 //	}
 //
-// Performance Optimization
+// # Performance Optimization
 //
 // The adapter provides optimization methods:
 //
 //	// Background optimization
 //	adapter.OptimizeStorage()
-//	
+//
 //	// Force mode switch
 //	adapter.SwitchMode(pipeline.StorageModeColumnar)
-//	
+//
 //	// Pre-declare schema for better columnar efficiency
 //	adapter.SetSchema(schema)
 //
-// Monitoring and Metrics
+// # Monitoring and Metrics
 //
 // Track storage efficiency:
 //
@@ -138,7 +138,7 @@
 //		metrics.CompressionRatio,
 //	)
 //
-// Best Practices
+// # Best Practices
 //
 // 1. Use hybrid mode unless you have specific requirements
 // 2. Configure batch_size appropriately (10K+ for columnar efficiency)
@@ -148,7 +148,7 @@
 // 6. Use streaming_mode flag for real-time requirements
 // 7. Call OptimizeStorage() during idle periods
 //
-// Advanced Features
+// # Advanced Features
 //
 // Custom mode selection:
 //
@@ -171,7 +171,7 @@
 //	}
 //	adapter.SetSchema(schema)
 //
-// Memory Management
+// # Memory Management
 //
 // The adapter integrates with Nebula's pool system:
 //   - Automatic record pooling in row mode

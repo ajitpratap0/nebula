@@ -54,7 +54,7 @@ func (rp *RetryPolicy) Execute(ctx context.Context, fn func() error) error {
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			return fmt.Errorf("retry cancelled: %w", ctx.Err())
+			return fmt.Errorf("retry canceled: %w", ctx.Err())
 		case <-timer.C:
 			// Continue to next attempt
 		}
@@ -94,7 +94,7 @@ func (rp *RetryPolicy) ExecuteWithCondition(ctx context.Context, fn func() error
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			return fmt.Errorf("retry cancelled: %w", ctx.Err())
+			return fmt.Errorf("retry canceled: %w", ctx.Err())
 		case <-timer.C:
 			// Continue to next attempt
 		}

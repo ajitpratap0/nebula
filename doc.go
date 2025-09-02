@@ -35,20 +35,20 @@
 //	    "github.com/ajitpratap0/nebula/pkg/connector/registry"
 //	    "github.com/ajitpratap0/nebula/internal/pipeline"
 //	)
-//	
+//
 //	// Create configuration
 //	cfg := config.NewBaseConfig("my-pipeline", "pipeline")
 //	cfg.Performance.BatchSize = 10000
 //	cfg.Advanced.StorageMode = "hybrid"
-//	
+//
 //	// Create source
 //	sourceFactory, _ := registry.GetSourceFactory("csv")
 //	source, _ := sourceFactory(cfg)
-//	
+//
 //	// Create destination
 //	destFactory, _ := registry.GetDestinationFactory("json")
 //	dest, _ := destFactory(cfg)
-//	
+//
 //	// Run pipeline
 //	p := pipeline.New(source, dest, cfg)
 //	err := p.Run(context.Background())

@@ -73,9 +73,9 @@ type BaseConnector struct {
 	logger        *zap.Logger        // Structured logger
 
 	// State management
-	state      core.State      // Connector state for incremental sync
-	position   core.Position   // Current processing position
-	stateMutex sync.RWMutex    // Protects state access
+	state      core.State    // Connector state for incremental sync
+	position   core.Position // Current processing position
+	stateMutex sync.RWMutex  // Protects state access
 
 	// Resource management
 	ctx        context.Context    // Connector context
@@ -95,8 +95,8 @@ type BaseConnector struct {
 	retryPolicy    *RetryPolicy        // Retry configuration
 
 	// Performance optimization
-	batchBuilder core.BatchBuilder      // Batch construction
-	optimizer    *PerformanceOptimizer  // Dynamic optimization
+	batchBuilder core.BatchBuilder     // Batch construction
+	optimizer    *PerformanceOptimizer // Dynamic optimization
 
 	// Progress tracking
 	progressReporter *ProgressReporter // Progress updates
@@ -151,8 +151,8 @@ func (bc *BaseConnector) Initialize(ctx context.Context, config *config.BaseConf
 
 	// Initialize circuit breaker for failure protection
 	bc.circuitBreaker = clients.NewCircuitBreaker(clients.CircuitBreakerConfig{
-		FailureThreshold: 5,              // Open after 5 consecutive failures
-		SuccessThreshold: 3,              // Close after 3 consecutive successes
+		FailureThreshold: 5,                // Open after 5 consecutive failures
+		SuccessThreshold: 3,                // Close after 3 consecutive successes
 		Timeout:          30 * time.Second, // Half-open timeout
 	})
 
@@ -386,7 +386,7 @@ func (bc *BaseConnector) ExecuteWithCircuitBreaker(fn func() error) error {
 //
 //	for _, record := range records {
 //	    if err := connector.RateLimit(ctx); err != nil {
-//	        return err // Context cancelled
+//	        return err // Context canceled
 //	    }
 //	    process(record)
 //	}

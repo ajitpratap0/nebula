@@ -9,16 +9,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/ajitpratap0/nebula/pkg/connector/core"
+	"github.com/ajitpratap0/nebula/pkg/models"
 	"github.com/ajitpratap0/nebula/pkg/pool"
+	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/apache/arrow-go/v18/parquet"
 	"github.com/apache/arrow-go/v18/parquet/compress"
 	"github.com/apache/arrow-go/v18/parquet/file"
 	"github.com/apache/arrow-go/v18/parquet/pqarrow"
-	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/models"
 )
 
 // parquetWriter implements Writer for Parquet format

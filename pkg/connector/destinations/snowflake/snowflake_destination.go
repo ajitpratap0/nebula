@@ -29,13 +29,13 @@ type SnowflakeOptimizedDestination struct {
 	*base.BaseConnector
 
 	// Connection configuration
-	account    string
-	user       string
-	password   string
-	database   string
-	schema     string
-	warehouse  string
-	role       string
+	account   string
+	user      string
+	password  string
+	database  string
+	schema    string
+	warehouse string
+	role      string
 
 	// Connection pool
 	connectionPool     *sql.DB
@@ -49,43 +49,43 @@ type SnowflakeOptimizedDestination struct {
 	externalStageURL  string
 
 	// Performance configuration
-	parallelUploads        int
-	microBatchSize         int
-	microBatchTimeout      time.Duration
-	filesPerCopy          int
-	maxFileSize           int64
-	enableStreaming       bool
-	asyncCopy             bool
+	parallelUploads   int
+	microBatchSize    int
+	microBatchTimeout time.Duration
+	filesPerCopy      int
+	maxFileSize       int64
+	enableStreaming   bool
+	asyncCopy         bool
 
 	// File format configuration
 	fileFormat      string
 	compressionType string
-	
+
 	// Compression
 	compressor compression.Compressor
 
 	// State management
-	currentTable       string
-	currentSchema      *core.Schema
-	recordsWritten     int64
-	bytesUploaded      int64
-	filesUploaded      int64
-	copyOperations     int64
-	uploadWorkers      int
+	currentTable   string
+	currentSchema  *core.Schema
+	recordsWritten int64
+	bytesUploaded  int64
+	filesUploaded  int64
+	copyOperations int64
+	uploadWorkers  int
 
 	// Micro-batching
-	microBatch       []*models.Record
-	microBatchMutex  sync.Mutex
-	microBatchTimer  *time.Timer
-	microBatchCount  int64
+	microBatch      []*models.Record
+	microBatchMutex sync.Mutex
+	microBatchTimer *time.Timer
+	microBatchCount int64
 
 	// Upload workers
-	uploadChan     chan *FileUpload
-	uploadWG       sync.WaitGroup
+	uploadChan         chan *FileUpload
+	uploadWG           sync.WaitGroup
 	uploadWorkersMutex sync.RWMutex
 
 	// Statistics
-	stats *SnowflakeStats
+	stats      *SnowflakeStats
 	statsMutex sync.RWMutex
 }
 
@@ -99,14 +99,14 @@ type FileUpload struct {
 
 // SnowflakeStats provides real-time statistics
 type SnowflakeStats struct {
-	RecordsWritten  int64 `json:"records_written"`
-	BytesUploaded   int64 `json:"bytes_uploaded"`
-	FilesUploaded   int64 `json:"files_uploaded"`
-	CopyOperations  int64 `json:"copy_operations"`
-	UploadWorkers   int   `json:"upload_workers"`
-	MicroBatches    int64 `json:"micro_batches"`
-	AverageLatency  int64 `json:"average_latency_ms"`
-	ErrorRate       float64 `json:"error_rate"`
+	RecordsWritten int64   `json:"records_written"`
+	BytesUploaded  int64   `json:"bytes_uploaded"`
+	FilesUploaded  int64   `json:"files_uploaded"`
+	CopyOperations int64   `json:"copy_operations"`
+	UploadWorkers  int     `json:"upload_workers"`
+	MicroBatches   int64   `json:"micro_batches"`
+	AverageLatency int64   `json:"average_latency_ms"`
+	ErrorRate      float64 `json:"error_rate"`
 }
 
 // SnowflakeTransaction implements the core.Transaction interface
@@ -133,19 +133,19 @@ func NewSnowflakeOptimizedDestination(name string, config *config.BaseConfig) (c
 
 	dest := &SnowflakeOptimizedDestination{
 		BaseConnector: base,
-		
+
 		// Default configuration
-		connectionPoolSize:    8,
-		parallelUploads:      16,
-		microBatchSize:       200000,
-		microBatchTimeout:    5 * time.Second,
-		filesPerCopy:         10,
-		maxFileSize:          500 * 1024 * 1024, // 500MB
-		fileFormat:           "CSV",
-		compressionType:      "GZIP",
-		enableStreaming:      true,
-		asyncCopy:           true,
-		
+		connectionPoolSize: 8,
+		parallelUploads:    16,
+		microBatchSize:     200000,
+		microBatchTimeout:  5 * time.Second,
+		filesPerCopy:       10,
+		maxFileSize:        500 * 1024 * 1024, // 500MB
+		fileFormat:         "CSV",
+		compressionType:    "GZIP",
+		enableStreaming:    true,
+		asyncCopy:          true,
+
 		microBatch: pool.GetBatchSlice(200000),
 		stats:      &SnowflakeStats{},
 	}
@@ -195,9 +195,9 @@ func (s *SnowflakeOptimizedDestination) Initialize(ctx context.Context, config *
 		"connection_pool_size": s.connectionPoolSize,
 		"parallel_uploads":     s.parallelUploads,
 		"micro_batch_size":     s.microBatchSize,
-		"stage_name":          s.stageName,
-		"file_format":         s.fileFormat,
-		"compression_type":    s.compressionType,
+		"stage_name":           s.stageName,
+		"file_format":          s.fileFormat,
+		"compression_type":     s.compressionType,
 	})
 
 	s.GetLogger().Info("Snowflake optimized destination initialized",
@@ -400,7 +400,7 @@ func (s *SnowflakeOptimizedDestination) Close(ctx context.Context) error {
 		pool.PutBatchSlice(s.microBatch)
 		s.microBatch = nil
 	}
-	
+
 	// Close base connector
 	return s.BaseConnector.Close(ctx)
 }
@@ -468,14 +468,14 @@ func (s *SnowflakeOptimizedDestination) BulkLoad(ctx context.Context, reader int
 		return nil
 	}
 
-	s.GetLogger().Info("Starting bulk load operation", 
+	s.GetLogger().Info("Starting bulk load operation",
 		zap.Int("total_records", len(records)),
 		zap.String("format", format))
 
 	// Determine optimal chunking strategy based on record count and size
 	chunkSize := s.calculateOptimalChunkSize(len(records))
 	chunks := s.chunkRecords(records, chunkSize)
-	
+
 	// Process chunks in parallel for maximum throughput
 	return s.processBulkChunks(ctx, chunks, format)
 }
@@ -484,14 +484,14 @@ func (s *SnowflakeOptimizedDestination) BulkLoad(ctx context.Context, reader int
 func (s *SnowflakeOptimizedDestination) calculateOptimalChunkSize(totalRecords int) int {
 	// Base chunk size on micro batch size, but adjust for bulk operations
 	baseChunkSize := s.microBatchSize
-	
+
 	// For very large datasets, use larger chunks to reduce overhead
 	if totalRecords > 1000000 {
 		baseChunkSize = 500000 // 500K records per chunk
 	} else if totalRecords > 100000 {
 		baseChunkSize = 100000 // 100K records per chunk
 	} else if totalRecords > 10000 {
-		baseChunkSize = 50000  // 50K records per chunk
+		baseChunkSize = 50000 // 50K records per chunk
 	}
 
 	// Ensure we don't exceed available workers
@@ -511,7 +511,7 @@ func (s *SnowflakeOptimizedDestination) calculateOptimalChunkSize(totalRecords i
 // chunkRecords splits records into optimally-sized chunks
 func (s *SnowflakeOptimizedDestination) chunkRecords(records []*models.Record, chunkSize int) [][]*models.Record {
 	var chunks [][]*models.Record
-	
+
 	for i := 0; i < len(records); i += chunkSize {
 		end := i + chunkSize
 		if end > len(records) {
@@ -519,7 +519,7 @@ func (s *SnowflakeOptimizedDestination) chunkRecords(records []*models.Record, c
 		}
 		chunks = append(chunks, records[i:end])
 	}
-	
+
 	return chunks
 }
 
@@ -531,13 +531,13 @@ func (s *SnowflakeOptimizedDestination) processBulkChunks(ctx context.Context, c
 
 	// Create error aggregation channel
 	errorChan := make(chan error, len(chunks))
-	
+
 	// Semaphore to limit concurrent workers
 	semaphore := make(chan struct{}, s.parallelUploads)
-	
+
 	// Wait group for all workers
 	var wg sync.WaitGroup
-	
+
 	s.GetLogger().Info("Processing bulk chunks in parallel",
 		zap.Int("chunk_count", len(chunks)),
 		zap.Int("parallel_workers", s.parallelUploads))
@@ -547,11 +547,11 @@ func (s *SnowflakeOptimizedDestination) processBulkChunks(ctx context.Context, c
 		wg.Add(1)
 		go func(chunkIndex int, chunkRecords []*models.Record) {
 			defer wg.Done()
-			
+
 			// Acquire semaphore
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
-			
+
 			// Process this chunk
 			if err := s.processBulkChunk(ctx, chunkRecords, format, chunkIndex); err != nil {
 				s.GetLogger().Error("Failed to process bulk chunk",
@@ -561,48 +561,48 @@ func (s *SnowflakeOptimizedDestination) processBulkChunks(ctx context.Context, c
 				errorChan <- err
 				return
 			}
-			
+
 			s.GetLogger().Debug("Successfully processed bulk chunk",
 				zap.Int("chunk_index", chunkIndex),
 				zap.Int("records_processed", len(chunkRecords)))
 		}(i, chunk)
 	}
-	
+
 	// Wait for all workers to complete
 	wg.Wait()
 	close(errorChan)
-	
+
 	// Collect any errors
 	var errors []error
 	for err := range errorChan {
 		errors = append(errors, err)
 	}
-	
+
 	if len(errors) > 0 {
 		// Log all errors and return aggregate error
 		s.GetLogger().Error("Bulk load completed with errors", zap.Int("error_count", len(errors)))
 		return errors[0] // Return first error for now
 	}
-	
+
 	s.GetLogger().Info("Bulk load completed successfully",
 		zap.Int("total_chunks", len(chunks)))
-	
+
 	return nil
 }
 
 // processBulkChunk processes a single chunk of records
 func (s *SnowflakeOptimizedDestination) processBulkChunk(ctx context.Context, records []*models.Record, format string, chunkIndex int) error {
 	// Generate unique filename for this chunk using pooled string building
-	filename := stringpool.Sprintf("bulk_load_%d_%d_%d.%s", 
-		time.Now().Unix(), 
-		chunkIndex, 
+	filename := stringpool.Sprintf("bulk_load_%d_%d_%d.%s",
+		time.Now().Unix(),
+		chunkIndex,
 		len(records),
 		strings.ToLower(format))
-	
+
 	// Convert records to file format
 	var data []byte
 	var err error
-	
+
 	switch strings.ToUpper(format) {
 	case "CSV":
 		data, err = s.recordsToCSV(records)
@@ -613,11 +613,11 @@ func (s *SnowflakeOptimizedDestination) processBulkChunk(ctx context.Context, re
 	default:
 		return errors.New(errors.ErrorTypeValidation, stringpool.Sprintf("unsupported bulk load format: %s", format))
 	}
-	
+
 	if err != nil {
 		return errors.Wrap(err, errors.ErrorTypeData, "failed to convert records to format")
 	}
-	
+
 	// Compress data if compression is enabled
 	if s.compressor != nil {
 		compressedData, err := s.compressor.Compress(data)
@@ -628,31 +628,31 @@ func (s *SnowflakeOptimizedDestination) processBulkChunk(ctx context.Context, re
 			filename += ".gz" // Add compression extension
 		}
 	}
-	
+
 	// Upload to stage
 	if err := s.uploadToStage(ctx, filename, data); err != nil {
 		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to upload chunk to stage")
 	}
-	
+
 	// Execute COPY command for this file
 	copySQL := s.buildCopySQL(filename, format)
 	if err := s.executeSQL(ctx, copySQL); err != nil {
 		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to execute COPY command")
 	}
-	
+
 	// Update statistics
 	atomic.AddInt64(&s.recordsWritten, int64(len(records)))
 	atomic.AddInt64(&s.bytesUploaded, int64(len(data)))
 	atomic.AddInt64(&s.filesUploaded, 1)
 	atomic.AddInt64(&s.copyOperations, 1)
-	
+
 	return nil
 }
 
 // collectFromChannel collects all records from a channel
 func (s *SnowflakeOptimizedDestination) collectFromChannel(ctx context.Context, ch chan *models.Record) ([]*models.Record, error) {
 	var records []*models.Record
-	
+
 	for {
 		select {
 		case record, ok := <-ch:
@@ -669,7 +669,7 @@ func (s *SnowflakeOptimizedDestination) collectFromChannel(ctx context.Context, 
 // collectFromStream collects all records from a stream
 func (s *SnowflakeOptimizedDestination) collectFromStream(ctx context.Context, stream *core.RecordStream) ([]*models.Record, error) {
 	var records []*models.Record
-	
+
 	for {
 		select {
 		case record, ok := <-stream.Records:
@@ -732,7 +732,7 @@ func (s *SnowflakeOptimizedDestination) DropSchema(ctx context.Context, schema *
 	// Use SQLBuilder for DROP TABLE statement
 	sqlBuilder := stringpool.NewSQLBuilder(128)
 	defer sqlBuilder.Close()
-	
+
 	dropSQL := sqlBuilder.WriteQuery("DROP TABLE IF EXISTS ").
 		WriteIdentifier(s.database).WriteQuery(".").
 		WriteIdentifier(s.schema).WriteQuery(".").
@@ -793,7 +793,7 @@ func (s *SnowflakeOptimizedDestination) extractSnowflakeConfig(config *config.Ba
 	s.schema = "default-schema"
 	s.warehouse = "default-warehouse"
 	s.currentTable = "default-table"
-	
+
 	// Use performance config from BaseConfig
 	if config.Performance.BatchSize > 0 {
 		s.microBatchSize = config.Performance.BatchSize
@@ -803,11 +803,11 @@ func (s *SnowflakeOptimizedDestination) extractSnowflakeConfig(config *config.Ba
 		}
 		s.microBatch = pool.GetBatchSlice(config.Performance.BatchSize)
 	}
-	
+
 	if config.Performance.Workers > 0 {
 		s.parallelUploads = config.Performance.Workers
 	}
-	
+
 	s.enableStreaming = config.Performance.EnableStreaming
 	s.asyncCopy = config.Performance.AsyncOperations
 }
@@ -863,12 +863,12 @@ func (s *SnowflakeOptimizedDestination) initializeConnectionPool(ctx context.Con
 	if s.role != "" {
 		params = append(params, stringpool.Sprintf("role=%s", s.role))
 	}
-	
+
 	// Add additional Snowflake-specific parameters for performance
 	params = append(params, "ocspFailOpen=true") // Continue if OCSP check fails
 	params = append(params, "validateDefaultParameters=true")
 	params = append(params, "clientSessionKeepAlive=true") // Keep session alive
-	
+
 	if len(params) > 0 {
 		dsn = stringpool.Concat(dsn, "?", stringpool.JoinPooled(params, "&"))
 	}
@@ -895,11 +895,11 @@ func (s *SnowflakeOptimizedDestination) initializeConnectionPool(ctx context.Con
 // initializeStage creates or validates the stage
 func (s *SnowflakeOptimizedDestination) initializeStage(ctx context.Context) error {
 	var stageSQL string
-	
+
 	// Use SQLBuilder for stage creation
 	sqlBuilder := stringpool.NewSQLBuilder(512)
 	defer sqlBuilder.Close()
-	
+
 	if s.useExternalStage {
 		// Create external stage
 		stageSQL = sqlBuilder.WriteQuery("CREATE STAGE IF NOT EXISTS ").
@@ -1093,7 +1093,7 @@ func (s *SnowflakeOptimizedDestination) buildCreateTableSQL(schema *core.Schema)
 	// Use SQLBuilder for CREATE TABLE statement
 	sqlBuilder := stringpool.NewSQLBuilder(512)
 	defer sqlBuilder.Close()
-	
+
 	return sqlBuilder.WriteQuery("CREATE TABLE IF NOT EXISTS ").
 		WriteIdentifier(s.database).WriteQuery(".").
 		WriteIdentifier(s.schema).WriteQuery(".").
@@ -1178,15 +1178,15 @@ func (s *SnowflakeOptimizedDestination) mapFieldTypeToSnowflake(fieldType core.F
 func (s *SnowflakeOptimizedDestination) convertRecordsToFileFormat(records []*models.Record) ([]byte, error) {
 	// This is a simplified implementation
 	// In production, would properly convert to CSV, JSON, Parquet, etc.
-	
+
 	// Get buffer from pool with estimated size
 	estimatedSize := len(records) * 1024 // Estimate 1KB per record
 	buf := pool.GlobalBufferPool.Get(estimatedSize)
 	defer pool.GlobalBufferPool.Put(buf)
-	
+
 	// Track actual usage
 	offset := 0
-	
+
 	// Helper function to append to buffer
 	appendBytes := func(data []byte) {
 		if offset+len(data) > len(buf) {
@@ -1199,11 +1199,11 @@ func (s *SnowflakeOptimizedDestination) convertRecordsToFileFormat(records []*mo
 		copy(buf[offset:], data)
 		offset += len(data)
 	}
-	
+
 	appendString := func(s string) {
 		appendBytes([]byte(s))
 	}
-	
+
 	appendByte := func(b byte) {
 		if offset >= len(buf) {
 			// Need to grow buffer
@@ -1215,7 +1215,7 @@ func (s *SnowflakeOptimizedDestination) convertRecordsToFileFormat(records []*mo
 		buf[offset] = b
 		offset++
 	}
-	
+
 	switch s.fileFormat {
 	case "JSON", "JSONL":
 		// Convert to JSON Lines format
@@ -1240,7 +1240,7 @@ func (s *SnowflakeOptimizedDestination) convertRecordsToFileFormat(records []*mo
 				appendString(stringpool.JoinPooled(headers, ","))
 				appendByte('\n')
 			}
-			
+
 			// Write values
 			if s.currentSchema != nil {
 				var values []string
@@ -1266,14 +1266,12 @@ func (s *SnowflakeOptimizedDestination) convertRecordsToFileFormat(records []*mo
 			appendByte('\n')
 		}
 	}
-	
+
 	// Return a copy of the used portion of the buffer
 	result := pool.GetByteSlice()
 
 	if cap(result) < offset {
-
 		result = make([]byte, offset)
-
 	}
 
 	defer pool.PutByteSlice(result)
@@ -1293,7 +1291,7 @@ func (s *SnowflakeOptimizedDestination) uploadFile(ctx context.Context, upload *
 	// Build PUT command using SQLBuilder
 	sqlBuilder := stringpool.NewSQLBuilder(256)
 	defer sqlBuilder.Close()
-	
+
 	putSQL := sqlBuilder.WriteQuery("PUT file://").WriteQuery(tempFile).
 		WriteQuery(" @").
 		WriteIdentifier(s.database).WriteQuery(".").
@@ -1310,7 +1308,7 @@ func (s *SnowflakeOptimizedDestination) uploadFile(ctx context.Context, upload *
 	// Update metrics
 	atomic.AddInt64(&s.filesUploaded, 1)
 	atomic.AddInt64(&s.bytesUploaded, int64(len(upload.Data)))
-	
+
 	s.GetLogger().Debug("uploaded file to stage",
 		zap.String("filename", upload.Filename),
 		zap.Int("record_count", upload.RecordCount),
@@ -1321,7 +1319,7 @@ func (s *SnowflakeOptimizedDestination) uploadFile(ctx context.Context, upload *
 	if filesUploaded > 0 && filesUploaded%int64(s.filesPerCopy) == 0 {
 		go s.executeCopyCommand(ctx)
 	}
-	
+
 	return nil
 }
 
@@ -1330,7 +1328,7 @@ func (s *SnowflakeOptimizedDestination) executeCopyCommand(ctx context.Context) 
 	// Build COPY command using SQLBuilder
 	sqlBuilder := stringpool.NewSQLBuilder(512)
 	defer sqlBuilder.Close()
-	
+
 	copySQL := sqlBuilder.WriteQuery("COPY INTO ").
 		WriteIdentifier(s.database).WriteQuery(".").
 		WriteIdentifier(s.schema).WriteQuery(".").
@@ -1354,7 +1352,7 @@ func (s *SnowflakeOptimizedDestination) executeCopyCommand(ctx context.Context) 
 	// Update metrics
 	atomic.AddInt64(&s.copyOperations, 1)
 	s.RecordMetric("copy_operations", 1, core.MetricTypeCounter)
-	
+
 	s.GetLogger().Info("executed COPY command successfully",
 		zap.Int64("copy_operation", atomic.LoadInt64(&s.copyOperations)))
 }
@@ -1372,14 +1370,14 @@ func (s *SnowflakeOptimizedDestination) recordsToCSV(records []*models.Record) (
 	for key := range records[0].Data {
 		fieldNames = append(fieldNames, key)
 	}
-	
+
 	// Create optimized CSV builder
 	csvBuilder := stringpool.NewCSVBuilder(len(records), len(fieldNames))
 	defer csvBuilder.Close()
-	
+
 	// Write header
 	csvBuilder.WriteHeader(fieldNames)
-	
+
 	// Write data rows
 	for _, record := range records {
 		row := make([]string, len(fieldNames))
@@ -1392,7 +1390,7 @@ func (s *SnowflakeOptimizedDestination) recordsToCSV(records []*models.Record) (
 		}
 		csvBuilder.WriteRow(row)
 	}
-	
+
 	csvString := csvBuilder.String()
 	return stringpool.StringToBytes(csvString), nil
 }
@@ -1418,21 +1416,21 @@ func (s *SnowflakeOptimizedDestination) uploadToStage(ctx context.Context, filen
 	}
 	defer os.Remove(tempFile.Name())
 	defer tempFile.Close()
-	
+
 	// Write data to file
 	if _, err := tempFile.Write(data); err != nil {
 		return errors.Wrap(err, errors.ErrorTypeData, "failed to write data to temporary file")
 	}
-	
+
 	// Close file to ensure data is written
 	if err := tempFile.Close(); err != nil {
 		return errors.Wrap(err, errors.ErrorTypeData, "failed to close temporary file")
 	}
-	
+
 	// Build PUT command using SQLBuilder
 	sqlBuilder := stringpool.NewSQLBuilder(256)
 	defer sqlBuilder.Close()
-	
+
 	putSQL := sqlBuilder.WriteQuery("PUT file://").WriteQuery(tempFile.Name()).
 		WriteQuery(" @").
 		WriteIdentifier(s.database).WriteQuery(".").
@@ -1440,7 +1438,7 @@ func (s *SnowflakeOptimizedDestination) uploadToStage(ctx context.Context, filen
 		WriteIdentifier(s.stageName).WriteQuery("/").
 		WriteQuery(s.stagePrefix).
 		WriteQuery(" OVERWRITE=TRUE").String()
-	
+
 	// Execute PUT command with circuit breaker protection
 	return s.ExecuteWithCircuitBreaker(func() error {
 		_, err := s.connectionPool.ExecContext(ctx, putSQL)
@@ -1464,11 +1462,11 @@ func (s *SnowflakeOptimizedDestination) buildCopySQL(filename, format string) st
 		// Use pooled string building for format options
 		formatOptions = stringpool.Sprintf("TYPE = '%s' COMPRESSION = '%s'", format, s.compressionType)
 	}
-	
+
 	// Build COPY command for specific file using SQLBuilder
 	sqlBuilder := stringpool.NewSQLBuilder(512)
 	defer sqlBuilder.Close()
-	
+
 	copySQL := sqlBuilder.WriteQuery("COPY INTO ").
 		WriteIdentifier(s.database).WriteQuery(".").
 		WriteIdentifier(s.schema).WriteQuery(".").
@@ -1481,6 +1479,6 @@ func (s *SnowflakeOptimizedDestination) buildCopySQL(filename, format string) st
 		WriteQuery(filename).
 		WriteQuery(" FILE_FORMAT = (").WriteQuery(formatOptions).
 		WriteQuery(") ON_ERROR = 'CONTINUE' PURGE = true").String()
-	
+
 	return copySQL
 }

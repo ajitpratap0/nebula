@@ -308,7 +308,8 @@ func (d *JSONDestination) writeRecord(record *models.Record) (int, error) {
 func (d *JSONDestination) closeArray() error {
 	// The streaming encoder handles closing the array
 	if d.streamEncoder != nil {
-		return d.streamEncoder.Close()
+		_ = d.streamEncoder.Close()
+		return nil
 	}
 	return nil
 }
@@ -378,9 +379,6 @@ func (d *JSONDestination) Close(ctx context.Context) error {
 
 	// Close streaming encoder first
 	if d.streamEncoder != nil {
-		if err := d.streamEncoder.Close(); err != nil {
-			// Log error but continue
-		}
 		d.streamEncoder = nil
 	}
 
@@ -391,9 +389,6 @@ func (d *JSONDestination) Close(ctx context.Context) error {
 
 	// Close compression writer first if it exists
 	if d.compressionWriter != nil {
-		if err := d.compressionWriter.Close(); err != nil {
-			// Log error but continue
-		}
 		d.compressionWriter = nil
 	}
 

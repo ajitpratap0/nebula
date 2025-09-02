@@ -88,8 +88,8 @@ func basicSnowflakeExample(ctx context.Context) {
 			"user_id":    "user123",
 			"event_type": "login",
 			"timestamp":  "2024-01-10T10:00:00Z",
-			"ip_address": "192.168.1.1",      // New field
-			"user_agent": "Mozilla/5.0...",   // New field
+			"ip_address": "192.168.1.1",    // New field
+			"user_agent": "Mozilla/5.0...", // New field
 		}),
 		pool.NewRecord("schema-evolution", map[string]interface{}{
 			"user_id":    "user456",
@@ -97,14 +97,14 @@ func basicSnowflakeExample(ctx context.Context) {
 			"timestamp":  "2024-01-10T10:05:00Z",
 			"ip_address": "192.168.1.2",
 			"user_agent": "Chrome/120.0...",
-			"amount":     99.99,               // Another new field
+			"amount":     99.99, // Another new field
 		}),
 	}
 
 	// Create channels for stream
 	recordsChan := make(chan *pool.Record, len(evolvedData))
 	errorsChan := make(chan error, 1)
-	
+
 	// Write evolved data - schema will automatically evolve
 	stream := &core.RecordStream{
 		Records: recordsChan,
@@ -142,7 +142,7 @@ func advancedBigQueryExample(ctx context.Context) {
 
 	// Create advanced evolution configuration
 	evolutionConfig := &evolution.EvolutionConfig{
-		Strategy:              "flexible",  // Allow all changes
+		Strategy:              "flexible", // Allow all changes
 		CompatibilityMode:     schema.CompatibilityFull,
 		EnableAutoEvolution:   true,
 		SchemaCheckInterval:   0,
@@ -175,7 +175,7 @@ func advancedBigQueryExample(ctx context.Context) {
 		Fields: []core.Field{
 			{Name: "event_id", Type: core.FieldTypeString, Nullable: false},
 			{Name: "user_id", Type: core.FieldTypeInt, Nullable: false}, // Will change to string
-			{Name: "value", Type: core.FieldTypeInt, Nullable: true},  // Will change to float
+			{Name: "value", Type: core.FieldTypeInt, Nullable: true},    // Will change to float
 		},
 	}
 
@@ -187,10 +187,10 @@ func advancedBigQueryExample(ctx context.Context) {
 	evolvedBatch := []*pool.Record{
 		pool.NewRecord("analytics-evolution", map[string]interface{}{
 			"event_id": "evt123",
-			"user_id":  "user_abc",    // Changed from int to string
-			"value":    123.45,         // Changed from int to float
+			"user_id":  "user_abc", // Changed from int to string
+			"value":    123.45,     // Changed from int to float
 			"metadata": map[string]interface{}{ // New nested field
-				"source": "mobile_app",
+				"source":  "mobile_app",
 				"version": "2.0",
 			},
 		}),
@@ -199,7 +199,7 @@ func advancedBigQueryExample(ctx context.Context) {
 	// Create channels for batch stream
 	batchesChan := make(chan []*pool.Record, 1)
 	errorsChan2 := make(chan error, 1)
-	
+
 	// Use batch write for bulk operations
 	batchStream := &core.BatchStream{
 		Batches: batchesChan,
@@ -237,12 +237,12 @@ func customStrategyExample(ctx context.Context) {
 
 	// Create custom evolution config
 	customEvolutionConfig := &evolution.EvolutionConfig{
-		Strategy:              "strict",    // Only allow safe changes
+		Strategy:              "strict", // Only allow safe changes
 		CompatibilityMode:     schema.CompatibilityBackwardTransitive,
 		EnableAutoEvolution:   true,
 		SchemaCheckInterval:   0,
 		BatchSizeForInference: 50,
-		FailOnIncompatible:    true,       // Fail if incompatible
+		FailOnIncompatible:    true, // Fail if incompatible
 		PreserveOldFields:     true,
 	}
 

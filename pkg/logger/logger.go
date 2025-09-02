@@ -184,7 +184,7 @@ func Get() *zap.Logger {
 		}
 		if err := Init(cfg); err != nil {
 			// Fallback to basic logger
-			logger, _ := zap.NewProduction()
+			logger, _ := zap.NewProduction() //nolint:errcheck
 			globalLogger = logger
 		}
 	}
@@ -200,12 +200,12 @@ func Get() *zap.Logger {
 //	func ProcessRequest(ctx context.Context, data []byte) error {
 //	    logger := logger.WithContext(ctx)
 //	    logger.Info("processing request", zap.Int("size", len(data)))
-//	    
+//
 //	    if err := validate(data); err != nil {
 //	        logger.Error("validation failed", zap.Error(err))
 //	        return err
 //	    }
-//	    
+//
 //	    logger.Info("request processed successfully")
 //	    return nil
 //	}

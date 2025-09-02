@@ -1,13 +1,13 @@
 module github.com/ajitpratap0/nebula
 
-go 1.24.3
+go 1.24.0
 
 require (
 	cloud.google.com/go/bigquery v1.69.0
 	cloud.google.com/go/storage v1.53.0
 	github.com/IBM/sarama v1.45.2
 	github.com/apache/arrow-go/v18 v18.3.0
-	github.com/aws/aws-sdk-go-v2 v1.36.3
+	github.com/aws/aws-sdk-go-v2 v1.38.1
 	github.com/aws/aws-sdk-go-v2/config v1.29.15
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.17.78
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.80.1
@@ -86,7 +86,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.25.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.20 // indirect
-	github.com/aws/smithy-go v1.22.3 // indirect
+	github.com/aws/smithy-go v1.22.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cncf/xds/go v0.0.0-20250326154945-ae57f3c0d45f // indirect

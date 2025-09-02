@@ -17,19 +17,19 @@ func init() {
 		name := "col_" + strconv.Itoa(i)
 		internedFieldNames[name] = name
 	}
-	
+
 	// Pre-intern common field names (field_0 to field_99)
 	for i := 0; i < 100; i++ {
 		name := "field_" + strconv.Itoa(i)
 		internedFieldNames[name] = name
 	}
-	
+
 	// Pre-intern common record IDs (record_0 to record_999)
 	for i := 0; i < 1000; i++ {
 		name := "record_" + strconv.Itoa(i)
 		internedFieldNames[name] = name
 	}
-	
+
 	// Pre-intern other common field names
 	commonNames := []string{
 		"id", "name", "value", "timestamp", "type", "status",
@@ -50,12 +50,12 @@ func GetFieldName(prefix string, index int) string {
 		name := prefix + strconv.Itoa(index)
 		return internedFieldNames[name]
 	}
-	
+
 	if index < 1000 && prefix == "record_" {
 		name := prefix + strconv.Itoa(index)
 		return internedFieldNames[name]
 	}
-	
+
 	// Slow path: intern on demand
 	name := prefix + strconv.Itoa(index)
 	return InternString(name)
@@ -84,7 +84,7 @@ func GetColumnName(index int) string {
 func PreInternFieldNames(names []string) {
 	fieldNamesMutex.Lock()
 	defer fieldNamesMutex.Unlock()
-	
+
 	for _, name := range names {
 		if _, exists := internedFieldNames[name]; !exists {
 			internedFieldNames[name] = name
