@@ -158,10 +158,6 @@ func (n *NessieCatalog) GetSchema(ctx context.Context, database, table string) (
 	}, nil
 }
 
-func (n *NessieCatalog) WriteBulkBatches(ctx context.Context, database, table string, batches [][]*pool.Record) error {
-	return fmt.Errorf("Nessie catalog WriteBulkBatches not implemented yet")
-}
-
 // Utility methods for schema and batch conversion
 func (n *NessieCatalog) convertSchema(icebergSchema *icebergGo.Schema) (*arrow.Schema, error) {
 	tempDest := &IcebergDestination{

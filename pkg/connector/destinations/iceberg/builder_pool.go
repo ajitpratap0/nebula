@@ -78,7 +78,10 @@ func (p *ArrowBuilderPool) Get(schema *arrow.Schema) *PooledBuilder {
 			// Schema mismatch - release and create new
 			pooled.release()
 		} else {
-			// Unexpected type in pool - log warning but continue
+			// Unexpected type in pool - cleanup and log warning
+			if releaser, ok := item.(interface{ Release() }); ok {
+				releaser.Release()
+			}
 			p.logger.Warn("Unexpected item type in builder pool", 
 				zap.String("type", fmt.Sprintf("%T", item)))
 		}
