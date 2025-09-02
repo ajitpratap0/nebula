@@ -33,9 +33,6 @@ linters:
     # Security
     - gosec        # Security checks
     
-  disable:
-    - govet        # Disable govet temporarily due to typecheck issues
-    
   disable-all: true
 
 linters-settings:
