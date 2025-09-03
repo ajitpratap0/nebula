@@ -19,6 +19,9 @@ func init() {
 }
 
 func (d *IcebergDestination) Initialize(ctx context.Context, config *config.BaseConfig) error {
+	d.logger.Debug("Initialize called",
+		zap.Bool("builder_pool_nil", d.builderPool == nil))
+
 	if err := d.extractConfig(config); err != nil {
 		return err
 	}
@@ -74,11 +77,11 @@ func (d *IcebergDestination) WriteBatch(ctx context.Context, stream *core.BatchS
 		select {
 		case batch, ok := <-stream.Batches:
 			if !ok {
-				d.logger.Debug("WriteBatch completed", zap.Int("batches", batchCount))
+				d.logger.Debug("WriteBatch completed", zap.Int("total_batches", batchCount))
 				return nil
 			}
 			batchCount++
-			d.logger.Debug("Processing batch", zap.Int("records", len(batch)))
+			d.logger.Debug("Writing batch immediately", zap.Int("batch_num", batchCount), zap.Int("records", len(batch)))
 			if err := d.catalogProvider.WriteData(ctx, d.database, d.tableName, batch); err != nil {
 				return fmt.Errorf("failed to write batch %d: %w", batchCount, err)
 			}
@@ -93,6 +96,12 @@ func (d *IcebergDestination) WriteBatch(ctx context.Context, stream *core.BatchS
 }
 
 func (d *IcebergDestination) Close(ctx context.Context) error {
+	// Clear the builder pool to free resources
+	if d.builderPool != nil {
+		d.builderPool.Clear()
+		d.logger.Debug("Arrow builder pool cleared on close")
+	}
+
 	if d.catalogProvider != nil {
 		return d.catalogProvider.Close(ctx)
 	}
@@ -134,9 +143,11 @@ func (d *IcebergDestination) Upsert(ctx context.Context, records []*pool.Record,
 }
 
 func (d *IcebergDestination) Metrics() map[string]interface{} {
-	return map[string]interface{}{
+	metrics := map[string]interface{}{
 		"connector_type": "iceberg",
 		"table":          fmt.Sprintf("%s.%s", d.database, d.tableName),
 		"initialized":    d.catalogProvider != nil,
 	}
+
+	return metrics
 }

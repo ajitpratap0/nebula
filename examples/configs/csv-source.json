@@ -21,7 +21,7 @@
   },
   "security": {
     "credentials": {
-      "path": "/nyc-taxi.csv"
+      "path": "test_nyc-taxi.csv"
     }
   }
 }
