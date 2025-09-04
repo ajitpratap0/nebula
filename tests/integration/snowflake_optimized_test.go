@@ -350,7 +350,7 @@ func BenchmarkSnowflakeOptimizedThroughput(b *testing.B) {
 	dest := conn.(*snowflake.SnowflakeOptimizedDestination)
 	err = dest.Initialize(ctx, config)
 	require.NoError(b, err)
-	defer _ = dest.Close(ctx)
+	defer func() { _ = dest.Close(ctx) }()
 
 	// Prepare test data
 	recordCount := 1000000 // 1M records

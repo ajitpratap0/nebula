@@ -280,7 +280,7 @@ func runBenchmarkPipeline(
 
 	err = source.Initialize(ctx, sourceConfig)
 	require.NoError(b, err)
-	defer _ = source.Close(ctx)
+	defer func() { _ = source.Close(ctx) }()
 
 	// Create destination
 	destConfig := config.NewBaseConfig("csv-destination", "destination")
