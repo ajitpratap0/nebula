@@ -41,7 +41,7 @@ func (s *IntegrationTestSuite) TearDownSuite() {
 
 	// Clean up temp directory
 	if s.tempDir != "" {
-		os.RemoveAll(s.tempDir)
+		_ = os.RemoveAll(s.tempDir) // Ignore cleanup errors
 	}
 
 	duration := time.Since(s.startTime)
@@ -104,7 +104,7 @@ func NewTestEnvironment(t *testing.T) *TestEnvironment {
 
 	// Add cleanup for temp directory
 	env.AddCleanup(func() {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir) // Ignore cleanup errors
 	})
 
 	return env

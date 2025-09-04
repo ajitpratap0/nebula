@@ -477,7 +477,7 @@ func FullPipelineExample() {
 			items[j] = r
 		}
 
-		cpuOptimizer.ExecuteParallel(ctx, items, func(item interface{}) error {
+		_ = cpuOptimizer.ExecuteParallel(ctx, items, func(item interface{}) error {
 			record := item.(*models.Record)
 
 			// Compress large fields

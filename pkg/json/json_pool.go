@@ -279,7 +279,7 @@ func (se *StreamingEncoder) Close() error {
 		if se.pretty {
 			_, _ = se.writer.Write([]byte{'\n'}) // Ignore write error
 		}
-		se.writer.Write([]byte{']'})
+		_, _ = se.writer.Write([]byte{']'}) // Ignore write error
 	}
 
 	PutEncoder(se.encoder)

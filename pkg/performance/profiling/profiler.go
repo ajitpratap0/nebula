@@ -203,7 +203,9 @@ func (p *Profiler) Stop() error {
 	// Stop CPU profiling
 	if p.cpuFile != nil {
 		pprof.StopCPUProfile()
-		p.cpuFile.Close()
+		if err := p.cpuFile.Close(); err != nil {
+			p.logger.Warn("Failed to close CPU profile file", zap.Error(err))
+		}
 		p.logger.Info("CPU profile saved",
 			zap.String("file", p.cpuFile.Name()))
 	}
@@ -211,7 +213,9 @@ func (p *Profiler) Stop() error {
 	// Stop trace
 	if p.traceFile != nil {
 		trace.Stop()
-		p.traceFile.Close()
+		if err := p.traceFile.Close(); err != nil {
+			p.logger.Warn("Failed to close trace file", zap.Error(err))
+		}
 		p.logger.Info("trace saved",
 			zap.String("file", p.traceFile.Name()))
 	}
@@ -382,10 +386,18 @@ func (p *Profiler) saveGoroutineProfile() error {
 }
 
 func (p *Profiler) saveAllProfiles() {
-	p.saveMemoryProfile()
-	p.saveBlockProfile()
-	p.saveMutexProfile()
-	p.saveGoroutineProfile()
+	if err := p.saveMemoryProfile(); err != nil {
+		p.logger.Error("Failed to save memory profile", zap.Error(err))
+	}
+	if err := p.saveBlockProfile(); err != nil {
+		p.logger.Error("Failed to save block profile", zap.Error(err))
+	}
+	if err := p.saveMutexProfile(); err != nil {
+		p.logger.Error("Failed to save mutex profile", zap.Error(err))
+	}
+	if err := p.saveGoroutineProfile(); err != nil {
+		p.logger.Error("Failed to save goroutine profile", zap.Error(err))
+	}
 }
 
 func (p *Profiler) collectRuntimeMetrics(ctx context.Context) {
@@ -447,28 +459,28 @@ func (p *Profiler) generateReport() error {
 	}
 	defer file.Close() // Ignore close error
 
-	fmt.Fprintf(file, "Nebula Performance Profile Report\n")
-	fmt.Fprintf(file, "=================================\n\n")
-	fmt.Fprintf(file, "Duration: %v\n", time.Since(p.startTime))
-	fmt.Fprintf(file, "CPU Count: %d\n", metrics.NumCPU)
-	fmt.Fprintf(file, "GOMAXPROCS: %d\n\n", metrics.GOMAXPROCS)
+	_, _ = fmt.Fprintf(file, "Nebula Performance Profile Report\n")
+	_, _ = fmt.Fprintf(file, "=================================\n\n")
+	_, _ = fmt.Fprintf(file, "Duration: %v\n", time.Since(p.startTime))
+	_, _ = fmt.Fprintf(file, "CPU Count: %d\n", metrics.NumCPU)
+	_, _ = fmt.Fprintf(file, "GOMAXPROCS: %d\n\n", metrics.GOMAXPROCS)
 
-	fmt.Fprintf(file, "Memory Statistics:\n")
-	fmt.Fprintf(file, "-----------------\n")
-	fmt.Fprintf(file, "Current Allocated: %.2f MB\n", float64(metrics.AllocBytes)/(1024*1024))
-	fmt.Fprintf(file, "Total Allocated: %.2f MB\n", float64(metrics.TotalAllocBytes)/(1024*1024))
-	fmt.Fprintf(file, "System Memory: %.2f MB\n", float64(metrics.SysBytes)/(1024*1024))
-	fmt.Fprintf(file, "GC Runs: %d\n", metrics.NumGC)
-	fmt.Fprintf(file, "GC Pause Total: %v\n", metrics.GCPauseTotal)
-	fmt.Fprintf(file, "GC Pause Last: %v\n\n", metrics.GCPauseLast)
+	_, _ = fmt.Fprintf(file, "Memory Statistics:\n")
+	_, _ = fmt.Fprintf(file, "-----------------\n")
+	_, _ = fmt.Fprintf(file, "Current Allocated: %.2f MB\n", float64(metrics.AllocBytes)/(1024*1024))
+	_, _ = fmt.Fprintf(file, "Total Allocated: %.2f MB\n", float64(metrics.TotalAllocBytes)/(1024*1024))
+	_, _ = fmt.Fprintf(file, "System Memory: %.2f MB\n", float64(metrics.SysBytes)/(1024*1024))
+	_, _ = fmt.Fprintf(file, "GC Runs: %d\n", metrics.NumGC)
+	_, _ = fmt.Fprintf(file, "GC Pause Total: %v\n", metrics.GCPauseTotal)
+	_, _ = fmt.Fprintf(file, "GC Pause Last: %v\n\n", metrics.GCPauseLast)
 
-	fmt.Fprintf(file, "Goroutine Statistics:\n")
-	fmt.Fprintf(file, "--------------------\n")
-	fmt.Fprintf(file, "Current Goroutines: %d\n\n", metrics.NumGoroutines)
+	_, _ = fmt.Fprintf(file, "Goroutine Statistics:\n")
+	_, _ = fmt.Fprintf(file, "--------------------\n")
+	_, _ = fmt.Fprintf(file, "Current Goroutines: %d\n\n", metrics.NumGoroutines)
 
 	// Analysis
-	fmt.Fprintf(file, "Performance Analysis:\n")
-	fmt.Fprintf(file, "--------------------\n")
+	_, _ = fmt.Fprintf(file, "Performance Analysis:\n")
+	_, _ = fmt.Fprintf(file, "--------------------\n")
 
 	if len(metrics.Samples) > 0 {
 		// Memory growth analysis
@@ -476,12 +488,12 @@ func (p *Profiler) generateReport() error {
 		lastSample := metrics.Samples[len(metrics.Samples)-1]
 		memGrowth := float64(lastSample.AllocBytes-firstSample.AllocBytes) / (1024 * 1024)
 
-		fmt.Fprintf(file, "Memory Growth: %.2f MB\n", memGrowth)
-		fmt.Fprintf(file, "Goroutine Growth: %d\n", lastSample.NumGoroutines-firstSample.NumGoroutines)
+		_, _ = fmt.Fprintf(file, "Memory Growth: %.2f MB\n", memGrowth)
+		_, _ = fmt.Fprintf(file, "Goroutine Growth: %d\n", lastSample.NumGoroutines-firstSample.NumGoroutines)
 
 		// GC pressure
 		gcPressure := float64(lastSample.GCPauseNs-firstSample.GCPauseNs) / 1e6 // Convert to ms
-		fmt.Fprintf(file, "GC Pause Growth: %.2f ms\n", gcPressure)
+		_, _ = fmt.Fprintf(file, "GC Pause Growth: %.2f ms\n", gcPressure)
 	}
 
 	p.logger.Info("performance report generated", zap.String("file", filename))

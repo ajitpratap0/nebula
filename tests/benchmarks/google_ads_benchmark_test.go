@@ -170,7 +170,7 @@ func (m *MockGoogleAdsServer) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	startIdx := 0
 	if request.PageToken != "" {
-		fmt.Sscanf(request.PageToken, "page_%d", &startIdx)
+		_, _ = fmt.Sscanf(request.PageToken, "page_%d", &startIdx)
 	}
 
 	endIdx := startIdx + pageSize

@@ -483,7 +483,7 @@ func FileBasedColumnarExample() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer readFile.Close() // Ignore close error //nolint:errcheck // File close errors in defer are usually not actionable
+	defer func() { _ = readFile.Close() }() // Ignore close error
 
 	reader, err := columnar.NewReader(readFile, &columnar.ReaderConfig{
 		Format:     columnar.Parquet,
