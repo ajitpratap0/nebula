@@ -44,7 +44,7 @@ func BenchmarkSimpleHybridComparison(b *testing.B) {
 					record.SetData("amount", float64(j)*1.5)
 					record.SetData("active", j%2 == 0)
 
-					adapter.AddRecord(record)
+					_ = adapter.AddRecord(record)
 					record.Release()
 				}
 
@@ -96,11 +96,11 @@ func BenchmarkColumnarOptimization(b *testing.B) {
 					record.SetData("value", j/100) // Integer that repeats
 					record.SetData("active", j%2 == 0)
 
-					adapter.AddRecord(record)
+					_ = adapter.AddRecord(record)
 					record.Release()
 				}
 
-				adapter.OptimizeStorage()
+				_ = adapter.OptimizeStorage()
 
 				runtime.GC()
 				runtime.ReadMemStats(&m2)
@@ -147,7 +147,7 @@ func BenchmarkHybridDecisionMaking(b *testing.B) {
 					record.SetData("id", j)
 					record.SetData("data", "record_"+string(rune(j)))
 
-					adapter.AddRecord(record)
+					_ = adapter.AddRecord(record)
 					record.Release()
 				}
 

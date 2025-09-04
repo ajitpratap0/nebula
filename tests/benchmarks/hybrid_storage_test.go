@@ -91,7 +91,7 @@ func BenchmarkHybridStorageComparison(b *testing.B) {
 				b.ReportMetric(recordsPerSec, "records/sec")
 				b.ReportMetric(float64(memUsed), "total_bytes")
 
-				source.Close(ctx)
+				_ = source.Close(ctx)
 			}
 		})
 	}
@@ -163,7 +163,7 @@ func BenchmarkColumnarMemoryEfficiency(b *testing.B) {
 				b.ReportMetric(bytesPerRecord, "bytes/record")
 				b.ReportMetric(recordsPerSec, "records/sec")
 
-				source.Close(ctx)
+				_ = source.Close(ctx)
 			}
 		})
 	}
@@ -231,7 +231,7 @@ func BenchmarkStorageModeAutoSelection(b *testing.B) {
 				b.ReportMetric(memPerRecord, "bytes/record")
 				b.ReportMetric(float64(count), "total_records")
 
-				source.Close(ctx)
+				_ = source.Close(ctx)
 			}
 		})
 	}
@@ -243,11 +243,11 @@ func createBenchmarkTestData(b *testing.B, filename string, records int) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close() // Ignore close error
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	// Write headers
 	headers := "order_id,customer_id,product_sku,quantity,price,status,category,region,timestamp\n"
-	file.WriteString(headers)
+	_, _ = file.WriteString(headers)
 
 	// Generate realistic data patterns
 	statuses := []string{"pending", "processing", "shipped", "delivered", "canceled"}
@@ -266,7 +266,7 @@ func createBenchmarkTestData(b *testing.B, filename string, records int) {
 			regions[i%len(regions)],         // region (categorical)
 			time.Now().Format(time.RFC3339), // timestamp
 		)
-		file.WriteString(line)
+		_, _ = file.WriteString(line)
 	}
 }
 
@@ -284,7 +284,7 @@ func BenchmarkDirectStorageAdapter(b *testing.B) {
 			cfg.Performance.BatchSize = 10000
 
 			adapter := pipeline.NewStorageAdapter(mode, cfg)
-			defer adapter.Close() // Ignore close error
+			defer func() { _ = adapter.Close() }() // Ignore close error
 
 			b.ResetTimer()
 			b.ReportAllocs()
@@ -302,7 +302,7 @@ func BenchmarkDirectStorageAdapter(b *testing.B) {
 					record.SetData("category", fmt.Sprintf("cat_%d", j%10))
 					record.SetData("amount", float64(j)*1.5)
 
-					adapter.AddRecord(record)
+					_ = adapter.AddRecord(record)
 					record.Release()
 				}
 

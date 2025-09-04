@@ -150,7 +150,7 @@ func BenchmarkSnowflakeOptimizedWrite(b *testing.B) {
 
 						for data := range uploadChan {
 							filename := fmt.Sprintf("batch_%d_%d.csv.gz", time.Now().UnixNano(), workerID)
-							stage.Upload(filename, data)
+							_ = stage.Upload(filename, data)
 							atomic.AddInt64(&bytesUploaded, int64(len(data)))
 						}
 					}(w)

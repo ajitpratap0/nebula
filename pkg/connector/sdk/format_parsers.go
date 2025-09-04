@@ -122,7 +122,7 @@ func (cp *CSVParser) ParseFile(ctx context.Context, filePath string) (*ParseResu
 	if err != nil {
 		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to open CSV file")
 	}
-	defer file.Close() // Ignore close error //nolint:errcheck // File close errors in defer are usually not actionable
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	return cp.ParseReader(ctx, file)
 }
@@ -357,7 +357,7 @@ func (jp *JSONParser) ParseFile(ctx context.Context, filePath string) (*ParseRes
 	if err != nil {
 		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to open JSON file")
 	}
-	defer file.Close() // Ignore close error //nolint:errcheck // File close errors in defer are usually not actionable
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	// Auto-detect format if needed
 	if jp.config.Format == JSONFormatAuto {
@@ -614,7 +614,7 @@ func (jp *JSONParser) detectFormat(filePath string) (JSONFormat, error) {
 	if err != nil {
 		return "", nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to open file for format detection")
 	}
-	defer file.Close() // Ignore close error //nolint:errcheck // File close errors in defer are usually not actionable
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	// Read first few bytes to determine format
 	header := pool.GetByteSlice()
@@ -694,7 +694,7 @@ func (cw *CSVWriter) WriteToFile(ctx context.Context, filePath string, records [
 	if err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to create CSV file")
 	}
-	defer file.Close() // Ignore close error //nolint:errcheck // File close errors in defer are usually not actionable
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	return cw.WriteToWriter(ctx, file, records, schema)
 }
@@ -821,7 +821,7 @@ func (jw *JSONWriter) WriteToFile(ctx context.Context, filePath string, records 
 	if err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to create JSON file")
 	}
-	defer file.Close() // Ignore close error //nolint:errcheck // File close errors in defer are usually not actionable
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	return jw.WriteToWriter(ctx, file, records)
 }

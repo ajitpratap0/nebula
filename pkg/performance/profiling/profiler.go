@@ -326,7 +326,7 @@ func (p *Profiler) saveMemoryProfile() error {
 	if err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create memory profile file")
 	}
-	defer file.Close() // Ignore close error
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	runtime.GC() // Force GC before heap profile
 	if err := pprof.WriteHeapProfile(file); err != nil {
@@ -343,7 +343,7 @@ func (p *Profiler) saveBlockProfile() error {
 	if err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create block profile file")
 	}
-	defer file.Close() // Ignore close error
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	if err := pprof.Lookup("block").WriteTo(file, 0); err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to write block profile")
@@ -359,7 +359,7 @@ func (p *Profiler) saveMutexProfile() error {
 	if err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create mutex profile file")
 	}
-	defer file.Close() // Ignore close error
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	if err := pprof.Lookup("mutex").WriteTo(file, 0); err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to write mutex profile")
@@ -375,7 +375,7 @@ func (p *Profiler) saveGoroutineProfile() error {
 	if err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create goroutine profile file")
 	}
-	defer file.Close() // Ignore close error
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	if err := pprof.Lookup("goroutine").WriteTo(file, 2); err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to write goroutine profile")
@@ -457,7 +457,7 @@ func (p *Profiler) generateReport() error {
 	if err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create report file")
 	}
-	defer file.Close() // Ignore close error
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	_, _ = fmt.Fprintf(file, "Nebula Performance Profile Report\n")
 	_, _ = fmt.Fprintf(file, "=================================\n\n")

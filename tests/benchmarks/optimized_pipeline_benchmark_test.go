@@ -50,7 +50,7 @@ func processRecordsOptimized(b *testing.B, filename string) int {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close() // Ignore close error
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	reader := csv.NewReader(file)
 	// Skip header
@@ -154,7 +154,7 @@ func processRecordsOptimized(b *testing.B, filename string) int {
 	for err := range resultChan {
 		// Extract count from error message (hacky but works)
 		var count int
-		fmt.Sscanf(err.Error(), "%d", &count)
+		_, _ = fmt.Sscanf(err.Error(), "%d", &count)
 		totalProcessed += count
 	}
 
@@ -224,7 +224,7 @@ func createTestData(b *testing.B, filename string, records int) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close() // Ignore close error
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	writer := csv.NewWriter(file)
 	defer writer.Flush() // Ignore flush error

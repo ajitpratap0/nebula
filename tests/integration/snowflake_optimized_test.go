@@ -88,7 +88,7 @@ func (suite *SnowflakeOptimizedTestSuite) SetupSuite() {
 
 func (suite *SnowflakeOptimizedTestSuite) TearDownSuite() {
 	if suite.connector != nil {
-		suite.connector.Close(suite.ctx)
+		_ = suite.connector.Close(suite.ctx)
 	}
 	if suite.cancel != nil {
 		suite.cancel()
@@ -350,7 +350,7 @@ func BenchmarkSnowflakeOptimizedThroughput(b *testing.B) {
 	dest := conn.(*snowflake.SnowflakeOptimizedDestination)
 	err = dest.Initialize(ctx, config)
 	require.NoError(b, err)
-	defer dest.Close(ctx)
+	defer _ = dest.Close(ctx)
 
 	// Prepare test data
 	recordCount := 1000000 // 1M records

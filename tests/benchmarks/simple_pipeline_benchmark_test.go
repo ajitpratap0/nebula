@@ -94,8 +94,8 @@ func BenchmarkSimplePipeline(b *testing.B) {
 
 		// Clean up
 		p.Stop()
-		source.Close(ctx)
-		dest.Close(ctx)
+		_ = source.Close(ctx)
+		_ = dest.Close(ctx)
 	}
 }
 
@@ -105,15 +105,15 @@ func createBenchmarkCSV(filename string, records int) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close() // Ignore close error
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	// Write header
-	fmt.Fprintln(file, "id,name,email,age,department,salary,created_at")
+	_, _ = fmt.Fprintln(file, "id,name,email,age,department,salary,created_at")
 
 	// Write records
 	departments := []string{"Engineering", "Sales", "Marketing", "HR", "Finance"}
 	for i := 0; i < records; i++ {
-		fmt.Fprintf(file, "%d,User_%d,user%d@example.com,%d,%s,%.2f,%s\n",
+		_, _ = fmt.Fprintf(file, "%d,User_%d,user%d@example.com,%d,%s,%.2f,%s\n",
 			i,
 			i,
 			i,

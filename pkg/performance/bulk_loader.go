@@ -371,7 +371,7 @@ func (bl *BulkLoader) createAvroFile(records []*models.Record) *LoadFile {
 
 	// In practice, would use Avro writer
 	for _, record := range records {
-		fmt.Fprintf(builder, "%v\n", record.Data)
+		_, _ = fmt.Fprintf(builder, "%v\n", record.Data)
 	}
 
 	data := stringpool.StringToBytes(builder.String())
@@ -414,7 +414,7 @@ func (bl *BulkLoader) createCSVFile(records []*models.Record) *LoadFile {
 				if i > 0 {
 					builder.WriteString(",")
 				}
-				fmt.Fprintf(builder, "%v", record.Data[h])
+				_, _ = fmt.Fprintf(builder, "%v", record.Data[h])
 			}
 			builder.WriteString("\n")
 		}
@@ -442,7 +442,7 @@ func (bl *BulkLoader) createJSONFile(records []*models.Record) *LoadFile {
 
 	// Write JSON lines
 	for _, record := range records {
-		fmt.Fprintf(builder, "%v\n", record.Data)
+		_, _ = fmt.Fprintf(builder, "%v\n", record.Data)
 	}
 
 	data := stringpool.StringToBytes(builder.String())

@@ -280,7 +280,7 @@ func runBenchmarkPipeline(
 
 	err = source.Initialize(ctx, sourceConfig)
 	require.NoError(b, err)
-	defer source.Close(ctx)
+	defer _ = source.Close(ctx)
 
 	// Create destination
 	destConfig := config.NewBaseConfig("csv-destination", "destination")
@@ -295,7 +295,7 @@ func runBenchmarkPipeline(
 
 	err = dest.Initialize(ctx, destConfig)
 	require.NoError(b, err)
-	defer dest.Close(ctx)
+	defer func() { _ = dest.Close(ctx) }()
 
 	// Create pipeline
 	pipelineConfig := &pipeline.PipelineConfig{
@@ -360,7 +360,7 @@ func createTestCSV(tb testing.TB, recordCount, columnCount int) string {
 	if err != nil {
 		tb.Fatal(err)
 	}
-	defer file.Close() // Ignore close error
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	writer := csv.NewWriter(file)
 	defer writer.Flush() // Ignore flush error

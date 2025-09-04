@@ -82,7 +82,7 @@ func testPostgreSQLCDC(ctx context.Context) {
 	fmt.Printf("   Supports Realtime: %v\n", source.SupportsRealtime())
 
 	// Clean up
-	source.Close(ctx)
+	_ = source.Close(ctx)
 }
 
 func testMySQLCDC(ctx context.Context) {
@@ -134,7 +134,7 @@ func testMySQLCDC(ctx context.Context) {
 	fmt.Printf("   Supports Realtime: %v\n", source.SupportsRealtime())
 
 	// Clean up
-	source.Close(ctx)
+	_ = source.Close(ctx)
 }
 
 func testMongoDBCDC(ctx context.Context) {
@@ -186,7 +186,7 @@ func testMongoDBCDC(ctx context.Context) {
 	fmt.Printf("   Supports Realtime: %v\n", source.SupportsRealtime())
 
 	// Clean up
-	source.Close(ctx)
+	_ = source.Close(ctx)
 }
 
 // Example: Reading CDC events
