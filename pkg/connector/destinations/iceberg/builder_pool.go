@@ -15,6 +15,7 @@ import (
 // Optimized for single-schema usage (one table per destination)
 type ArrowBuilderPool struct {
 	pool      sync.Pool
+	schemaMu  sync.RWMutex  // Protects schema field from race conditions
 	schema    *arrow.Schema // Single schema per pool (one table per destination)
 	allocator memory.Allocator
 	logger    *zap.Logger
@@ -58,15 +59,18 @@ func (p *ArrowBuilderPool) Get(schema *arrow.Schema) *PooledBuilder {
 		return nil
 	}
 
-	// Set schema on first use (single schema per pool)
+	// Set schema on first use (single schema per pool) with proper locking
+	p.schemaMu.Lock()
 	if p.schema == nil {
 		p.schema = schema
 	}
+	currentSchema := p.schema
+	p.schemaMu.Unlock()
 
 	// Verify schema consistency (single schema per pool design)
-	if !p.schema.Equal(schema) {
+	if !currentSchema.Equal(schema) {
 		p.logger.Warn("Schema mismatch in builder pool - creating new builder",
-			zap.String("pool_schema", p.schema.String()),
+			zap.String("pool_schema", currentSchema.String()),
 			zap.String("requested_schema", schema.String()))
 	}
 
