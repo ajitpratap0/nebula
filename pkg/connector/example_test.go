@@ -40,7 +40,8 @@ func Example() {
 	// Read records stream
 	stream, err := source.Read(ctx)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error reading from source: %v", err)
+		return
 	}
 
 	// Read from stream with a limit to ensure deterministic output
@@ -106,7 +107,8 @@ func Example_pipeline() {
 	// Simple pipeline: read from source using batch API
 	batchStream, err := source.ReadBatch(ctx, 100)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error reading batch from source: %v", err)
+		return
 	}
 
 	// Process batches

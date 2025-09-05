@@ -252,8 +252,9 @@ func BenchmarkGoogleAdsStreamingRead(b *testing.B) {
 			)
 
 			httpServer := &http.Server{
-				Addr:    ":0",
-				Handler: mockServer,
+				Addr:              ":0",
+				Handler:           mockServer,
+				ReadHeaderTimeout: 10 * time.Second,
 			}
 
 			// Start server

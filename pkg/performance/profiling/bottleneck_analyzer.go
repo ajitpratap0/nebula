@@ -15,11 +15,16 @@ import (
 type BottleneckType string
 
 const (
-	CPUBottleneck         BottleneckType = "cpu"
-	MemoryBottleneck      BottleneckType = "memory"
-	IOBottleneck          BottleneckType = "io"
+	// CPUBottleneck indicates CPU-related performance bottlenecks
+	CPUBottleneck BottleneckType = "cpu"
+	// MemoryBottleneck indicates memory-related performance bottlenecks
+	MemoryBottleneck BottleneckType = "memory"
+	// IOBottleneck indicates I/O-related performance bottlenecks
+	IOBottleneck BottleneckType = "io"
+	// ConcurrencyBottleneck indicates concurrency-related performance bottlenecks
 	ConcurrencyBottleneck BottleneckType = "concurrency"
-	GCBottleneck          BottleneckType = "gc"
+	// GCBottleneck indicates garbage collection-related performance bottlenecks
+	GCBottleneck BottleneckType = "gc"
 )
 
 // Bottleneck represents a detected performance bottleneck

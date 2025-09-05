@@ -1,3 +1,4 @@
+// Package iceberg provides Apache Iceberg table format support for Nebula destinations
 package iceberg
 
 import (

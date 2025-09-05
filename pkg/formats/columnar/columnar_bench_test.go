@@ -38,9 +38,9 @@ func generateTestRecords(count int) []*pool.Record {
 		record.SetData("id", i)
 		record.SetData("name", fmt.Sprintf("User %d", i))
 		record.SetData("email", fmt.Sprintf("user%d@example.com", i))
-		record.SetData("age", rand.Intn(80)+20)
-		record.SetData("score", rand.Float64()*100)
-		record.SetData("active", rand.Intn(2) == 1)
+		record.SetData("age", rand.Intn(80)+20)     // #nosec G404 - test data generation
+		record.SetData("score", rand.Float64()*100) // #nosec G404 - test data generation
+		record.SetData("active", rand.Intn(2) == 1) // #nosec G404 - test data generation
 		record.SetData("created_at", time.Now().Add(-time.Duration(rand.Intn(365*24))*time.Hour))
 		record.SetData("metadata", `{"key1": "value1", "key2": "value2"}`)
 		records[i] = record

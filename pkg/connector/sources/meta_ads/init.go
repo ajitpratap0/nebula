@@ -1,3 +1,4 @@
+// Package metaads provides Meta Ads (Facebook Ads) source connector functionality.
 package metaads
 
 import (

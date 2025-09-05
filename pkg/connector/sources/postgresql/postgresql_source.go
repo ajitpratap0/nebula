@@ -2,6 +2,7 @@ package postgresql
 
 import (
 	"context"
+	"math"
 	"strings"
 	"sync"
 	"time"
@@ -176,13 +177,21 @@ func (s *PostgreSQLSource) setupConnectionPool(ctx context.Context) error {
 
 	// Configure connection pool settings using BaseConfig
 	// Use MaxConcurrency for max connections (database connections are a form of concurrency)
-	s.poolConfig.MaxConns = int32(s.GetConfig().Performance.MaxConcurrency)
+	maxConcurrency := s.GetConfig().Performance.MaxConcurrency
+	if maxConcurrency > math.MaxInt32 {
+		maxConcurrency = math.MaxInt32
+	}
+	s.poolConfig.MaxConns = int32(maxConcurrency)
 	if s.poolConfig.MaxConns <= 0 {
 		s.poolConfig.MaxConns = 10 // Default
 	}
 
 	// Use Workers/4 for min connections (typically want fewer idle connections than workers)
-	s.poolConfig.MinConns = int32(s.GetConfig().Performance.Workers / 4)
+	workers := s.GetConfig().Performance.Workers / 4
+	if workers > math.MaxInt32 {
+		workers = math.MaxInt32
+	}
+	s.poolConfig.MinConns = int32(workers)
 	if s.poolConfig.MinConns <= 0 {
 		s.poolConfig.MinConns = 2 // Default minimum
 	}

@@ -28,7 +28,7 @@ func (bs *BatchingStrategy) Name() string {
 }
 
 // Apply applies batching optimization
-func (bs *BatchingStrategy) Apply(ctx context.Context, data interface{}) (interface{}, error) {
+func (bs *BatchingStrategy) Apply(_ context.Context, data interface{}) (interface{}, error) {
 	records, ok := data.([]*models.Record)
 	if !ok {
 		return data, nil
@@ -247,7 +247,7 @@ func (cs *CachingStrategy) Apply(ctx context.Context, data interface{}) (interfa
 }
 
 // ShouldApply determines if strategy should apply
-func (cs *CachingStrategy) ShouldApply(metrics *Metrics) bool {
+func (cs *CachingStrategy) ShouldApply(_ *Metrics) bool {
 	// Apply if there are repeated reads
 	return cs.cache.GetHitRate() > 0.2
 }
@@ -287,7 +287,7 @@ func (zcs *ZeroCopyStrategy) Apply(ctx context.Context, data interface{}) (inter
 }
 
 // ShouldApply determines if strategy should apply
-func (zcs *ZeroCopyStrategy) ShouldApply(metrics *Metrics) bool {
+func (zcs *ZeroCopyStrategy) ShouldApply(_ *Metrics) bool {
 	// Always apply if enabled
 	return true
 }
@@ -406,7 +406,7 @@ func (sos *SchemaOptimizationStrategy) Apply(ctx context.Context, data interface
 }
 
 // ShouldApply determines if strategy should apply
-func (sos *SchemaOptimizationStrategy) ShouldApply(metrics *Metrics) bool {
+func (sos *SchemaOptimizationStrategy) ShouldApply(_ *Metrics) bool {
 	return true
 }
 
@@ -453,7 +453,7 @@ func (sos *SchemaOptimizationStrategy) inferSchema(records []*models.Record) *co
 }
 
 // normalizeRecord normalizes record according to schema
-func (sos *SchemaOptimizationStrategy) normalizeRecord(record *models.Record, schema *core.Schema) {
+func (sos *SchemaOptimizationStrategy) normalizeRecord(record *models.Record, _ *core.Schema) {
 	// In practice, this would perform type conversions and validations
 	if record.Metadata.Custom == nil {
 		record.Metadata.Custom = pool.GetMap()

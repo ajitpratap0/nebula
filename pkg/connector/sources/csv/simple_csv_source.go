@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
-	"github.com/ajitpratap0/nebula/pkg/pool"
 	"os"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/connector/registry"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 )
 
 func init() {
@@ -92,7 +92,7 @@ type SimpleCSVSource struct {
 }
 
 // NewSimpleCSVSource creates a new simple CSV source
-// DEPRECATED: Use NewCSVSource instead. This will be removed in v3.0.0
+// Deprecated: Use NewCSVSource instead. This will be removed in v3.0.0
 func NewSimpleCSVSource(config *config.BaseConfig) (core.Source, error) {
 	// Log deprecation warning
 	fmt.Printf("WARNING: 'csv-legacy' connector is deprecated. Please use 'csv' connector instead. This legacy connector will be removed in v3.0.0\n")

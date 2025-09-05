@@ -118,7 +118,7 @@ func NewCSVParser(config *CSVParserConfig) *CSVParser {
 
 // ParseFile parses a CSV file and returns records and schema
 func (cp *CSVParser) ParseFile(ctx context.Context, filePath string) (*ParseResult, error) {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - SDK function, filePath from connector config
 	if err != nil {
 		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to open CSV file")
 	}
@@ -353,7 +353,7 @@ func NewJSONParser(config *JSONParserConfig) *JSONParser {
 
 // ParseFile parses a JSON file and returns records and schema
 func (jp *JSONParser) ParseFile(ctx context.Context, filePath string) (*ParseResult, error) {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - SDK function, filePath from connector config
 	if err != nil {
 		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to open JSON file")
 	}
@@ -610,7 +610,7 @@ func (jp *JSONParser) inferSchema(sampleRecords []*models.Record) (*core.Schema,
 
 // detectFormat auto-detects JSON format by reading file header
 func (jp *JSONParser) detectFormat(filePath string) (JSONFormat, error) {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - SDK function, filePath from connector config
 	if err != nil {
 		return "", nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to open file for format detection")
 	}
@@ -686,7 +686,7 @@ func NewCSVWriter(config *CSVParserConfig) *CSVWriter {
 func (cw *CSVWriter) WriteToFile(ctx context.Context, filePath string, records []*models.Record, schema *core.Schema) error {
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(filePath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to create directory")
 	}
 
@@ -813,7 +813,7 @@ func NewJSONWriter(config *JSONParserConfig) *JSONWriter {
 func (jw *JSONWriter) WriteToFile(ctx context.Context, filePath string, records []*models.Record) error {
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(filePath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to create directory")
 	}
 

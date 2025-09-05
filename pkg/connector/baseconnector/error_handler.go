@@ -37,7 +37,7 @@ func NewErrorHandler(logger *zap.Logger, maxRetries int, baseDelay time.Duration
 }
 
 // HandleError processes an error with appropriate handling
-func (eh *ErrorHandler) HandleError(ctx context.Context, err error, record *models.Record) error {
+func (eh *ErrorHandler) HandleError(_ context.Context, err error, record *models.Record) error {
 	if err == nil {
 		return nil
 	}
@@ -144,7 +144,15 @@ func (eh *ErrorHandler) GetRetryDelay(attempt int) time.Duration {
 	}
 
 	// Exponential backoff with jitter
-	delay := eh.baseDelay * time.Duration(1<<uint(attempt-1))
+	// Ensure attempt doesn't cause overflow
+	shiftAmount := attempt - 1
+	if shiftAmount < 0 {
+		shiftAmount = 0
+	}
+	if shiftAmount > 63 { // Limit to prevent overflow
+		shiftAmount = 63
+	}
+	delay := eh.baseDelay * time.Duration(1<<uint(shiftAmount))
 
 	// Cap at 5 minutes
 	maxDelay := 5 * time.Minute

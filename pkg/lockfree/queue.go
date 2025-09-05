@@ -54,7 +54,7 @@ func (q *Queue) Enqueue(item interface{}) bool {
 		// Try to claim the slot
 		if q.tail.CompareAndSwap(tail, next) {
 			// We own this slot, store the item
-			atomic.StorePointer(&q.buffer[tail], unsafe.Pointer(&item))
+			atomic.StorePointer(&q.buffer[tail], unsafe.Pointer(&item)) // #nosec G103 - safe atomic pointer store
 			return true
 		}
 
@@ -171,7 +171,7 @@ func (q *MPMCQueue) Enqueue(item interface{}) bool {
 			// Slot is ready for enqueue
 			if q.enqueuePos.CompareAndSwap(pos, pos+1) {
 				// We own this slot
-				atomic.StorePointer(&slot.data, unsafe.Pointer(&item))
+				atomic.StorePointer(&slot.data, unsafe.Pointer(&item)) // #nosec G103 - safe atomic pointer store
 				slot.sequence.Store(pos + 1)
 				return true
 			}

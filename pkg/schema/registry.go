@@ -291,9 +291,9 @@ func (r *Registry) calculateFingerprint(schema *models.Schema) string {
 	return stringpool.BuildString(func(builder *stringpool.Builder) {
 		for _, field := range schema.Fields {
 			builder.WriteString(field.Name)
-			builder.WriteByte(':')
+			_ = builder.WriteByte(':')
 			builder.WriteString(field.Type)
-			builder.WriteByte(';')
+			_ = builder.WriteByte(';')
 		}
 	})
 }

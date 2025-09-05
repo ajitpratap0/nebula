@@ -415,8 +415,7 @@ func (a *StorageAdapter) OptimizeStorage() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	switch a.mode {
-	case StorageModeColumnar:
+	if a.mode == StorageModeColumnar {
 		// Run type optimization on columnar storage
 		if a.columnarBatch != nil {
 			return a.columnarBatch.OptimizeTypes()

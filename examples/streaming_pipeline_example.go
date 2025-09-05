@@ -12,8 +12,8 @@ import (
 
 	"github.com/ajitpratap0/nebula/internal/pipeline"
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/registry"
 	_ "github.com/ajitpratap0/nebula/pkg/connector/destinations/csv"
+	"github.com/ajitpratap0/nebula/pkg/connector/registry"
 	_ "github.com/ajitpratap0/nebula/pkg/connector/sources/csv"
 )
 

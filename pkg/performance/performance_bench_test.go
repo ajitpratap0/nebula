@@ -153,7 +153,7 @@ func BenchmarkWorkerPool(b *testing.B) {
 		items[i] = i
 	}
 
-	processFunc := func(item interface{}) error {
+	processFunc := func(_ interface{}) error {
 		// Simulate work
 		time.Sleep(time.Microsecond)
 		return nil

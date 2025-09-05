@@ -389,17 +389,18 @@ func (dsi *DataSampleInference) analyzeFieldType(values []interface{}) core.Fiel
 			stringValue := v
 
 			// Try to parse as different types
-			if dsi.looksLikeBool(stringValue) {
+			switch {
+			case dsi.looksLikeBool(stringValue):
 				typeScores[core.FieldTypeBool] += 0.9
-			} else if dsi.looksLikeInt(stringValue) {
+			case dsi.looksLikeInt(stringValue):
 				typeScores[core.FieldTypeInt] += 0.9
-			} else if dsi.looksLikeFloat(stringValue) {
+			case dsi.looksLikeFloat(stringValue):
 				typeScores[core.FieldTypeFloat] += 0.9
-			} else if dsi.looksLikeTimestamp(stringValue) {
+			case dsi.looksLikeTimestamp(stringValue):
 				typeScores[core.FieldTypeTimestamp] += 0.9
-			} else if dsi.looksLikeJSON(stringValue) {
+			case dsi.looksLikeJSON(stringValue):
 				typeScores[core.FieldTypeJSON] += 0.9
-			} else {
+			default:
 				typeScores[core.FieldTypeString] += 1.0
 			}
 		default:

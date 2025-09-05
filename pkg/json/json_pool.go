@@ -11,6 +11,8 @@ import (
 )
 
 // JSONPool manages pooled JSON encoders and decoders
+//
+//nolint:revive // Name intentionally includes "JSON" for clarity
 type JSONPool struct {
 	encoderPool sync.Pool
 	decoderPool sync.Pool

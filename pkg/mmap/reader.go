@@ -53,14 +53,14 @@ func NewReader(filename string) (*Reader, error) {
 
 	// Memory map the file
 	data, err := mmap(int(file.Fd()), 0, int(fileSize),
-		PROT_READ, MAP_SHARED)
+		ProtRead, MapShared)
 	if err != nil {
 		_ = file.Close() // Ignore close error
 		return nil, fmt.Errorf("failed to mmap file: %w", err)
 	}
 
 	// Advise kernel about access pattern
-	err = madvise(data, MADV_SEQUENTIAL)
+	err = madvise(data, MadvSequential)
 	if err != nil {
 		// Non-fatal, just log
 		fmt.Printf("madvise failed: %v\n", err)
@@ -205,7 +205,7 @@ func (r *Reader) prefetchRange(start, end int64) {
 	}
 
 	// Advise kernel to prefetch
-	madvise(r.data[startPage:endPage], MADV_WILLNEED) //nolint:errcheck
+	madvise(r.data[startPage:endPage], MadvWillneed) //nolint:errcheck // #nosec G104 - advisory call, failure is acceptable
 }
 
 // Close unmaps the file and closes it

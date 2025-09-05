@@ -1,3 +1,4 @@
+// Package main provides CDC integration testing for PostgreSQL, MySQL, and MongoDB connectors.
 package main
 
 import (

@@ -284,7 +284,7 @@ func (d *GCSDestination) CreateSchema(ctx context.Context, schema *core.Schema) 
 }
 
 // AlterSchema alters schema in GCS (updates metadata)
-func (d *GCSDestination) AlterSchema(ctx context.Context, oldSchema, newSchema *core.Schema) error {
+func (d *GCSDestination) AlterSchema(ctx context.Context, _, newSchema *core.Schema) error {
 	// For GCS, we just update the schema metadata
 	return d.CreateSchema(ctx, newSchema)
 }
@@ -362,7 +362,7 @@ func (d *GCSDestination) Upsert(ctx context.Context, records []*models.Record, k
 }
 
 // DropSchema drops the schema (not applicable for GCS)
-func (d *GCSDestination) DropSchema(ctx context.Context, schema *core.Schema) error {
+func (d *GCSDestination) DropSchema(ctx context.Context, _ *core.Schema) error {
 	// For GCS, we just remove schema metadata if it exists
 	// Build GCS object name using URLBuilder for optimized string handling
 	ub := stringpool.NewURLBuilder(d.prefix)

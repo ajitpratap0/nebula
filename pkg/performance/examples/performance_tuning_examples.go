@@ -566,7 +566,7 @@ func benchmarkParallel(records []*models.Record) float64 {
 	}
 
 	start := time.Now()
-	_ = optimizer.ExecuteParallel(ctx, items, func(item interface{}) error {
+	_ = optimizer.ExecuteParallel(ctx, items, func(_ interface{}) error {
 		processRecord()
 		return nil
 	})
@@ -589,7 +589,7 @@ func benchmarkAllOptimizations(records []*models.Record) float64 {
 		items[i] = r
 	}
 
-	_ = optimizer.ExecuteParallel(ctx, items, func(item interface{}) error {
+	_ = optimizer.ExecuteParallel(ctx, items, func(_ interface{}) error {
 		processRecord()
 		return nil
 	})

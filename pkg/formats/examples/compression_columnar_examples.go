@@ -14,7 +14,7 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/models"
 )
 
-// Example 1: Basic compression usage
+// BasicCompressionExample demonstrates basic compression usage
 func BasicCompressionExample() {
 	fmt.Println("=== Basic Compression Example ===")
 
@@ -67,7 +67,7 @@ func BasicCompressionExample() {
 	}
 }
 
-// Example 2: Streaming compression
+// StreamingCompressionExample demonstrates streaming compression
 func StreamingCompressionExample() {
 	fmt.Println("\n=== Streaming Compression Example ===")
 
@@ -103,7 +103,7 @@ func StreamingCompressionExample() {
 	fmt.Printf("Decompressed stream size: %d bytes\n", decompressed.Len())
 }
 
-// Example 3: Compression with pooling
+// CompressionPoolExample demonstrates compression with pooling
 func CompressionPoolExample() {
 	fmt.Println("\n=== Compression Pool Example ===")
 
@@ -132,7 +132,7 @@ func CompressionPoolExample() {
 	_ = decompressed
 }
 
-// Example 4: Basic columnar format usage
+// BasicColumnarExample demonstrates basic columnar format usage
 func BasicColumnarExample() {
 	fmt.Println("\n=== Basic Columnar Format Example ===")
 
@@ -217,7 +217,7 @@ func BasicColumnarExample() {
 	_ = reader.Close() // Error ignored for cleanup
 }
 
-// Example 5: Streaming columnar writes
+// StreamingColumnarExample demonstrates streaming columnar writes
 func StreamingColumnarExample() {
 	fmt.Println("\n=== Streaming Columnar Example ===")
 
@@ -272,7 +272,7 @@ func StreamingColumnarExample() {
 	fmt.Printf("Streamed 1000 events to Arrow format (%d bytes)\n", buf.Len())
 }
 
-// Example 6: Columnar format with compression comparison
+// ColumnarCompressionComparisonExample demonstrates columnar format with compression comparison
 func ColumnarCompressionComparisonExample() {
 	fmt.Println("\n=== Columnar Compression Comparison ===")
 
@@ -329,7 +329,7 @@ func ColumnarCompressionComparisonExample() {
 	}
 }
 
-// Example 7: Compressed columnar data pipeline
+// CompressedColumnarPipelineExample demonstrates compressed columnar data pipeline
 func CompressedColumnarPipelineExample() {
 	fmt.Println("\n=== Compressed Columnar Pipeline ===")
 
@@ -419,7 +419,7 @@ func CompressedColumnarPipelineExample() {
 	fmt.Printf("  Records read back: %d\n", len(readBack))
 }
 
-// Example 8: File-based columnar operations
+// FileBasedColumnarExample demonstrates file-based columnar operations
 func FileBasedColumnarExample() {
 	fmt.Println("\n=== File-Based Columnar Example ===")
 
@@ -490,7 +490,8 @@ func FileBasedColumnarExample() {
 		Projection: []string{"user_id", "username"}, // Only read some columns
 	})
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Failed to create reader: %v", err)
+		return
 	}
 
 	count := 0
@@ -511,7 +512,7 @@ func FileBasedColumnarExample() {
 	_ = os.Remove(filename) // Best effort cleanup
 }
 
-// Main function to run all examples
+// RunCompressionColumnarExamples runs all compression and columnar examples
 func RunCompressionColumnarExamples() {
 	BasicCompressionExample()
 	StreamingCompressionExample()

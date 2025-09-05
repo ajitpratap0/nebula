@@ -40,7 +40,7 @@ func TestBuilder(t *testing.T) {
 	builder := NewBuilder(32)
 
 	builder.WriteString("hello")
-	builder.WriteByte(' ')
+	_ = builder.WriteByte(' ')
 	builder.WriteString("world")
 
 	result := builder.String()

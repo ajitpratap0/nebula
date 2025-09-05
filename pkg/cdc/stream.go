@@ -488,7 +488,7 @@ func (sp *StreamProcessor) calculatePartition(event ChangeEvent) int {
 // hashString calculates a hash for a string
 func (sp *StreamProcessor) hashString(s string) int {
 	h := fnv.New32a()
-	h.Write([]byte(s))
+	_, _ = h.Write([]byte(s)) // Hash writer never fails, safe to ignore
 	return int(h.Sum32())
 }
 

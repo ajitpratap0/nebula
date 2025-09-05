@@ -361,7 +361,7 @@ func (cm *ConnectorMetrics) TrackOperation(ctx context.Context, operation string
 	start := time.Now()
 
 	// Start tracing
-	ctx, span := cm.Tracer.StartSpan(ctx, operation)
+	_, span := cm.Tracer.StartSpan(ctx, operation)
 	defer span.End()
 
 	// Execute operation

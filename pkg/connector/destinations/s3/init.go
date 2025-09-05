@@ -1,3 +1,4 @@
+// Package s3 provides Amazon S3 destination connector for Nebula data pipelines
 package s3
 
 import (

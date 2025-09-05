@@ -139,7 +139,7 @@ func (d *JSONDestination) Initialize(ctx context.Context, config *nebulaConfig.B
 	if d.compressionEnabled && d.compressor != nil {
 		ext := d.getCompressionExtension()
 		if ext != "" && !strings.HasSuffix(d.filePath, ext) {
-			d.filePath = d.filePath + ext
+			d.filePath += ext
 		}
 	}
 
@@ -182,7 +182,7 @@ func (d *JSONDestination) Initialize(ctx context.Context, config *nebulaConfig.B
 }
 
 // CreateSchema creates a schema in the destination
-func (d *JSONDestination) CreateSchema(ctx context.Context, schema *core.Schema) error {
+func (d *JSONDestination) CreateSchema(_ context.Context, schema *core.Schema) error {
 	d.schema = schema
 	return nil
 }
@@ -201,7 +201,8 @@ func (d *JSONDestination) Write(ctx context.Context, stream *core.RecordStream) 
 					}
 				}
 				if err := d.writer.Flush(); err != nil {
-					// Flush errors at stream end are typically not critical
+					// Flush errors at stream end are typically not critical - ignored
+					_ = err // Explicitly ignore error
 				}
 				return nil
 			}
@@ -217,7 +218,8 @@ func (d *JSONDestination) Write(ctx context.Context, stream *core.RecordStream) 
 
 		case <-ctx.Done():
 			if err := d.writer.Flush(); err != nil {
-				// Flush errors on context done are typically not critical
+				// Flush errors on context done are typically not critical - ignored
+				_ = err // Explicitly ignore error
 			}
 			return ctx.Err()
 		}
@@ -238,7 +240,8 @@ func (d *JSONDestination) WriteBatch(ctx context.Context, stream *core.BatchStre
 					}
 				}
 				if err := d.writer.Flush(); err != nil {
-					// Flush errors at stream end are typically not critical
+					// Flush errors at stream end are typically not critical - ignored
+					_ = err // Explicitly ignore error
 				}
 				return nil
 			}
@@ -254,7 +257,8 @@ func (d *JSONDestination) WriteBatch(ctx context.Context, stream *core.BatchStre
 
 		case <-ctx.Done():
 			if err := d.writer.Flush(); err != nil {
-				// Flush errors on context done are typically not critical
+				// Flush errors on context done are typically not critical - ignored
+				_ = err // Explicitly ignore error
 			}
 			return ctx.Err()
 		}
@@ -373,7 +377,7 @@ func (d *JSONDestination) DropSchema(ctx context.Context, schema *core.Schema) e
 }
 
 // Health checks the health of the destination
-func (d *JSONDestination) Health(ctx context.Context) error {
+func (d *JSONDestination) Health(_ context.Context) error {
 	if d.file == nil {
 		return fmt.Errorf("file not opened")
 	}

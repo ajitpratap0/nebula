@@ -206,7 +206,7 @@ func BenchmarkBuilderPoolEfficiency(b *testing.B) {
 				builder := GetBuilder(Small)
 				for _, s := range testStrings {
 					builder.WriteString(s)
-					builder.WriteByte(',')
+					_ = builder.WriteByte(',')
 				}
 				result := builder.String()
 				PutBuilder(builder, Small)
@@ -221,7 +221,7 @@ func BenchmarkBuilderPoolEfficiency(b *testing.B) {
 				builder := NewBuilder(1024)
 				for _, s := range testStrings {
 					builder.WriteString(s)
-					builder.WriteByte(',')
+					_ = builder.WriteByte(',')
 				}
 				result := builder.String()
 				_ = result

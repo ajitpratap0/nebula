@@ -3,6 +3,7 @@ package profiling
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"runtime"
 	"runtime/pprof"
@@ -19,13 +20,20 @@ import (
 type ProfileType string
 
 const (
-	CPUProfile       ProfileType = "cpu"
-	MemoryProfile    ProfileType = "memory"
-	BlockProfile     ProfileType = "block"
-	MutexProfile     ProfileType = "mutex"
+	// CPUProfile represents CPU profiling mode
+	CPUProfile ProfileType = "cpu"
+	// MemoryProfile represents memory profiling mode
+	MemoryProfile ProfileType = "memory"
+	// BlockProfile represents blocking operation profiling mode
+	BlockProfile ProfileType = "block"
+	// MutexProfile represents mutex contention profiling mode
+	MutexProfile ProfileType = "mutex"
+	// GoroutineProfile represents goroutine profiling mode
 	GoroutineProfile ProfileType = "goroutine"
-	TraceProfile     ProfileType = "trace"
-	AllProfiles      ProfileType = "all"
+	// TraceProfile represents execution trace profiling mode
+	TraceProfile ProfileType = "trace"
+	// AllProfiles represents all available profiling modes
+	AllProfiles ProfileType = "all"
 )
 
 // ProfileConfig contains configuration for profiling
@@ -424,7 +432,11 @@ func (p *Profiler) collectRuntimeMetrics(ctx context.Context) {
 			p.metricsData.TotalAllocBytes = memStats.TotalAlloc
 			p.metricsData.SysBytes = memStats.Sys
 			p.metricsData.NumGC = memStats.NumGC
-			p.metricsData.GCPauseTotal = time.Duration(memStats.PauseTotalNs)
+			if memStats.PauseTotalNs > math.MaxInt64 {
+				p.metricsData.GCPauseTotal = time.Duration(math.MaxInt64)
+			} else {
+				p.metricsData.GCPauseTotal = time.Duration(memStats.PauseTotalNs)
+			}
 			if memStats.NumGC > 0 {
 				p.metricsData.GCPauseLast = time.Duration(memStats.PauseNs[(memStats.NumGC+255)%256])
 			}

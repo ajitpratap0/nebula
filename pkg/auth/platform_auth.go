@@ -1,3 +1,4 @@
+// Package auth provides authentication and authorization functionality for platform access.
 package auth
 
 import (
@@ -84,9 +85,10 @@ func (p *PlatformAuthService) GetGoogleAdsCredentials(ctx context.Context, accou
 		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to make request")
 	}
 	defer func() {
-		if err := resp.Body.Close(); err != nil {
+		if closeErr := resp.Body.Close(); closeErr != nil {
 			// Log error but don't propagate - response body close errors are typically not critical
 			// This is a common pattern in Go HTTP client code
+			_ = closeErr // Explicitly acknowledge we're not handling this error
 		}
 	}()
 

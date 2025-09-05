@@ -76,15 +76,15 @@ func RunBigQueryExample() {
 	// Start writing records in a goroutine
 	go func() {
 		defer close(recordChan)
-		
+
 		// Send some test records using the unified record system
 		for i := 1; i <= 100; i++ {
 			// Create record using pool constructor
 			record := pool.NewRecord("test", map[string]interface{}{
-				"user_id":     fmt.Sprintf("user-%d", i%10),
-				"event_type":  []string{"click", "view", "purchase"}[i%3],
-				"value":       float64(i) * 10.5,
-				"created_at":  time.Now().Format(time.RFC3339),
+				"user_id":    fmt.Sprintf("user-%d", i%10),
+				"event_type": []string{"click", "view", "purchase"}[i%3],
+				"value":      float64(i) * 10.5,
+				"created_at": time.Now().Format(time.RFC3339),
 				"metadata": map[string]interface{}{
 					"source": "test",
 					"batch":  i / 10,
@@ -94,7 +94,7 @@ func RunBigQueryExample() {
 			record.ID = fmt.Sprintf("record-%d", i)
 			// Set timestamp in metadata
 			record.SetTimestamp(time.Now())
-			
+
 			select {
 			case recordChan <- record:
 			case <-ctx.Done():
@@ -109,16 +109,16 @@ func RunBigQueryExample() {
 	}
 
 	fmt.Println("Successfully wrote 100 records to BigQuery!")
-	
+
 	// Example of writing a batch
 	batch := make([]*pool.Record, 50)
 	for i := 0; i < 50; i++ {
 		// Create record using pool constructor
 		batch[i] = pool.NewRecord("batch-test", map[string]interface{}{
-			"user_id":     fmt.Sprintf("batch-user-%d", i%5),
-			"event_type":  "batch_event",
-			"value":       float64(i) * 5.0,
-			"created_at":  time.Now().Format(time.RFC3339),
+			"user_id":    fmt.Sprintf("batch-user-%d", i%5),
+			"event_type": "batch_event",
+			"value":      float64(i) * 5.0,
+			"created_at": time.Now().Format(time.RFC3339),
 		})
 		// Set the record ID
 		batch[i].ID = fmt.Sprintf("batch-record-%d", i)
@@ -132,16 +132,16 @@ func RunBigQueryExample() {
 		Batches: batchChan,
 		Errors:  errorChan,
 	}
-	
+
 	// Send batch
 	batchChan <- batch
 	close(batchChan)
-	
+
 	// Write batch
 	if err := dest.WriteBatch(ctx, batchStream); err != nil {
 		log.Fatalf("Failed to write batch to BigQuery: %v", err)
 	}
-	
+
 	fmt.Println("Successfully wrote batch of 50 records to BigQuery!")
 }
 

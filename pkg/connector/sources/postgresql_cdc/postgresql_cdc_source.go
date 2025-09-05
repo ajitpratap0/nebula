@@ -74,6 +74,8 @@ import (
 	"context"
 	"fmt"
 
+	"strings"
+
 	"github.com/ajitpratap0/nebula/pkg/cdc"
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
@@ -83,7 +85,6 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
-	"strings"
 )
 
 // PostgreSQLCDCSource is a production-ready PostgreSQL CDC source connector that captures

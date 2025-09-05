@@ -623,13 +623,12 @@ func (c *PostgreSQLConnector) startReplication() {
 
 // processReplicationMessage processes a single replication message
 func (c *PostgreSQLConnector) processReplicationMessage(msg pgproto3.BackendMessage) error {
-	switch msg := msg.(type) {
-	case *pgproto3.CopyData:
-		switch msg.Data[0] {
+	if copyData, ok := msg.(*pgproto3.CopyData); ok {
+		switch copyData.Data[0] {
 		case pglogrepl.XLogDataByteID:
-			return c.processXLogData(msg.Data[1:])
+			return c.processXLogData(copyData.Data[1:])
 		case pglogrepl.PrimaryKeepaliveMessageByteID:
-			return c.processPrimaryKeepalive(msg.Data[1:])
+			return c.processPrimaryKeepalive(copyData.Data[1:])
 		}
 	}
 	return nil

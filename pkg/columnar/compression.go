@@ -138,14 +138,22 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 			}
 
 			// Write dictionary size
-			if err := binary.Write(&buf, binary.LittleEndian, uint32(len(strCol.dict))); err != nil {
+			dictLen := len(strCol.dict)
+			if dictLen > 4294967295 { // math.MaxUint32
+				return nil, fmt.Errorf("dictionary size %d exceeds maximum uint32 value", dictLen)
+			}
+			if err := binary.Write(&buf, binary.LittleEndian, uint32(dictLen)); err != nil {
 				return nil, err
 			}
 
 			// Write dictionary entries
 			for str, code := range strCol.dict {
 				// Write string length and data
-				if err := binary.Write(&buf, binary.LittleEndian, uint32(len(str))); err != nil {
+				strLen := len(str)
+				if strLen > 4294967295 { // math.MaxUint32
+					return nil, fmt.Errorf("string length %d exceeds maximum uint32 value", strLen)
+				}
+				if err := binary.Write(&buf, binary.LittleEndian, uint32(strLen)); err != nil {
 					return nil, err
 				}
 				if _, err := buf.WriteString(str); err != nil {
@@ -170,7 +178,11 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 
 			// Write each string
 			for _, str := range strCol.values {
-				if err := binary.Write(&buf, binary.LittleEndian, uint32(len(str))); err != nil {
+				strLen := len(str)
+				if strLen > 4294967295 { // math.MaxUint32
+					return nil, fmt.Errorf("string length %d exceeds maximum uint32 value", strLen)
+				}
+				if err := binary.Write(&buf, binary.LittleEndian, uint32(strLen)); err != nil {
 					return nil, err
 				}
 				if _, err := buf.WriteString(str); err != nil {
@@ -188,7 +200,8 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 
 // writeVarint writes a variable-length integer
 func writeVarint(buf *bytes.Buffer, v int64) error {
-	uv := uint64(v<<1) ^ uint64(v>>63) // zigzag encoding
+	// Zigzag encoding: intentional conversion from signed to unsigned
+	uv := uint64(v<<1) ^ uint64(v>>63) // #nosec G115 - intentional zigzag encoding
 	for uv >= 0x80 {
 		buf.WriteByte(byte(uv) | 0x80)
 		uv >>= 7

@@ -7,12 +7,12 @@ import (
 	"io"
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
-	"unsafe"
 )
 
 // ORC constants
@@ -1100,7 +1100,7 @@ func estimateRowSize(row []interface{}) int64 {
 }
 
 func float64ToUint64(f float64) uint64 {
-	return *(*uint64)(unsafe.Pointer(&f))
+	return *(*uint64)(unsafe.Pointer(&f)) // #nosec G103 - safe float64 to uint64 bit conversion
 }
 
 // Compression functions (placeholders - would use actual libraries)

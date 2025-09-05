@@ -1,3 +1,5 @@
+// Package evolution provides schema evolution functionality for database connectors,
+// enabling automatic schema updates and conversions between different schema formats.
 package evolution
 
 import (

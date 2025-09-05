@@ -76,8 +76,8 @@ func (cv *ConfigValidator) ValidateString(config *config.BaseConfig, propName st
 }
 
 // ValidateInt validates integer properties with minimum and maximum constraints.
-// Set max to 0 to skip maximum value validation.
-func (cv *ConfigValidator) ValidateInt(config *config.BaseConfig, propName string, min, max int) error {
+// Set maximum to 0 to skip maximum value validation.
+func (cv *ConfigValidator) ValidateInt(config *config.BaseConfig, propName string, minimum, maximum int) error {
 	val, exists := config.Security.Credentials[propName]
 	if !exists || val == "" {
 		return nil // Optional property
@@ -89,12 +89,12 @@ func (cv *ConfigValidator) ValidateInt(config *config.BaseConfig, propName strin
 		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("property '%s' must be an integer", propName))
 	}
 
-	if intVal < min {
-		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("property '%s' must be at least %d", propName, min))
+	if intVal < minimum {
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("property '%s' must be at least %d", propName, minimum))
 	}
 
-	if max > 0 && intVal > max {
-		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("property '%s' must be at most %d", propName, max))
+	if maximum > 0 && intVal > maximum {
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, fmt.Sprintf("property '%s' must be at most %d", propName, maximum))
 	}
 
 	return nil
@@ -365,7 +365,7 @@ func NewConnectorRegistry() *ConnectorRegistry {
 // This creates a factory function that instantiates the connector when needed.
 // The builder's metadata is also registered for discovery.
 func (cr *ConnectorRegistry) RegisterSourceBuilder(name string, builder *SourceBuilder) error {
-	factory := func(config *config.BaseConfig) (core.Source, error) {
+	factory := func(_ *config.BaseConfig) (core.Source, error) {
 		connector, err := NewSDKSourceConnector(builder)
 		if err != nil {
 			return nil, err
@@ -397,7 +397,7 @@ func (cr *ConnectorRegistry) RegisterSourceBuilder(name string, builder *SourceB
 // This creates a factory function that instantiates the connector when needed.
 // The builder's metadata is also registered for discovery.
 func (cr *ConnectorRegistry) RegisterDestinationBuilder(name string, builder *DestinationBuilder) error {
-	factory := func(config *config.BaseConfig) (core.Destination, error) {
+	factory := func(_ *config.BaseConfig) (core.Destination, error) {
 		connector, err := NewSDKDestinationConnector(builder)
 		if err != nil {
 			return nil, err

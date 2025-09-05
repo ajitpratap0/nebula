@@ -253,7 +253,7 @@ func (bc *BaseConnector) SetPosition(position core.Position) error {
 }
 
 // Health performs a health check
-func (bc *BaseConnector) Health(ctx context.Context) error {
+func (bc *BaseConnector) Health(_ context.Context) error {
 	if bc.closed {
 		return nebulaerrors.New(nebulaerrors.ErrorTypeConnection, "connector is closed")
 	}
@@ -312,7 +312,7 @@ func (bc *BaseConnector) Metrics() map[string]interface{} {
 }
 
 // Close shuts down the connector
-func (bc *BaseConnector) Close(ctx context.Context) error {
+func (bc *BaseConnector) Close(_ context.Context) error {
 	bc.closeMutex.Lock()
 	defer bc.closeMutex.Unlock()
 
@@ -398,7 +398,7 @@ func (bc *BaseConnector) RateLimit(ctx context.Context) error {
 }
 
 // RecordMetric records a metric
-func (bc *BaseConnector) RecordMetric(name string, value interface{}, metricType core.MetricType) {
+func (bc *BaseConnector) RecordMetric(name string, value interface{}, _ core.MetricType) {
 	bc.metricsCollector.Record(name, value)
 }
 

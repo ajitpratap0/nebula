@@ -33,7 +33,7 @@ func RunSnowflakeExample() {
 	// Configure Snowflake-specific settings via properties
 	// In a real implementation, we'd add these to security.credentials
 	// For now, using properties approach for the connector factory
-	
+
 	// Create Snowflake destination using the registry
 	dest, err := registry.CreateDestination("snowflake", baseConfig)
 	if err != nil {
@@ -72,7 +72,7 @@ func RunSnowflakeExample() {
 	// Start writing records in a goroutine
 	go func() {
 		defer close(recordChan)
-		
+
 		// Send some test records using the unified record system
 		for i := 1; i <= 100; i++ {
 			// Create record using pool constructor
@@ -86,7 +86,7 @@ func RunSnowflakeExample() {
 			record.ID = fmt.Sprintf("record-%d", i)
 			// Set timestamp in metadata
 			record.SetTimestamp(time.Now())
-			
+
 			select {
 			case recordChan <- record:
 			case <-ctx.Done():

@@ -39,6 +39,8 @@ type SchemaEvolutionDestination struct {
 }
 
 // EvolutionConfig configures schema evolution behavior
+//
+//nolint:revive // Name intentionally includes "Evolution" for clarity in external usage
 type EvolutionConfig struct {
 	// Evolution strategy: "default", "strict", "flexible"
 	Strategy string `json:"strategy"`
@@ -408,7 +410,7 @@ func (sed *SchemaEvolutionDestination) processBatchWithEvolution(
 }
 
 // checkSchemaEvolution checks if schema evolution is needed for a batch
-func (sed *SchemaEvolutionDestination) checkSchemaEvolution(ctx context.Context, batch []*models.Record) (bool, error) {
+func (sed *SchemaEvolutionDestination) checkSchemaEvolution(_ context.Context, batch []*models.Record) (bool, error) {
 	if !sed.shouldCheckSchema() {
 		return false, nil
 	}
@@ -491,46 +493,57 @@ func (sed *SchemaEvolutionDestination) Close(ctx context.Context) error {
 
 // Delegate other methods to wrapped destination
 
+// BulkLoad loads data in bulk format, delegating to the wrapped destination
 func (sed *SchemaEvolutionDestination) BulkLoad(ctx context.Context, reader interface{}, format string) error {
 	return sed.destination.BulkLoad(ctx, reader, format)
 }
 
+// SupportsBulkLoad returns whether the wrapped destination supports bulk loading
 func (sed *SchemaEvolutionDestination) SupportsBulkLoad() bool {
 	return sed.destination.SupportsBulkLoad()
 }
 
+// SupportsTransactions returns whether the wrapped destination supports transactions
 func (sed *SchemaEvolutionDestination) SupportsTransactions() bool {
 	return sed.destination.SupportsTransactions()
 }
 
+// SupportsUpsert returns whether the wrapped destination supports upsert operations
 func (sed *SchemaEvolutionDestination) SupportsUpsert() bool {
 	return sed.destination.SupportsUpsert()
 }
 
+// SupportsBatch returns whether the wrapped destination supports batch operations
 func (sed *SchemaEvolutionDestination) SupportsBatch() bool {
 	return sed.destination.SupportsBatch()
 }
 
+// SupportsStreaming returns whether the wrapped destination supports streaming
 func (sed *SchemaEvolutionDestination) SupportsStreaming() bool {
 	return sed.destination.SupportsStreaming()
 }
 
+// BeginTransaction starts a new transaction on the wrapped destination
 func (sed *SchemaEvolutionDestination) BeginTransaction(ctx context.Context) (core.Transaction, error) {
 	return sed.destination.BeginTransaction(ctx)
 }
 
+// Upsert performs upsert operations on the wrapped destination
 func (sed *SchemaEvolutionDestination) Upsert(ctx context.Context, records []*models.Record, keys []string) error {
 	return sed.destination.Upsert(ctx, records, keys)
 }
 
+// DropSchema drops the specified schema on the wrapped destination
 func (sed *SchemaEvolutionDestination) DropSchema(ctx context.Context, schema *core.Schema) error {
 	return sed.destination.DropSchema(ctx, schema)
 }
 
+// Health checks the health status of the wrapped destination
 func (sed *SchemaEvolutionDestination) Health(ctx context.Context) error {
 	return sed.destination.Health(ctx)
 }
 
+// Metrics returns metrics from the wrapped destination plus schema evolution metrics
 func (sed *SchemaEvolutionDestination) Metrics() map[string]interface{} {
 	metrics := sed.destination.Metrics()
 

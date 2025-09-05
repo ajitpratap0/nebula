@@ -102,26 +102,26 @@ func (ab *AdaptiveBuffer) checkResize(avgUtilization float64) {
 	var newSize int64
 	var reason string
 
-	// Growth conditions
-	if avgUtilization > 0.8 && currentSize < int64(ab.config.MaxBufferSize) {
+	// Determine resize action based on utilization
+	switch {
+	case avgUtilization > 0.8 && currentSize < int64(ab.config.MaxBufferSize):
+		// Growth conditions
 		newSize = int64(float64(currentSize) * ab.growthFactor)
 		if newSize > int64(ab.config.MaxBufferSize) {
 			newSize = int64(ab.config.MaxBufferSize)
 		}
 		reason = "high_utilization"
 		ab.metrics.GrowthEvents++
-
+	case avgUtilization < 0.4 && currentSize > int64(ab.config.InitialBufferSize):
 		// Shrink conditions
-	} else if avgUtilization < 0.4 && currentSize > int64(ab.config.InitialBufferSize) {
 		newSize = int64(float64(currentSize) * ab.shrinkFactor)
 		if newSize < int64(ab.config.InitialBufferSize) {
 			newSize = int64(ab.config.InitialBufferSize)
 		}
 		reason = "low_utilization"
 		ab.metrics.ShrinkEvents++
-
+	default:
 		// No resize needed
-	} else {
 		return
 	}
 

@@ -13,9 +13,7 @@ import (
 
 func init() {
 	// Register the Iceberg destination connector
-	_ = registry.RegisterDestination("iceberg", func(config *config.BaseConfig) (core.Destination, error) {
-		return NewIcebergDestination(config)
-	})
+	_ = registry.RegisterDestination("iceberg", NewIcebergDestination)
 }
 
 func (d *IcebergDestination) Initialize(ctx context.Context, config *config.BaseConfig) error {
@@ -67,7 +65,7 @@ func (d *IcebergDestination) CreateSchema(ctx context.Context, schema *core.Sche
 	return nil
 }
 
-func (d *IcebergDestination) Write(ctx context.Context, stream *core.RecordStream) error {
+func (d *IcebergDestination) Write(_ context.Context, stream *core.RecordStream) error {
 	return fmt.Errorf("Write not implemented")
 }
 

@@ -1,3 +1,4 @@
+// Package compressed provides compression wrapper for Nebula destination connectors
 package compressed
 
 import (

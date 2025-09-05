@@ -486,11 +486,12 @@ func (s *SnowflakeOptimizedDestination) calculateOptimalChunkSize(totalRecords i
 	baseChunkSize := s.microBatchSize
 
 	// For very large datasets, use larger chunks to reduce overhead
-	if totalRecords > 1000000 {
+	switch {
+	case totalRecords > 1000000:
 		baseChunkSize = 500000 // 500K records per chunk
-	} else if totalRecords > 100000 {
+	case totalRecords > 100000:
 		baseChunkSize = 100000 // 100K records per chunk
-	} else if totalRecords > 10000 {
+	case totalRecords > 10000:
 		baseChunkSize = 50000 // 50K records per chunk
 	}
 
@@ -1283,7 +1284,7 @@ func (s *SnowflakeOptimizedDestination) convertRecordsToFileFormat(records []*mo
 func (s *SnowflakeOptimizedDestination) uploadFile(ctx context.Context, upload *FileUpload) error {
 	// Create a temporary file for staging
 	tempFile := stringpool.Sprintf("/tmp/%s", upload.Filename)
-	if err := os.WriteFile(tempFile, upload.Data, 0644); err != nil {
+	if err := os.WriteFile(tempFile, upload.Data, 0600); err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to write temp file")
 	}
 	defer func() { _ = os.Remove(tempFile) }() // Best effort cleanup

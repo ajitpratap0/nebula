@@ -53,6 +53,8 @@ type MetaAdsSource struct {
 }
 
 // MetaAdsConfig holds Meta Marketing API configuration
+//
+//nolint:revive // Name intentionally includes "MetaAds" for API clarity
 type MetaAdsConfig struct {
 	AccessToken      string   `json:"access_token"`
 	AppID            string   `json:"app_id"`
@@ -69,12 +71,16 @@ type MetaAdsConfig struct {
 }
 
 // MetaAdsResponse represents the API response structure
+//
+//nolint:revive // Name intentionally includes "MetaAds" for API clarity
 type MetaAdsResponse struct {
 	Data   []MetaAdsResult `json:"data"`
 	Paging *PagingInfo     `json:"paging,omitempty"`
 }
 
 // MetaAdsResult represents a single result from Meta Marketing API
+//
+//nolint:revive // Name intentionally includes "MetaAds" for API clarity
 type MetaAdsResult struct {
 	ID           string                 `json:"id"`
 	AccountID    string                 `json:"account_id,omitempty"`
@@ -119,7 +125,7 @@ type CursorInfo struct {
 }
 
 // NewMetaAdsSource creates a new Meta Ads source connector
-func NewMetaAdsSource(name string, config *config.BaseConfig) (core.Source, error) {
+func NewMetaAdsSource(_ string, config *config.BaseConfig) (core.Source, error) {
 	// Create base connector with production features
 	base := baseconnector.NewBaseConnector("meta_ads", core.ConnectorTypeSource, "1.0.0")
 
@@ -586,7 +592,7 @@ func (s *MetaAdsSource) readBatches(ctx context.Context, batchSize int, batchesC
 }
 
 // readAccountRecords reads all records for a specific account
-func (s *MetaAdsSource) readAccountRecords(ctx context.Context, accountID string, recordsChan chan<- *models.Record, errorsChan chan<- error) error {
+func (s *MetaAdsSource) readAccountRecords(ctx context.Context, accountID string, recordsChan chan<- *models.Record, _ chan<- error) error {
 	cursor := ""
 
 	for {
@@ -867,6 +873,8 @@ func (s *MetaAdsSource) Close(ctx context.Context) error {
 }
 
 // MetaAdsPosition implements core.Position for Meta Ads
+//
+//nolint:revive // Name intentionally includes "MetaAds" for API clarity
 type MetaAdsPosition struct {
 	LastCursor       string `json:"last_cursor"`
 	ProcessedRecords int64  `json:"processed_records"`
@@ -876,6 +884,7 @@ func (p *MetaAdsPosition) String() string {
 	return stringpool.Sprintf("cursor:%s,records:%d", p.LastCursor, p.ProcessedRecords)
 }
 
+// Compare compares this position with another position
 func (p *MetaAdsPosition) Compare(other core.Position) int {
 	if otherPos, ok := other.(*MetaAdsPosition); ok {
 		if p.ProcessedRecords < otherPos.ProcessedRecords {

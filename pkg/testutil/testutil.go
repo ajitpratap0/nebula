@@ -18,7 +18,7 @@ func TestLogger(t *testing.T) *zap.Logger {
 
 // TestContext creates a test context with a 30-second timeout.
 // The caller must call the returned cancel function to avoid leaks.
-func TestContext(t *testing.T) (context.Context, context.CancelFunc) {
+func TestContext(_ *testing.T) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), 30*time.Second)
 }
 

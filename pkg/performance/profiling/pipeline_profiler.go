@@ -303,12 +303,12 @@ func (p *PipelineProfiler) getStageMetricsCopy() map[string]*StageMetrics {
 	p.stageMutex.RLock()
 	defer p.stageMutex.RUnlock()
 
-	copy := make(map[string]*StageMetrics)
+	stagesCopy := make(map[string]*StageMetrics)
 	for k, v := range p.stageMetrics {
 		metricsCopy := *v
-		copy[k] = &metricsCopy
+		stagesCopy[k] = &metricsCopy
 	}
-	return copy
+	return stagesCopy
 }
 
 func (p *PipelineProfiler) generateRecommendations(throughput float64, analysis *AnalysisResult) []string {
@@ -362,7 +362,7 @@ func (p *PipelineProfiler) saveReport(result *ProfileResult) error {
 	}
 
 	// Write to file
-	if err := os.WriteFile(filename, data, 0644); err != nil {
+	if err := os.WriteFile(filename, data, 0600); err != nil {
 		return fmt.Errorf("failed to write profile report: %w", err)
 	}
 

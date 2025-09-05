@@ -571,17 +571,17 @@ func encodeBase64(data []byte) string {
 			b3 = data[i+2]
 		}
 
-		result.WriteByte(base64Chars[b1>>2])
-		result.WriteByte(base64Chars[(b1&0x03)<<4|b2>>4])
+		_ = result.WriteByte(base64Chars[b1>>2])
+		_ = result.WriteByte(base64Chars[(b1&0x03)<<4|b2>>4])
 		if i+1 < len(data) {
-			result.WriteByte(base64Chars[(b2&0x0f)<<2|b3>>6])
+			_ = result.WriteByte(base64Chars[(b2&0x0f)<<2|b3>>6])
 		} else {
-			result.WriteByte('=')
+			_ = result.WriteByte('=')
 		}
 		if i+2 < len(data) {
-			result.WriteByte(base64Chars[b3&0x3f])
+			_ = result.WriteByte(base64Chars[b3&0x3f])
 		} else {
-			result.WriteByte('=')
+			_ = result.WriteByte('=')
 		}
 	}
 	return stringpool.Clone(result.String())

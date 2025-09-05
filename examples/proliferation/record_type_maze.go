@@ -1,10 +1,10 @@
-package main
-
-// This example demonstrates how Nebula's unified Record type SOLVED the record type proliferation problem.
+// Package main demonstrates how Nebula's unified Record type solved the record type proliferation problem.
 // It shows how a simple record now flows through the system with ZERO conversions.
+package main
 
 import (
 	"fmt"
+
 	"github.com/ajitpratap0/nebula/pkg/models"
 )
 

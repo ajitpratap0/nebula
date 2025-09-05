@@ -451,8 +451,6 @@ func convertToNumeric[T numeric](val any) (T, bool) {
 	}
 
 	switch v := val.(type) {
-	case T:
-		return v, true
 	case int:
 		return T(v), true
 	case int32:
@@ -475,6 +473,8 @@ func convertToNumeric[T numeric](val any) (T, bool) {
 			return zero, false
 		}
 		return T(v), true
+	case T:
+		return v, true
 	}
 	var zero T
 	return zero, false

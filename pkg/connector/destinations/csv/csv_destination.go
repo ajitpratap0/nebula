@@ -533,13 +533,13 @@ func (d *CSVDestination) createFile(config *config.BaseConfig) error {
 	if d.compressionEnabled && d.compressor != nil {
 		ext := d.getCompressionExtension()
 		if ext != "" && !strings.HasSuffix(path, ext) {
-			path = path + ext
+			path += ext
 		}
 	}
 
 	// Create directory if it doesn't exist
 	if dir := filepath.Dir(path); dir != "" {
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0750); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}
 	}
@@ -552,7 +552,7 @@ func (d *CSVDestination) createFile(config *config.BaseConfig) error {
 		flags |= os.O_APPEND
 	}
 
-	file, err := os.OpenFile(path, flags, 0644)
+	file, err := os.OpenFile(path, flags, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to create file %s: %w", path, err)
 	}

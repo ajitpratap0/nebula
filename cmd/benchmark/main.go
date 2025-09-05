@@ -26,7 +26,7 @@ func main() {
 	flag.Parse()
 
 	// Ensure output directory exists
-	if err := os.MkdirAll(*outputDir, 0755); err != nil {
+	if err := os.MkdirAll(*outputDir, 0750); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create output directory: %v\n", err)
 		os.Exit(1)
 	}
@@ -95,13 +95,13 @@ func runGoogleSheetsBenchmarks(timestamp string) {
 		}
 
 		// Append to output file
-		f, err := os.OpenFile(outputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		f, err := os.OpenFile(outputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to open output file: %v\n", err)
 			continue
 		}
 
-		if _, err := f.WriteString(fmt.Sprintf("\n=== %s ===\n", benchmark)); err != nil {
+		if _, err := fmt.Fprintf(f, "\n=== %s ===\n", benchmark); err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to write benchmark header: %v\n", err)
 		}
 		if _, err := f.Write(output); err != nil {
@@ -123,7 +123,7 @@ func runGoogleSheetsBenchmarks(timestamp string) {
 
 		// TODO: Generate report from benchmark results
 		_ = make(map[string]interface{}) // report := make(map[string]interface{})
-		var err error = nil              // benchmarks.GenerateGoogleSheetsPerformanceReport()
+		var err error                    // benchmarks.GenerateGoogleSheetsPerformanceReport()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to generate report: %v\n", err)
 			return
@@ -143,7 +143,10 @@ func runGoogleSheetsBenchmarks(timestamp string) {
 		fmt.Println("Report generation not yet implemented") // benchmarks.PrintReport(report, os.Stdout)
 
 		// Save text report
-		textFile := filepath.Join(*outputDir, fmt.Sprintf("google_sheets_report_%s.txt", timestamp))
+		filename := fmt.Sprintf("google_sheets_report_%s.txt", timestamp)
+		// Clean filename to prevent directory traversal
+		filename = filepath.Base(filename)
+		textFile := filepath.Join(*outputDir, filename)
 		f, err := os.Create(textFile)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to create text report: %v\n", err)

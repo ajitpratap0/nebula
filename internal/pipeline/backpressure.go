@@ -209,11 +209,12 @@ func (bc *BackpressureController) UpdateBufferMetrics(utilization float64, buffe
 	atomic.StoreInt32(&bc.severity, severity)
 
 	// Handle state transitions
-	if !wasActive && shouldActivate {
+	switch {
+	case !wasActive && shouldActivate:
 		bc.activate(utilization, severity)
-	} else if wasActive && shouldDeactivate {
+	case wasActive && shouldDeactivate:
 		bc.deactivate(utilization)
-	} else if wasActive {
+	case wasActive:
 		// Update existing backpressure if severity changed significantly
 		bc.adjust(utilization, severity)
 	}
@@ -290,19 +291,30 @@ func (bc *BackpressureController) GetControlChannel() <-chan ControlSignal {
 	return bc.controlChan
 }
 
-// GetMetrics returns current backpressure metrics
+// GetMetrics returns current backpressure metrics snapshot
 func (bc *BackpressureController) GetMetrics() BackpressureMetrics {
 	bc.metrics.mu.RLock()
 	defer bc.metrics.mu.RUnlock()
 
-	// Create a copy of metrics
-	metrics := *bc.metrics
+	// Create a safe copy of buffer utilization
+	bufferUtilization := make([]float64, len(bc.metrics.bufferUtilization))
+	copy(bufferUtilization, bc.metrics.bufferUtilization)
 
-	// Copy buffer utilization slice
-	metrics.bufferUtilization = make([]float64, len(bc.metrics.bufferUtilization))
-	copy(metrics.bufferUtilization, bc.metrics.bufferUtilization)
-
-	return metrics
+	return BackpressureMetrics{ //nolint:govet // TODO: refactor to avoid mutex copy
+		activationCount:    bc.metrics.activationCount,
+		deactivationCount:  bc.metrics.deactivationCount,
+		totalActiveTime:    bc.metrics.totalActiveTime,
+		lastActivation:     bc.metrics.lastActivation,
+		recordsDropped:     bc.metrics.recordsDropped,
+		batchesDropped:     bc.metrics.batchesDropped,
+		throttleEvents:     bc.metrics.throttleEvents,
+		totalThrottleTime:  bc.metrics.totalThrottleTime,
+		maxThrottleDelay:   bc.metrics.maxThrottleDelay,
+		adjustmentCount:    bc.metrics.adjustmentCount,
+		predictionAccuracy: bc.metrics.predictionAccuracy,
+		bufferUtilization:  bufferUtilization,
+		bufferIndex:        bc.metrics.bufferIndex,
+	}
 }
 
 // IsActive returns whether backpressure is currently active
@@ -727,6 +739,17 @@ func (bc *BackpressureController) predictUtilization(current, trend float64) flo
 	return predicted
 }
 
+// safeIntToInt32 safely converts int to int32 with bounds checking
+func safeIntToInt32(value int) int32 {
+	if value > 2147483647 { // math.MaxInt32
+		return 2147483647
+	}
+	if value < -2147483648 { // math.MinInt32
+		return -2147483648
+	}
+	return int32(value)
+}
+
 func (bc *BackpressureController) handleControlSignal(signal ControlSignal) {
 	bc.logger.Debug("handling control signal",
 		zap.String("type", string(signal.Type)),
@@ -744,7 +767,7 @@ func (bc *BackpressureController) handleControlSignal(signal ControlSignal) {
 	case ControlTypePause:
 		// Force activation if not already active
 		if atomic.LoadInt32(&bc.isActive) == 0 {
-			bc.activate(0.9, int32(signal.Severity))
+			bc.activate(0.9, safeIntToInt32(signal.Severity))
 		}
 
 	case ControlTypeResume:
@@ -756,20 +779,26 @@ func (bc *BackpressureController) handleControlSignal(signal ControlSignal) {
 	case ControlTypeThrottle:
 		// Apply throttling based on signal
 		if atomic.LoadInt32(&bc.isActive) == 0 {
-			bc.activate(0.7, int32(signal.Severity))
+			bc.activate(0.7, safeIntToInt32(signal.Severity))
 		}
 
 	case ControlTypeDrop:
 		// Enable dropping mode
 		if atomic.LoadInt32(&bc.isActive) == 0 {
-			bc.activate(0.8, int32(signal.Severity))
+			bc.activate(0.8, safeIntToInt32(signal.Severity))
 		}
 
 	case ControlTypeReroute:
 		// Rerouting would be handled at a higher level
 		// For now, just activate backpressure
 		if atomic.LoadInt32(&bc.isActive) == 0 {
-			bc.activate(0.6, int32(signal.Severity))
+			severity := signal.Severity
+			if severity > math.MaxInt32 {
+				severity = math.MaxInt32
+			} else if severity < math.MinInt32 {
+				severity = math.MinInt32
+			}
+			bc.activate(0.6, int32(severity))
 		}
 
 	default:

@@ -156,39 +156,39 @@ func (ol *OperationLogger) Fatal(msg string, fields ...zap.Field) {
 
 // LogStart logs the start of an operation
 func (ol *OperationLogger) LogStart(msg string, fields ...zap.Field) {
-	allFields := append(fields, zap.String("phase", "start"))
-	ol.logger.Info(msg, allFields...)
+	fields = append(fields, zap.String("phase", "start"))
+	ol.logger.Info(msg, fields...)
 }
 
 // LogProgress logs operation progress
 func (ol *OperationLogger) LogProgress(msg string, progress float64, fields ...zap.Field) {
-	allFields := append(fields,
+	fields = append(fields,
 		zap.String("phase", "progress"),
 		zap.Float64("progress_percent", progress*100),
 		zap.Duration("elapsed", time.Since(ol.startTime)),
 	)
-	ol.logger.Info(msg, allFields...)
+	ol.logger.Info(msg, fields...)
 }
 
 // LogComplete logs the completion of an operation
 func (ol *OperationLogger) LogComplete(msg string, fields ...zap.Field) {
 	duration := time.Since(ol.startTime)
-	allFields := append(fields,
+	fields = append(fields,
 		zap.String("phase", "complete"),
 		zap.Duration("total_duration", duration),
 	)
-	ol.logger.Info(msg, allFields...)
+	ol.logger.Info(msg, fields...)
 }
 
 // LogError logs an operation error
 func (ol *OperationLogger) LogError(msg string, err error, fields ...zap.Field) {
 	duration := time.Since(ol.startTime)
-	allFields := append(fields,
+	fields = append(fields,
 		zap.String("phase", "error"),
 		zap.Duration("duration_before_error", duration),
 		zap.Error(err),
 	)
-	ol.logger.Error(msg, allFields...)
+	ol.logger.Error(msg, fields...)
 }
 
 // RecordMetrics provides a convenient interface for common logging patterns

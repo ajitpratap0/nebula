@@ -154,7 +154,7 @@ func (aw *arrowWriter) flushBatch() error {
 	return nil
 }
 
-func (aw *arrowWriter) appendValue(colIdx int, value interface{}, dataType arrow.DataType) error {
+func (aw *arrowWriter) appendValue(colIdx int, value interface{}, _ arrow.DataType) error {
 	builder := aw.recordBuilder.Field(colIdx)
 
 	if value == nil {

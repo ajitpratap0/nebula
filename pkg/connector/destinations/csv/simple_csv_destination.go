@@ -23,7 +23,7 @@ type SimpleCSVDestination struct {
 }
 
 // NewSimpleCSVDestination creates a new simple CSV destination
-// DEPRECATED: Use NewCSVDestination instead. This will be removed in v3.0.0
+// Deprecated: Use NewCSVDestination instead. This will be removed in v3.0.0
 func NewSimpleCSVDestination(config *config.BaseConfig) (core.Destination, error) {
 	// Log deprecation warning
 	fmt.Printf("WARNING: 'csv-legacy' connector is deprecated. Please use 'csv' connector instead. This legacy connector will be removed in v3.0.0\n")

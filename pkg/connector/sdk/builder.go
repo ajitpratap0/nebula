@@ -158,20 +158,20 @@ func (cb *ConnectorBuilder) WithDefaults(
 // WithOptimization is deprecated - unified pool system is always enabled.
 // This method is kept for backward compatibility but has no effect.
 // Deprecated: The unified pool system is always enabled in the current architecture.
-func (cb *ConnectorBuilder) WithOptimization(enabled bool, config interface{}) *ConnectorBuilder {
+func (cb *ConnectorBuilder) WithOptimization(_ bool, _ interface{}) *ConnectorBuilder {
 	// No-op: unified pool system is always enabled
 	return cb
 }
 
 // WithCompression enables/disables compression with specified algorithm and level
-func (cb *ConnectorBuilder) WithCompression(enabled bool, algorithm compression.Algorithm, level compression.Level) *ConnectorBuilder {
+func (cb *ConnectorBuilder) WithCompression(_ bool, _ compression.Algorithm, _ compression.Level) *ConnectorBuilder {
 	// Compression is handled separately from pool system
 	// This is kept for compatibility but doesn't affect pool behavior
 	return cb
 }
 
 // WithCompressionThreshold sets the minimum size threshold for compression
-func (cb *ConnectorBuilder) WithCompressionThreshold(threshold int) *ConnectorBuilder {
+func (cb *ConnectorBuilder) WithCompressionThreshold(_ int) *ConnectorBuilder {
 	// Compression thresholds are handled separately from pool system
 	// This is kept for compatibility
 	return cb

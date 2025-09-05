@@ -81,7 +81,8 @@ func basicSnowflakeExample(ctx context.Context) {
 
 	// Create schema in destination
 	if err := dest.CreateSchema(ctx, initialSchema); err != nil {
-		log.Fatal("Failed to create schema:", err)
+		log.Printf("Failed to create schema: %v", err)
+		return
 	}
 
 	fmt.Println("Initial schema created with 3 fields")
@@ -125,7 +126,8 @@ func basicSnowflakeExample(ctx context.Context) {
 
 	// Write with automatic schema evolution
 	if err := dest.Write(ctx, stream); err != nil {
-		log.Fatal("Failed to write data:", err)
+		log.Printf("Failed to write data: %v", err)
+		return
 	}
 
 	fmt.Println("Data written successfully - schema evolved automatically!")
@@ -188,7 +190,8 @@ func advancedBigQueryExample(ctx context.Context) {
 	}
 
 	if err := dest.CreateSchema(ctx, v1Schema); err != nil {
-		log.Fatal("Failed to create v1 schema:", err)
+		log.Printf("Failed to create v1 schema: %v", err)
+		return
 	}
 
 	// Evolved data with type changes
@@ -220,7 +223,8 @@ func advancedBigQueryExample(ctx context.Context) {
 	}()
 
 	if err := dest.WriteBatch(ctx, batchStream); err != nil {
-		log.Fatal("Failed to write batch:", err)
+		log.Printf("Failed to write batch: %v", err)
+		return
 	}
 
 	fmt.Println("Schema evolved with type changes and nested fields!")
@@ -280,7 +284,8 @@ func customStrategyExample(ctx context.Context) {
 	}
 
 	if err := evolvedDest.CreateSchema(ctx, baseSchema); err != nil {
-		log.Fatal("Failed to create base schema:", err)
+		log.Printf("Failed to create base schema: %v", err)
+		return
 	}
 
 	// Try to add optional field (should succeed)

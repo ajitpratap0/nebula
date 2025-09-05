@@ -514,10 +514,12 @@ type MemoryOptimizationStage struct {
 	optimizer *MemoryOptimizer
 }
 
+// Name returns the stage name
 func (mos *MemoryOptimizationStage) Name() string {
 	return "memory_optimization"
 }
 
+// Process optimizes records for memory efficiency
 func (mos *MemoryOptimizationStage) Process(ctx context.Context, records []*models.Record) ([]*models.Record, error) {
 	return mos.optimizer.OptimizeRecords(records), nil
 }
@@ -527,10 +529,12 @@ type SortingStage struct {
 	keys []string
 }
 
+// Name returns the stage name
 func (ss *SortingStage) Name() string {
 	return "sorting"
 }
 
+// Process sorts records based on sorting keys
 func (ss *SortingStage) Process(ctx context.Context, records []*models.Record) ([]*models.Record, error) {
 	// Simple bubble sort for demonstration
 	// In practice, use more efficient sorting
@@ -562,10 +566,12 @@ type PartitioningStage struct {
 	keys []string
 }
 
+// Name returns the stage name
 func (ps *PartitioningStage) Name() string {
 	return "partitioning"
 }
 
+// Process adds partition metadata to records
 func (ps *PartitioningStage) Process(ctx context.Context, records []*models.Record) ([]*models.Record, error) {
 	// Add partition metadata
 	for _, record := range records {
@@ -589,10 +595,12 @@ type ClusteringStage struct {
 	keys []string
 }
 
+// Name returns the stage name
 func (cs *ClusteringStage) Name() string {
 	return "clustering"
 }
 
+// Process groups records by cluster keys
 func (cs *ClusteringStage) Process(ctx context.Context, records []*models.Record) ([]*models.Record, error) {
 	// Group records by cluster keys
 	clusters := make(map[string][]*models.Record)
@@ -623,10 +631,12 @@ type FormatConversionStage struct {
 	compression string
 }
 
+// Name returns the stage name
 func (fcs *FormatConversionStage) Name() string {
 	return "format_conversion"
 }
 
+// Process converts records to target format
 func (fcs *FormatConversionStage) Process(ctx context.Context, records []*models.Record) ([]*models.Record, error) {
 	// Mark records as ready for format conversion
 	for _, record := range records {

@@ -77,23 +77,23 @@ func (ts *TestSuite) TestSourceConnector(source core.Source, config *config.Base
 		}
 	})
 
-	ts.t.Run("Capabilities", func(t *testing.T) {
+	ts.t.Run("Capabilities", func(_ *testing.T) {
 		ts.testSourceCapabilities(source)
 	})
 
-	ts.t.Run("Read", func(t *testing.T) {
+	ts.t.Run("Read", func(_ *testing.T) {
 		if source.SupportsBatch() {
 			ts.testSourceRead(ctx, source)
 		}
 	})
 
-	ts.t.Run("ReadBatch", func(t *testing.T) {
+	ts.t.Run("ReadBatch", func(_ *testing.T) {
 		if source.SupportsBatch() {
 			ts.testSourceReadBatch(ctx, source)
 		}
 	})
 
-	ts.t.Run("StateManagement", func(t *testing.T) {
+	ts.t.Run("StateManagement", func(_ *testing.T) {
 		if source.SupportsIncremental() {
 			ts.testSourceStateManagement(source)
 		}
@@ -130,11 +130,11 @@ func (ts *TestSuite) TestDestinationConnector(destination core.Destination, conf
 		}
 	})
 
-	ts.t.Run("Capabilities", func(t *testing.T) {
+	ts.t.Run("Capabilities", func(_ *testing.T) {
 		ts.testDestinationCapabilities(destination)
 	})
 
-	ts.t.Run("SchemaOperations", func(t *testing.T) {
+	ts.t.Run("SchemaOperations", func(_ *testing.T) {
 		ts.testDestinationSchemaOperations(ctx, destination)
 	})
 
