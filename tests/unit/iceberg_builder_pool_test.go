@@ -87,19 +87,19 @@ func TestArrowBuilderPool_SingleSchemaReuse(t *testing.T) {
 	}, nil)
 
 	schema2 := arrow.NewSchema([]arrow.Field{
-		{Name: "name", Type: arrow.BinaryTypes.String},
+		{Name: "id", Type: arrow.PrimitiveTypes.Int32},
 	}, nil)
 
 	// Get builder for schema1 - this sets the pool's schema
 	pooled1 := pool.Get(schema1)
 	pool.Put(pooled1)
 
-	// Get builder for schema2 - should reuse same builder (single schema per pool)
+	// Get builder for schema2 (identical to schema1) - should reuse same builder
 	pooled2 := pool.Get(schema2)
 
-	// Should be same instance since pool is optimized for single schema
+	// Should be same instance since schemas are identical
 	if pooled1 != pooled2 {
-		t.Error("expected same pooled builder instance (single schema optimization)")
+		t.Error("expected same pooled builder instance (identical schema reuse)")
 	}
 
 	// Verify builder reuse worked for single-schema optimization

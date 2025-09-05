@@ -607,6 +607,10 @@ func (s *CSVSource) readBatches(ctx context.Context, batchSize int, batchChan ch
 }
 
 func (s *CSVSource) rowToRecord(row []string) *models.Record {
+	return s.rowToRecordWithRowNumber(row, s.currentRow)
+}
+
+func (s *CSVSource) rowToRecordWithRowNumber(row []string, rowNumber int) *models.Record {
 	if len(row) == 0 {
 		return nil
 	}
@@ -636,7 +640,7 @@ func (s *CSVSource) rowToRecord(row []string) *models.Record {
 
 	// Add metadata using interned keys
 	record.SetMetadata(pool.InternString("source_file"), s.getFilePath())
-	record.SetMetadata(pool.InternString("row_number"), s.currentRow)
+	record.SetMetadata(pool.InternString("row_number"), rowNumber)
 	record.SetMetadata(pool.InternString("connector_version"), s.Version())
 
 	return record
@@ -676,9 +680,9 @@ func (s *CSVSource) readParallel(ctx context.Context) (*core.RecordStream, error
 		Headers:    s.headers,
 		SkipHeader: false, // We already read headers
 		Delimiter:  ',',   // Default CSV delimiter
-		ParseFunc: func(fields []string) (*models.Record, error) {
-			// Use existing row parsing logic
-			return s.rowToRecord(fields), nil
+		ParseFunc: func(fields []string, rowNumber int) (*models.Record, error) {
+			// Use row parsing with explicit row number to avoid data race
+			return s.rowToRecordWithRowNumber(fields, rowNumber), nil
 		},
 	}
 

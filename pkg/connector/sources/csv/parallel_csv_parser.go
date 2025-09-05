@@ -28,7 +28,7 @@ type ParallelCSVParser struct {
 	delimiter  rune
 
 	// Parsing state
-	parseFunc func([]string) (*models.Record, error)
+	parseFunc func([]string, int) (*models.Record, error)
 
 	// Metrics
 	rowsParsed int64
@@ -54,7 +54,7 @@ type ParallelCSVConfig struct {
 	Headers    []string
 	SkipHeader bool
 	Delimiter  rune
-	ParseFunc  func([]string) (*models.Record, error)
+	ParseFunc  func([]string, int) (*models.Record, error)
 }
 
 // NewParallelCSVParser creates a new parallel CSV parser
@@ -214,10 +214,11 @@ func (p *ParallelCSVParser) processChunk(workerID int, chunk *CSVChunk, recordCh
 
 		// Convert to record using the provided parse function
 		var record *models.Record
+		rowNumber := chunk.StartRow + i + 1
 		if p.parseFunc != nil {
-			record, err = p.parseFunc(fields)
+			record, err = p.parseFunc(fields, rowNumber)
 		} else {
-			record = p.defaultParseRecord(fields, chunk.StartRow+i+1)
+			record = p.defaultParseRecord(fields, rowNumber)
 		}
 
 		if err != nil {
