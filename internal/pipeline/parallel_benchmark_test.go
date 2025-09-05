@@ -36,6 +36,7 @@ func (m *MockSource) SupportsBatch() bool                                       
 func (m *MockSource) Subscribe(ctx context.Context, tables []string) (*core.ChangeStream, error) {
 	return nil, nil
 }
+
 func (m *MockSource) ReadBatch(ctx context.Context, batchSize int) (*core.BatchStream, error) {
 	return nil, nil
 }
@@ -98,9 +99,11 @@ func (m *MockDestination) SupportsStreaming() bool                              
 func (m *MockDestination) BulkLoad(ctx context.Context, reader interface{}, format string) error {
 	return nil
 }
+
 func (m *MockDestination) BeginTransaction(ctx context.Context) (core.Transaction, error) {
 	return nil, nil
 }
+
 func (m *MockDestination) Upsert(ctx context.Context, records []*models.Record, keys []string) error {
 	return nil
 }

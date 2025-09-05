@@ -620,9 +620,7 @@ func (jp *JSONParser) detectFormat(filePath string) (JSONFormat, error) {
 	header := pool.GetByteSlice()
 
 	if cap(header) < 1024 {
-
 		header = make([]byte, 1024)
-
 	}
 
 	defer pool.PutByteSlice(header)
@@ -686,7 +684,7 @@ func NewCSVWriter(config *CSVParserConfig) *CSVWriter {
 func (cw *CSVWriter) WriteToFile(ctx context.Context, filePath string, records []*models.Record, schema *core.Schema) error {
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(filePath)
-	if err := os.MkdirAll(dir, 0750); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to create directory")
 	}
 
@@ -813,7 +811,7 @@ func NewJSONWriter(config *JSONParserConfig) *JSONWriter {
 func (jw *JSONWriter) WriteToFile(ctx context.Context, filePath string, records []*models.Record) error {
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(filePath)
-	if err := os.MkdirAll(dir, 0750); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to create directory")
 	}
 

@@ -477,9 +477,7 @@ func (ow *orcWriter) encodeColumn(data []interface{}, fieldType core.FieldType) 
 		boolBytes := pool.GetByteSlice()
 
 		if cap(boolBytes) < bytes {
-
 			boolBytes = make([]byte, bytes)
-
 		}
 
 		defer pool.PutByteSlice(boolBytes)
@@ -533,7 +531,6 @@ func (ow *orcWriter) writeStripeFooter() (int, error) {
 	footer := pool.GetByteSlice()
 	if cap(footer) < 1024 {
 		footer = make([]byte, 0, 1024)
-
 	}
 
 	defer pool.PutByteSlice(footer)

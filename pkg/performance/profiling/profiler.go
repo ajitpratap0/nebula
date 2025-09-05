@@ -154,7 +154,7 @@ func (p *Profiler) Start(ctx context.Context) error {
 	p.startTime = time.Now()
 
 	// Create output directory
-	if err := os.MkdirAll(p.config.OutputDir, 0755); err != nil {
+	if err := os.MkdirAll(p.config.OutputDir, 0o755); err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create profile directory")
 	}
 

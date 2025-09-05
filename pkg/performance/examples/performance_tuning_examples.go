@@ -141,7 +141,6 @@ func CPUOptimizationExample() {
 		// CPU-intensive processing
 		return processRecordIntensive(record)
 	})
-
 	if err != nil {
 		log.Printf("Processing error: %v", err)
 	}
@@ -400,7 +399,6 @@ func EndToEndOptimizationExample() {
 			profiler.IncrementRecords(1)
 			return nil
 		})
-
 		if err != nil {
 			log.Printf("Processing error: %v", err)
 		}

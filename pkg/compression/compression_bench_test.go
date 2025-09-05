@@ -67,9 +67,7 @@ func generateBinaryData(size int) []byte {
 	data := pool.GetByteSlice()
 
 	if cap(data) < size {
-
 		data = make([]byte, size)
-
 	}
 
 	defer pool.PutByteSlice(data)

@@ -266,8 +266,8 @@ func (pc *ParallelCompressor) compressionWorker(
 		id   int
 		data []byte
 	},
-	resultChan chan<- CompressedChunk) {
-
+	resultChan chan<- CompressedChunk,
+) {
 	defer pc.wg.Done()
 
 	for chunk := range chunkChan {
@@ -287,8 +287,8 @@ func (pc *ParallelCompressor) decompressionWorker(
 		id   int
 		data []byte
 	},
-	resultChan chan<- CompressedChunk) {
-
+	resultChan chan<- CompressedChunk,
+) {
 	defer pc.wg.Done()
 
 	for chunk := range chunkChan {
@@ -428,9 +428,7 @@ func (pc *ParallelCompressor) createHeader(numChunks, originalSize int) []byte {
 	header := pool.GetByteSlice()
 
 	if cap(header) < 12 {
-
 		header = make([]byte, 12)
-
 	}
 
 	defer pool.PutByteSlice(header)

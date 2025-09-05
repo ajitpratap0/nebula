@@ -26,9 +26,7 @@ import (
 	_ "github.com/ajitpratap0/nebula/pkg/connector/sources/json"
 )
 
-var (
-	version = "0.1.0"
-)
+var version = "0.1.0"
 
 // SystemFlags contains optional system-level configuration
 type SystemFlags struct {

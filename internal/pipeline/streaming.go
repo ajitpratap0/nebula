@@ -571,7 +571,8 @@ func (sp *StreamingPipeline) loadStage(ctx context.Context, in <-chan *Streaming
 func (sp *StreamingPipeline) loadWorker(
 	ctx context.Context, workerID int,
 	in <-chan *StreamingRecord, errors chan<- *StreamingError,
-	wg *sync.WaitGroup) {
+	wg *sync.WaitGroup,
+) {
 	defer wg.Done()
 
 	batch := pool.GetBatchSlice(sp.config.BatchSize)

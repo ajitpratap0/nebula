@@ -1284,7 +1284,7 @@ func (s *SnowflakeOptimizedDestination) convertRecordsToFileFormat(records []*mo
 func (s *SnowflakeOptimizedDestination) uploadFile(ctx context.Context, upload *FileUpload) error {
 	// Create a temporary file for staging
 	tempFile := stringpool.Sprintf("/tmp/%s", upload.Filename)
-	if err := os.WriteFile(tempFile, upload.Data, 0600); err != nil {
+	if err := os.WriteFile(tempFile, upload.Data, 0o600); err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to write temp file")
 	}
 	defer func() { _ = os.Remove(tempFile) }() // Best effort cleanup

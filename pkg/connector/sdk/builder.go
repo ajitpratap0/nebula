@@ -143,8 +143,8 @@ func (cb *ConnectorBuilder) WithConfigProperty(name string, schema map[string]in
 func (cb *ConnectorBuilder) WithDefaults(
 	batchSize, bufferSize, maxConcurrency int,
 	requestTimeout, retryDelay time.Duration,
-	retryAttempts, rateLimit int) *ConnectorBuilder {
-
+	retryAttempts, rateLimit int,
+) *ConnectorBuilder {
 	cb.defaultBatchSize = batchSize
 	cb.defaultBufferSize = bufferSize
 	cb.defaultMaxConcurrency = maxConcurrency
@@ -374,8 +374,8 @@ func (sb *SourceBuilder) WithConfigProperty(name string, schema map[string]inter
 func (sb *SourceBuilder) WithDefaults(
 	batchSize, bufferSize, maxConcurrency int,
 	requestTimeout, retryDelay time.Duration,
-	retryAttempts, rateLimit int) *SourceBuilder {
-
+	retryAttempts, rateLimit int,
+) *SourceBuilder {
 	sb.ConnectorBuilder.WithDefaults(batchSize, bufferSize, maxConcurrency, requestTimeout, retryDelay, retryAttempts, rateLimit)
 	return sb
 }
@@ -487,8 +487,8 @@ func (sb *SourceBuilder) WithStateManagement(
 	getPosition func() core.Position,
 	setPosition func(core.Position) error,
 	getState func() core.State,
-	setState func(core.State) error) *SourceBuilder {
-
+	setState func(core.State) error,
+) *SourceBuilder {
 	sb.getPositionHook = getPosition
 	sb.setPositionHook = setPosition
 	sb.getStateHook = getState
@@ -568,8 +568,8 @@ func (db *DestinationBuilder) WithConfigProperty(name string, schema map[string]
 func (db *DestinationBuilder) WithDefaults(
 	batchSize, bufferSize, maxConcurrency int,
 	requestTimeout, retryDelay time.Duration,
-	retryAttempts, rateLimit int) *DestinationBuilder {
-
+	retryAttempts, rateLimit int,
+) *DestinationBuilder {
 	db.ConnectorBuilder.WithDefaults(batchSize, bufferSize, maxConcurrency, requestTimeout, retryDelay, retryAttempts, rateLimit)
 	return db
 }
@@ -700,8 +700,8 @@ func (db *DestinationBuilder) WithUpsertHook(hook func(context.Context, []*model
 // WithSchemaManagement sets schema management hooks
 func (db *DestinationBuilder) WithSchemaManagement(
 	alterSchema func(context.Context, *core.Schema, *core.Schema) error,
-	dropSchema func(context.Context, *core.Schema) error) *DestinationBuilder {
-
+	dropSchema func(context.Context, *core.Schema) error,
+) *DestinationBuilder {
 	db.alterSchemaHook = alterSchema
 	db.dropSchemaHook = dropSchema
 	return db

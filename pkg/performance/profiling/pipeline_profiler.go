@@ -362,7 +362,7 @@ func (p *PipelineProfiler) saveReport(result *ProfileResult) error {
 	}
 
 	// Write to file
-	if err := os.WriteFile(filename, data, 0600); err != nil {
+	if err := os.WriteFile(filename, data, 0o600); err != nil {
 		return fmt.Errorf("failed to write profile report: %w", err)
 	}
 

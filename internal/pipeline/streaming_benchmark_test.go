@@ -16,7 +16,6 @@ import (
 
 // BenchmarkStreamingPipeline tests high-performance streaming pipeline
 func BenchmarkStreamingPipeline(b *testing.B) {
-
 	// Create optimized streaming config
 	config := &StreamingConfig{
 		InitialBufferSize:     100000,  // Large buffer for high throughput

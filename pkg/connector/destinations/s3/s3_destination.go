@@ -273,7 +273,6 @@ func (d *S3Destination) CreateSchema(ctx context.Context, schema *core.Schema) e
 		Body:        strings.NewReader(string(schemaJSON)),
 		ContentType: aws.String("application/json"),
 	})
-
 	if err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to write schema metadata")
 	}
@@ -365,7 +364,6 @@ func (d *S3Destination) DropSchema(ctx context.Context, schema *core.Schema) err
 		Bucket: aws.String(d.bucket),
 		Key:    aws.String(key),
 	})
-
 	if err != nil {
 		d.GetLogger().Warn("failed to delete schema metadata", zap.Error(err))
 	}
@@ -432,7 +430,6 @@ func (d *S3Destination) testBucketAccess(ctx context.Context) error {
 	_, err := d.s3Client.HeadBucket(ctx, &s3.HeadBucketInput{
 		Bucket: aws.String(d.bucket),
 	})
-
 	if err != nil {
 		// Try to create bucket if it doesn't exist
 		if strings.Contains(err.Error(), "NotFound") {
@@ -592,7 +589,6 @@ func (d *S3Destination) uploadBatch(ctx context.Context, batch []*models.Record)
 			"created":     time.Now().UTC().Format(time.RFC3339),
 		},
 	})
-
 	if err != nil {
 		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to upload to S3")
 	}

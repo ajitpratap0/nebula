@@ -145,7 +145,7 @@ func (d *JSONDestination) Initialize(ctx context.Context, config *nebulaConfig.B
 
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(d.filePath)
-	if err := os.MkdirAll(dir, 0755); err != nil { //nolint:gosec
+	if err := os.MkdirAll(dir, 0o755); err != nil { //nolint:gosec
 		return fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
 

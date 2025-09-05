@@ -539,7 +539,7 @@ func (d *CSVDestination) createFile(config *config.BaseConfig) error {
 
 	// Create directory if it doesn't exist
 	if dir := filepath.Dir(path); dir != "" {
-		if err := os.MkdirAll(dir, 0750); err != nil {
+		if err := os.MkdirAll(dir, 0o750); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}
 	}
@@ -552,7 +552,7 @@ func (d *CSVDestination) createFile(config *config.BaseConfig) error {
 		flags |= os.O_APPEND
 	}
 
-	file, err := os.OpenFile(path, flags, 0600)
+	file, err := os.OpenFile(path, flags, 0o600)
 	if err != nil {
 		return fmt.Errorf("failed to create file %s: %w", path, err)
 	}

@@ -293,6 +293,7 @@ func (n *NessieCatalog) CreateBranch(ctx context.Context, branchName, fromRef st
 func (n *NessieCatalog) MergeBranch(ctx context.Context, branchName, targetBranch string) error {
 	return fmt.Errorf("MergeBranch not implemented yet")
 }
+
 func (n *NessieCatalog) ListBranches(ctx context.Context) ([]string, error) {
 	return nil, fmt.Errorf("ListBranches not implemented yet")
 }

@@ -194,7 +194,6 @@ func (ps *ParallelismStrategy) Apply(ctx context.Context, data interface{}) (int
 		record.Metadata.Custom["parallel_processed"] = true
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}

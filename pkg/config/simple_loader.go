@@ -34,7 +34,7 @@ func Save(filePath string, config interface{}) error {
 		return fmt.Errorf("failed to marshal YAML: %w", err)
 	}
 
-	if err := os.WriteFile(filePath, data, 0644); err != nil { //nolint:gosec
+	if err := os.WriteFile(filePath, data, 0o644); err != nil { //nolint:gosec
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

@@ -26,7 +26,7 @@ func main() {
 	flag.Parse()
 
 	// Ensure output directory exists
-	if err := os.MkdirAll(*outputDir, 0750); err != nil {
+	if err := os.MkdirAll(*outputDir, 0o750); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create output directory: %v\n", err)
 		os.Exit(1)
 	}
@@ -95,7 +95,7 @@ func runGoogleSheetsBenchmarks(timestamp string) {
 		}
 
 		// Append to output file
-		f, err := os.OpenFile(outputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+		f, err := os.OpenFile(outputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to open output file: %v\n", err)
 			continue

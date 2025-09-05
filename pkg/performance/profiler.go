@@ -369,7 +369,7 @@ func (lt *LatencyTracker) GetPercentiles() (p50, p95, p99 time.Duration) {
 	p95 = sorted[len(sorted)*95/100]
 	p99 = sorted[len(sorted)*99/100]
 
-	return
+	return p50, p95, p99
 }
 
 // ProfileResult contains profiling results

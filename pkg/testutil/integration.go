@@ -61,7 +61,7 @@ func (s *IntegrationTestSuite) TempDir() string {
 // CreateTempFile creates a temporary file with content
 func (s *IntegrationTestSuite) CreateTempFile(name string, content []byte) string {
 	path := filepath.Join(s.tempDir, name)
-	err := os.WriteFile(path, content, 0644)
+	err := os.WriteFile(path, content, 0o644)
 	require.NoError(s.T(), err)
 	return path
 }

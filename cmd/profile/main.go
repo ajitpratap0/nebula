@@ -44,7 +44,7 @@ func main() {
 	fmt.Printf("Output directory: %s\n", *outputDir)
 
 	// Create output directory
-	if err := os.MkdirAll(*outputDir, 0750); err != nil {
+	if err := os.MkdirAll(*outputDir, 0o750); err != nil {
 		log.Fatalf("Failed to create output directory: %v", err)
 	}
 

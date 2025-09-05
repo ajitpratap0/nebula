@@ -73,7 +73,6 @@ package postgresqlcdc
 import (
 	"context"
 	"fmt"
-
 	"strings"
 
 	"github.com/ajitpratap0/nebula/pkg/cdc"

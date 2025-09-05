@@ -43,7 +43,7 @@ baseline:
 fmt:
 	@echo "Formatting code..."
 	@go fmt ./...
-	@gofumpt -w .
+	@$(shell go env GOPATH)/bin/gofumpt -w .
 
 # Lint code
 lint:
