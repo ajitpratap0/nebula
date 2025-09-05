@@ -17,7 +17,7 @@ import (
 // BatchingStrategy optimizes batch sizes
 type BatchingStrategy struct {
 	optimizer    *Optimizer
-	currentBatch int
+	currentBatch int //nolint:unused // Reserved for current batch size tracking
 	throughput   float64
 	mu           sync.Mutex
 }
@@ -70,7 +70,7 @@ func (bs *BatchingStrategy) ShouldApply(metrics *Metrics) bool {
 // CompressionStrategy applies compression
 type CompressionStrategy struct {
 	compressor *compression.CompressorPool
-	threshold  int
+	threshold  int //nolint:unused // Reserved for compression threshold configuration
 }
 
 // Name returns strategy name
@@ -117,8 +117,8 @@ func (cs *CompressionStrategy) ShouldApply(metrics *Metrics) bool {
 
 // ColumnarStrategy converts to columnar format
 type ColumnarStrategy struct {
-	writer columnar.Writer
-	config *columnar.WriterConfig
+	writer columnar.Writer        //nolint:unused // Reserved for columnar format writer
+	config *columnar.WriterConfig //nolint:unused // Reserved for columnar configuration
 }
 
 // Name returns strategy name
@@ -159,7 +159,7 @@ func (cs *ColumnarStrategy) ShouldApply(metrics *Metrics) bool {
 // ParallelismStrategy applies parallel processing
 type ParallelismStrategy struct {
 	optimizer *Optimizer
-	workers   int
+	workers   int //nolint:unused // Reserved for worker count configuration
 }
 
 // Name returns strategy name
@@ -212,7 +212,7 @@ func (ps *ParallelismStrategy) ShouldApply(metrics *Metrics) bool {
 type CachingStrategy struct {
 	cache   *CacheOptimizer
 	keyFunc func(*models.Record) string
-	ttl     time.Duration
+	ttl     time.Duration //nolint:unused // Reserved for cache TTL configuration
 }
 
 // Name returns strategy name

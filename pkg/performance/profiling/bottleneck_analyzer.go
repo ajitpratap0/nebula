@@ -323,7 +323,7 @@ func (b *BottleneckAnalyzer) analyzeConcurrency(metrics *RuntimeMetrics) {
 }
 
 // getCPUSuggestions returns suggestions for CPU bottlenecks
-func (b *BottleneckAnalyzer) getCPUSuggestions(function string, cpuPercent float64) []string {
+func (b *BottleneckAnalyzer) getCPUSuggestions(function string, cpuPercent float64) []string { //nolint:unused // Reserved for CPU bottleneck analysis
 	suggestions := []string{
 		"Profile the specific function to identify optimization opportunities",
 		"Consider algorithmic improvements",

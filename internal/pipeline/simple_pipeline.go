@@ -342,13 +342,13 @@ func (p *SimplePipeline) batchCollector(ctx context.Context, in <-chan *models.R
 	p.logger.Info("starting batch collector", zap.Duration("flush_interval", p.flushInterval))
 
 	batch := pool.GetBatchSlice(p.batchSize)
-	
+
 	// Ensure flush interval is positive, default to 1 second if not set
 	flushInterval := p.flushInterval
 	if flushInterval <= 0 {
 		flushInterval = time.Second
 	}
-	
+
 	ticker := time.NewTicker(flushInterval)
 	defer ticker.Stop()
 

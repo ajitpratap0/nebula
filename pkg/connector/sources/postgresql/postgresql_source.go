@@ -34,7 +34,7 @@ type PostgreSQLSource struct {
 	poolConfig *pgxpool.Config
 
 	// Reading state
-	currentBatch  []*models.Record
+	currentBatch  []*models.Record //nolint:unused // Reserved for batch processing
 	recordsRead   int64
 	bytesRead     int64
 	isInitialized bool
@@ -50,7 +50,7 @@ type PostgreSQLSource struct {
 
 	// State management
 	state        core.State
-	lastPosition core.Position
+	lastPosition core.Position //nolint:unused // Reserved for position tracking
 }
 
 // PostgreSQLPosition implements core.Position for PostgreSQL

@@ -12,10 +12,10 @@ import (
 type Queue struct {
 	// Separate head and tail on different cache lines to avoid false sharing
 	head      atomic.Uint64
-	_padding1 [7]uint64 // 56 bytes padding to separate cache lines //nolint:unused
+	_padding1 [7]uint64 //nolint:unused // 56 bytes padding to separate cache lines
 
 	tail      atomic.Uint64
-	_padding2 [7]uint64 // 56 bytes padding //nolint:unused
+	_padding2 [7]uint64 //nolint:unused // 56 bytes padding
 
 	buffer   []unsafe.Pointer
 	capacity uint64

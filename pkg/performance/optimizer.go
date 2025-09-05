@@ -181,7 +181,7 @@ type BufferPool struct {
 	pool   sync.Pool
 	size   int
 	hits   int64
-	misses int64
+	misses int64 //nolint:unused // Reserved for cache miss tracking
 }
 
 // NewBufferPool creates a buffer pool

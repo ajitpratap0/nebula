@@ -46,7 +46,7 @@ type DeadLetterQueue struct {
 type DLQMetrics struct {
 	totalRecords   int64
 	expiredRecords int64
-	retriedRecords int64
+	retriedRecords int64 //nolint:unused // Reserved for retry metrics tracking
 	lastCleanup    time.Time
 }
 
@@ -66,7 +66,7 @@ type RetryState struct {
 	nextRetry    time.Time
 	backoffDelay time.Duration
 	errorType    string
-	context      map[string]interface{}
+	context      map[string]interface{} //nolint:unused // Reserved for error context information
 }
 
 // PipelineCircuitBreaker provides circuit breaker functionality for error management

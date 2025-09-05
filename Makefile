@@ -48,7 +48,7 @@ fmt:
 # Lint code
 lint:
 	@echo "Linting code..."
-	@$(shell go env GOPATH)/bin/golangci-lint run --timeout=10m ./...
+	@golangci-lint run --timeout=10m ./...
 
 # Check documentation coverage
 docs-check:

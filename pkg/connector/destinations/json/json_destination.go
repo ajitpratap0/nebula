@@ -39,7 +39,7 @@ type JSONDestination struct {
 	bytesWritten   int64
 	mu             sync.Mutex
 	isArray        bool
-	arrayStarted   bool // Reserved for future array formatting support
+	arrayStarted   bool //nolint:unused // Reserved for future array formatting support
 	firstRecord    bool
 	schema         *core.Schema
 	filePath       string

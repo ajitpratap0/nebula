@@ -1,0 +1,31 @@
+version: "2"
+
+# golangci-lint v2 configuration for Nebula
+run:
+  timeout: 10m
+  tests: true
+
+linters:
+  default: none
+  enable:
+    # Essential linters
+    - errcheck      # Check for unchecked errors
+    - govet         # Standard Go vet checks
+    - ineffassign   # Detect unused assignments
+    - staticcheck   # Staticcheck analysis (includes gosimple)
+    - unused        # Find unused code
+    
+    # Code quality linters  
+    - gocritic      # Comprehensive Go critique
+    - revive        # Fast, configurable, extensible, flexible, and beautiful linter for Go
+    - gosec         # Security-focused linter
+    
+    # Performance and best practices
+    - prealloc      # Find slice declarations that could be preallocated
+    - unconvert     # Remove unnecessary type conversions
+    - misspell      # Check for misspelled words
+
+formatters:
+  enable:
+    - gofmt         # Check formatting
+    - goimports     # Check import formatting

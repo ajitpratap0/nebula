@@ -21,7 +21,7 @@ type Wrapper struct {
 	level              compression.Level
 	compressor         compression.Compressor
 	compressedWriter   io.WriteCloser
-	originalWriter     io.Writer
+	originalWriter     io.Writer //nolint:unused // Reserved for fallback writer reference
 	logger             *zap.Logger
 }
 
@@ -63,7 +63,7 @@ func WrapConfig(cfg *nebulaConfig.BaseConfig) *nebulaConfig.BaseConfig {
 }
 
 // getCompressionExtension returns the file extension for the compression algorithm
-func getCompressionExtension(algorithm compression.Algorithm) string {
+func getCompressionExtension(algorithm compression.Algorithm) string { //nolint:unused // Reserved for file extension mapping
 	switch algorithm {
 	case compression.Gzip:
 		return ".gz"

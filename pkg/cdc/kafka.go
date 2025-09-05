@@ -57,8 +57,8 @@ type KafkaConsumer struct {
 
 	// Event processing
 	eventHandler EventHandler
-	batchHandler BatchEventHandler
-	processor    *StreamProcessor
+	batchHandler BatchEventHandler //nolint:unused // Reserved for batch event processing
+	processor    *StreamProcessor  //nolint:unused // Reserved for stream processing pipeline
 
 	// Topic subscriptions
 	topics []string

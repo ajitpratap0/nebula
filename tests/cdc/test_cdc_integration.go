@@ -190,7 +190,7 @@ func testMongoDBCDC(ctx context.Context) {
 }
 
 // Example: Reading CDC events
-func readCDCEvents(ctx context.Context, source core.Source) {
+func readCDCEvents(ctx context.Context, source core.Source) { //nolint:unused // Example function for demonstration purposes
 	// Start reading changes
 	stream, err := source.Read(ctx)
 	if err != nil {

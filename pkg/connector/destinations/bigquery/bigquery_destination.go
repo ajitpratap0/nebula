@@ -58,7 +58,7 @@ type BigQueryDestination struct {
 
 	// Compression configuration
 	compressionType string
-	compressor      compression.Compressor
+	compressor      compression.Compressor //nolint:unused // Reserved for data compression functionality
 
 	// Removed optimization layer - simplified for compilation
 

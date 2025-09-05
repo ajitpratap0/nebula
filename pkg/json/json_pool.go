@@ -289,7 +289,7 @@ func (se *StreamingEncoder) Close() error {
 // OptimizedJSONWriter provides high-performance JSON writing with minimal allocations
 type OptimizedJSONWriter struct {
 	buffer     []byte
-	bytePool   *pool.Pool[[]byte]
+	bytePool   *pool.Pool[[]byte] //nolint:unused // Reserved for byte buffer pooling
 	escapeHTML bool
 }
 

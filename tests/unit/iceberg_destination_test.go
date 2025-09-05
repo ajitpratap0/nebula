@@ -19,15 +19,15 @@ func TestIcebergDestination_Configuration(t *testing.T) {
 			Type: "iceberg",
 			Security: config.SecurityConfig{
 				Credentials: map[string]string{
-					"catalog_uri":              "http://localhost:19120/iceberg/main",
-					"warehouse":                "/tmp/warehouse",
-					"catalog_name":             "test_catalog",
-					"database":                 "test_db",
-					"table":                    "test_table",
-					"branch":                   "main",
-					"prop_s3.region":           "us-west-2",
-					"prop_s3.endpoint":         "http://localhost:9000",
-					"prop_s3.access-key-id":    "minioadmin",
+					"catalog_uri":               "http://localhost:19120/iceberg/main",
+					"warehouse":                 "/tmp/warehouse",
+					"catalog_name":              "test_catalog",
+					"database":                  "test_db",
+					"table":                     "test_table",
+					"branch":                    "main",
+					"prop_s3.region":            "us-west-2",
+					"prop_s3.endpoint":          "http://localhost:9000",
+					"prop_s3.access-key-id":     "minioadmin",
 					"prop_s3.secret-access-key": "minioadmin",
 				},
 			},
@@ -59,7 +59,7 @@ func TestIcebergDestination_Configuration(t *testing.T) {
 
 	t.Run("empty configuration", func(t *testing.T) {
 		cfg := &config.BaseConfig{}
-		
+
 		_, err := iceberg.NewIcebergDestination(cfg)
 		assert.Error(t, err)
 	})
@@ -114,7 +114,7 @@ func TestIcebergDestination_TimestampParsing(t *testing.T) {
 			shouldSucceed: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test the timestamp parsing formats used in the Iceberg destination
@@ -126,7 +126,7 @@ func TestIcebergDestination_TimestampParsing(t *testing.T) {
 				time.RFC3339Nano,             // Nano precision
 				"2006-01-02",                 // Date only
 			}
-			
+
 			parsed := false
 			for _, format := range formats {
 				if _, err := time.Parse(format, tt.input); err == nil {
@@ -134,7 +134,7 @@ func TestIcebergDestination_TimestampParsing(t *testing.T) {
 					break
 				}
 			}
-			
+
 			assert.Equal(t, tt.shouldSucceed, parsed, "timestamp parsing result should match expected")
 		})
 	}
@@ -183,17 +183,17 @@ func TestIcebergDestination_ConfigValidation(t *testing.T) {
 				},
 			},
 		}
-		
+
 		_, err := iceberg.NewIcebergDestination(cfg)
 		assert.Error(t, err)
 	})
-	
+
 	t.Run("missing credentials", func(t *testing.T) {
 		cfg := &config.BaseConfig{
 			Name: "test-iceberg",
 			Type: "iceberg",
 		}
-		
+
 		_, err := iceberg.NewIcebergDestination(cfg)
 		assert.Error(t, err)
 	})
@@ -213,15 +213,15 @@ func TestIcebergDestination_Integration(t *testing.T) {
 			Type: "iceberg",
 			Security: config.SecurityConfig{
 				Credentials: map[string]string{
-					"catalog_uri":              "http://localhost:19120/iceberg/main",
-					"warehouse":                "/tmp/warehouse",
-					"catalog_name":             "test_catalog",
-					"database":                 "test_db",
-					"table":                    "test_table",
-					"branch":                   "main",
-					"prop_s3.region":           "us-west-2",
-					"prop_s3.endpoint":         "http://localhost:9000",
-					"prop_s3.access-key-id":    "minioadmin",
+					"catalog_uri":               "http://localhost:19120/iceberg/main",
+					"warehouse":                 "/tmp/warehouse",
+					"catalog_name":              "test_catalog",
+					"database":                  "test_db",
+					"table":                     "test_table",
+					"branch":                    "main",
+					"prop_s3.region":            "us-west-2",
+					"prop_s3.endpoint":          "http://localhost:9000",
+					"prop_s3.access-key-id":     "minioadmin",
 					"prop_s3.secret-access-key": "minioadmin",
 				},
 			},
@@ -230,7 +230,7 @@ func TestIcebergDestination_Integration(t *testing.T) {
 		dest, err := iceberg.NewIcebergDestination(cfg)
 		require.NoError(t, err)
 		require.NotNil(t, dest)
-		
+
 		// Health check should not panic
 		ctx := context.Background()
 		_ = dest.Health(ctx) // May fail due to missing Nessie server, but shouldn't panic

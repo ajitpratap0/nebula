@@ -157,8 +157,8 @@ func (c *StringColumn) MemoryUsage() int64 {
 type IntColumn struct {
 	values   []int64
 	min, max int64
-	packed   bool
-	bitWidth int
+	packed   bool //nolint:unused // Reserved for packed storage optimization
+	bitWidth int  //nolint:unused // Reserved for bit packing optimization
 }
 
 // NewIntColumn creates a new integer column

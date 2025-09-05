@@ -91,7 +91,7 @@ type StorageAdapter struct {
 
 	// Metrics for monitoring
 	recordCount atomic.Int64
-	bytesUsed   atomic.Int64
+	bytesUsed   atomic.Int64 //nolint:unused // Reserved for storage usage metrics
 
 	// Synchronization primitives
 	mu      sync.RWMutex

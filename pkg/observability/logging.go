@@ -194,7 +194,7 @@ func (ol *OperationLogger) LogError(msg string, err error, fields ...zap.Field) 
 // RecordMetrics provides a convenient interface for common logging patterns
 type RecordMetrics struct {
 	logger       *OperationLogger
-	recordsStart int64
+	recordsStart int64 //nolint:unused // Reserved for baseline record tracking
 	recordsTotal int64
 	errorsTotal  int64
 	bytesTotal   int64

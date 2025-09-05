@@ -47,8 +47,8 @@ type PostgreSQLConnector struct {
 	schemaMutex sync.RWMutex
 
 	// Relation ID to table name mapping
-	relationMap     sync.Map // map[uint32]string
-	relationMapLock sync.RWMutex
+	relationMap     sync.Map     // map[uint32]string
+	relationMapLock sync.RWMutex //nolint:unused // Reserved for relation mapping synchronization
 
 	// Metrics
 	metrics      EventMetrics

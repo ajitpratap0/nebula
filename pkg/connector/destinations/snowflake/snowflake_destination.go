@@ -45,7 +45,7 @@ type SnowflakeOptimizedDestination struct {
 	stageName         string
 	stagePrefix       string
 	useExternalStage  bool
-	externalStageType string
+	externalStageType string //nolint:unused // Reserved for external stage type configuration
 	externalStageURL  string
 
 	// Performance configuration
@@ -82,7 +82,7 @@ type SnowflakeOptimizedDestination struct {
 	// Upload workers
 	uploadChan         chan *FileUpload
 	uploadWG           sync.WaitGroup
-	uploadWorkersMutex sync.RWMutex
+	uploadWorkersMutex sync.RWMutex //nolint:unused // Reserved for upload worker synchronization
 
 	// Statistics
 	stats      *SnowflakeStats

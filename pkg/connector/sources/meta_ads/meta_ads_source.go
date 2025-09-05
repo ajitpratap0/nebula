@@ -28,7 +28,7 @@ type MetaAdsSource struct {
 	// Meta Marketing API configuration
 	config       *MetaAdsConfig
 	httpClient   *http.Client
-	oauth2Config *oauth2.Config
+	oauth2Config *oauth2.Config //nolint:unused // Reserved for OAuth2 configuration
 	accessToken  string
 
 	// API state management

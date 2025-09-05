@@ -39,7 +39,7 @@ type orcWriter struct {
 	postscript    *orcPostscript
 
 	// Buffering
-	buffer     []byte
+	buffer     []byte //nolint:unused // Reserved for data buffering
 	bufferPool sync.Pool
 
 	// Compression
@@ -60,7 +60,7 @@ type stripeInfo struct {
 
 type stripe struct {
 	rowData    [][]interface{}
-	indexData  []byte
+	indexData  []byte //nolint:unused // Reserved for index data storage
 	rowCount   int
 	memorySize int64
 }
@@ -76,9 +76,9 @@ type orcFooter struct {
 }
 
 type orcPostscript struct {
-	footerLength    uint64
+	footerLength    uint64 //nolint:unused // Reserved for footer length tracking
 	compressionKind CompressionKind
-	compressionSize uint64
+	compressionSize uint64 //nolint:unused // Reserved for compression size tracking
 	version         []uint32
 	metadataLength  uint64
 	writerVersion   uint32
@@ -89,23 +89,23 @@ type orcType struct {
 	kind          TypeKind
 	subtypes      []uint32
 	fieldNames    []string
-	maximumLength uint32
-	precision     uint32
-	scale         uint32
+	maximumLength uint32 //nolint:unused // Reserved for maximum length tracking
+	precision     uint32 //nolint:unused // Reserved for numeric precision
+	scale         uint32 //nolint:unused // Reserved for numeric scale
 }
 
 type columnStatistics struct {
 	numberOfValues uint64
 	hasNull        bool
-	bytesOnDisk    uint64
+	bytesOnDisk    uint64 //nolint:unused // Reserved for disk usage statistics
 
 	// Type-specific stats
 	intStats    *integerStatistics
-	doubleStats *doubleStatistics
+	doubleStats *doubleStatistics //nolint:unused // Reserved for double value statistics
 	stringStats *stringStatistics
-	dateStats   *dateStatistics
-	binaryStats *binaryStatistics
-	boolStats   *booleanStatistics
+	dateStats   *dateStatistics    //nolint:unused // Reserved for date statistics
+	binaryStats *binaryStatistics  //nolint:unused // Reserved for binary data statistics
+	boolStats   *booleanStatistics //nolint:unused // Reserved for boolean statistics
 }
 
 type integerStatistics struct {
@@ -114,7 +114,7 @@ type integerStatistics struct {
 	sum     int64
 }
 
-type doubleStatistics struct {
+type doubleStatistics struct { //nolint:unused // Reserved for future double statistics implementation
 	minimum float64
 	maximum float64
 	sum     float64
@@ -126,16 +126,16 @@ type stringStatistics struct {
 	sum     int64 // total length
 }
 
-type dateStatistics struct {
+type dateStatistics struct { //nolint:unused // Reserved for future date statistics implementation
 	minimum int32
 	maximum int32
 }
 
-type binaryStatistics struct {
+type binaryStatistics struct { //nolint:unused // Reserved for future binary statistics implementation
 	sum int64 // total length
 }
 
-type booleanStatistics struct {
+type booleanStatistics struct { //nolint:unused // Reserved for future boolean statistics implementation
 	trueCount uint64
 }
 

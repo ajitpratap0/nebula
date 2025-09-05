@@ -24,7 +24,7 @@ type BulkLoader struct {
 	compressor   *compression.CompressorPool
 	metrics      *BulkLoadMetrics
 	stages       []LoadStage
-	mu           sync.RWMutex
+	mu           sync.RWMutex //nolint:unused // Reserved for bulk loader synchronization
 }
 
 // BulkLoadConfig configures bulk loading

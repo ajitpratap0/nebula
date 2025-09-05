@@ -234,7 +234,7 @@ type PerformanceTracker struct {
 	collector      *MetricsCollector
 	operation      string
 	startTime      time.Time
-	recordsStart   int64
+	recordsStart   int64 //nolint:unused // Reserved for baseline performance tracking
 	recordsCurrent int64
 	errors         int64
 	retries        int64

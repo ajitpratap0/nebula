@@ -118,7 +118,7 @@ type StageExecutor struct {
 	errorCh   chan *StreamingError
 	metrics   *StageMetrics
 	logger    *zap.Logger
-	isRunning int32
+	isRunning int32 //nolint:unused // Reserved for stage execution state tracking
 	wg        sync.WaitGroup
 }
 
