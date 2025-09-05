@@ -48,7 +48,7 @@ fmt:
 # Lint code
 lint:
 	@echo "Linting code..."
-	@golangci-lint run --timeout=10m ./...
+	@$(shell go env GOPATH)/bin/golangci-lint run --timeout=10m ./...
 
 # Check documentation coverage
 docs-check:
@@ -74,7 +74,8 @@ run: build
 # Install development tools
 install-tools:
 	@echo "Installing development tools..."
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@echo "Installing golangci-lint v2..."
+	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v2.4.0
 	@go install mvdan.cc/gofumpt@latest
 	@go install golang.org/x/tools/cmd/goimports@latest
 	@echo "Tools installed!"
