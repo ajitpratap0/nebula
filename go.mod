@@ -26,7 +26,7 @@ require (
 	github.com/shubham-tomar/iceberg-go v0.2.1
 	github.com/snowflakedb/gosnowflake v1.14.1
 	github.com/spf13/cobra v1.9.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	go.mongodb.org/mongo-driver v1.17.4
 	go.opentelemetry.io/otel v1.36.0
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.36.0
