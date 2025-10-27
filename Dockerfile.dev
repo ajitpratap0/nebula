@@ -1,7 +1,7 @@
 # Development Dockerfile for Nebula
 # This version includes development tools and optimizations for local development
 
-FROM golang:1.24.3-alpine AS base
+FROM golang:1.25.3-alpine AS base
 
 # Install development dependencies
 RUN apk add --no-cache \
