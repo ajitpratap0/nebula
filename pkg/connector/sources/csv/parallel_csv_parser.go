@@ -11,8 +11,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
@@ -28,7 +28,7 @@ type ParallelCSVParser struct {
 	delimiter  rune
 
 	// Parsing state
-	parseFunc func([]string) (*models.Record, error)
+	parseFunc func([]string, int) (*models.Record, error)
 
 	// Metrics
 	rowsParsed int64
@@ -54,7 +54,7 @@ type ParallelCSVConfig struct {
 	Headers    []string
 	SkipHeader bool
 	Delimiter  rune
-	ParseFunc  func([]string) (*models.Record, error)
+	ParseFunc  func([]string, int) (*models.Record, error)
 }
 
 // NewParallelCSVParser creates a new parallel CSV parser
@@ -204,7 +204,7 @@ func (p *ParallelCSVParser) processChunk(workerID int, chunk *CSVChunk, recordCh
 		if err != nil {
 			atomic.AddInt64(&p.errors, 1)
 			select {
-			case errorChan <- errors.Wrap(err, errors.ErrorTypeData,
+			case errorChan <- nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData,
 				stringpool.Sprintf("failed to parse line %d", chunk.StartRow+i+1)):
 			case <-p.ctx.Done():
 				return
@@ -214,10 +214,11 @@ func (p *ParallelCSVParser) processChunk(workerID int, chunk *CSVChunk, recordCh
 
 		// Convert to record using the provided parse function
 		var record *models.Record
+		rowNumber := chunk.StartRow + i + 1
 		if p.parseFunc != nil {
-			record, err = p.parseFunc(fields)
+			record, err = p.parseFunc(fields, rowNumber)
 		} else {
-			record = p.defaultParseRecord(fields, chunk.StartRow+i+1)
+			record = p.defaultParseRecord(fields, rowNumber)
 		}
 
 		if err != nil {

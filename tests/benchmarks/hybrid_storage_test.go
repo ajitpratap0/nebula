@@ -20,7 +20,7 @@ func BenchmarkHybridStorageComparison(b *testing.B) {
 	testFile := "/tmp/hybrid_storage_test.csv"
 	recordCount := 100000
 	createBenchmarkTestData(b, testFile, recordCount)
-	defer os.Remove(testFile)
+	defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 	modes := []struct {
 		name string
@@ -91,7 +91,7 @@ func BenchmarkHybridStorageComparison(b *testing.B) {
 				b.ReportMetric(recordsPerSec, "records/sec")
 				b.ReportMetric(float64(memUsed), "total_bytes")
 
-				source.Close(ctx)
+				_ = source.Close(ctx)
 			}
 		})
 	}
@@ -105,7 +105,7 @@ func BenchmarkColumnarMemoryEfficiency(b *testing.B) {
 	for _, count := range recordCounts {
 		b.Run(fmt.Sprintf("Records_%d", count), func(b *testing.B) {
 			createBenchmarkTestData(b, testFile, count)
-			defer os.Remove(testFile)
+			defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 			cfg := config.NewBaseConfig("test", "csv_source")
 			cfg.Advanced.StorageMode = "columnar"
@@ -163,7 +163,7 @@ func BenchmarkColumnarMemoryEfficiency(b *testing.B) {
 				b.ReportMetric(bytesPerRecord, "bytes/record")
 				b.ReportMetric(recordsPerSec, "records/sec")
 
-				source.Close(ctx)
+				_ = source.Close(ctx)
 			}
 		})
 	}
@@ -185,7 +185,7 @@ func BenchmarkStorageModeAutoSelection(b *testing.B) {
 	for _, scenario := range scenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			createBenchmarkTestData(b, testFile, scenario.recordCount)
-			defer os.Remove(testFile)
+			defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 			cfg := config.NewBaseConfig("test", "csv_source")
 			cfg.Advanced.StorageMode = "hybrid"
@@ -231,7 +231,7 @@ func BenchmarkStorageModeAutoSelection(b *testing.B) {
 				b.ReportMetric(memPerRecord, "bytes/record")
 				b.ReportMetric(float64(count), "total_records")
 
-				source.Close(ctx)
+				_ = source.Close(ctx)
 			}
 		})
 	}
@@ -243,11 +243,11 @@ func createBenchmarkTestData(b *testing.B, filename string, records int) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	// Write headers
 	headers := "order_id,customer_id,product_sku,quantity,price,status,category,region,timestamp\n"
-	file.WriteString(headers)
+	_, _ = file.WriteString(headers)
 
 	// Generate realistic data patterns
 	statuses := []string{"pending", "processing", "shipped", "delivered", "canceled"}
@@ -266,7 +266,7 @@ func createBenchmarkTestData(b *testing.B, filename string, records int) {
 			regions[i%len(regions)],         // region (categorical)
 			time.Now().Format(time.RFC3339), // timestamp
 		)
-		file.WriteString(line)
+		_, _ = file.WriteString(line)
 	}
 }
 
@@ -284,7 +284,7 @@ func BenchmarkDirectStorageAdapter(b *testing.B) {
 			cfg.Performance.BatchSize = 10000
 
 			adapter := pipeline.NewStorageAdapter(mode, cfg)
-			defer adapter.Close()
+			defer func() { _ = adapter.Close() }() // Ignore close error
 
 			b.ResetTimer()
 			b.ReportAllocs()
@@ -302,11 +302,11 @@ func BenchmarkDirectStorageAdapter(b *testing.B) {
 					record.SetData("category", fmt.Sprintf("cat_%d", j%10))
 					record.SetData("amount", float64(j)*1.5)
 
-					adapter.AddRecord(record)
+					_ = adapter.AddRecord(record)
 					record.Release()
 				}
 
-				adapter.Flush()
+				_ = adapter.Flush() // Ignore flush error
 
 				runtime.GC()
 				runtime.ReadMemStats(&m2)

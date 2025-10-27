@@ -141,7 +141,6 @@ func CPUOptimizationExample() {
 		// CPU-intensive processing
 		return processRecordIntensive(record)
 	})
-
 	if err != nil {
 		log.Printf("Processing error: %v", err)
 	}
@@ -400,7 +399,6 @@ func EndToEndOptimizationExample() {
 			profiler.IncrementRecords(1)
 			return nil
 		})
-
 		if err != nil {
 			log.Printf("Processing error: %v", err)
 		}
@@ -566,7 +564,7 @@ func benchmarkParallel(records []*models.Record) float64 {
 	}
 
 	start := time.Now()
-	optimizer.ExecuteParallel(ctx, items, func(item interface{}) error {
+	_ = optimizer.ExecuteParallel(ctx, items, func(_ interface{}) error {
 		processRecord()
 		return nil
 	})
@@ -589,7 +587,7 @@ func benchmarkAllOptimizations(records []*models.Record) float64 {
 		items[i] = r
 	}
 
-	optimizer.ExecuteParallel(ctx, items, func(item interface{}) error {
+	_ = optimizer.ExecuteParallel(ctx, items, func(_ interface{}) error {
 		processRecord()
 		return nil
 	})

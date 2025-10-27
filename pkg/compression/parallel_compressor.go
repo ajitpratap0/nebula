@@ -2,13 +2,14 @@ package compression
 
 import (
 	"bytes"
+	"compress/flate"
 	"context"
 	"io"
 	"runtime"
 	"sync"
 	"sync/atomic"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/klauspost/compress/gzip"
 	"github.com/klauspost/compress/s2"
@@ -139,7 +140,7 @@ func (pc *ParallelCompressor) CompressData(data []byte) ([]byte, error) {
 
 	// Write header with chunk information
 	header := pc.createHeader(numChunks, len(data))
-	output.Write(header)
+	_, _ = output.Write(header) // Ignore write error
 
 	// Write compressed chunks
 	for i := 0; i < numChunks; i++ {
@@ -152,7 +153,7 @@ func (pc *ParallelCompressor) CompressData(data []byte) ([]byte, error) {
 			byte(len(chunk.Compressed)),
 		})
 		// Write compressed data
-		output.Write(chunk.Compressed)
+		_, _ = output.Write(chunk.Compressed) // Ignore write error
 
 		atomic.AddInt64(&pc.bytesProcessed, int64(len(chunk.Original)))
 		atomic.AddInt64(&pc.chunksProcessed, 1)
@@ -183,7 +184,7 @@ func (pc *ParallelCompressor) DecompressData(data []byte) ([]byte, error) {
 
 	for i := 0; i < numChunks; i++ {
 		if offset+4 > len(data) {
-			return nil, errors.New(errors.ErrorTypeData, "corrupted compressed data")
+			return nil, nebulaerrors.New(nebulaerrors.ErrorTypeData, "corrupted compressed data")
 		}
 
 		// Read chunk size
@@ -192,7 +193,7 @@ func (pc *ParallelCompressor) DecompressData(data []byte) ([]byte, error) {
 		offset += 4
 
 		if offset+chunkSize > len(data) {
-			return nil, errors.New(errors.ErrorTypeData, "corrupted compressed data")
+			return nil, nebulaerrors.New(nebulaerrors.ErrorTypeData, "corrupted compressed data")
 		}
 
 		chunks = append(chunks, struct {
@@ -265,8 +266,8 @@ func (pc *ParallelCompressor) compressionWorker(
 		id   int
 		data []byte
 	},
-	resultChan chan<- CompressedChunk) {
-
+	resultChan chan<- CompressedChunk,
+) {
 	defer pc.wg.Done()
 
 	for chunk := range chunkChan {
@@ -286,8 +287,8 @@ func (pc *ParallelCompressor) decompressionWorker(
 		id   int
 		data []byte
 	},
-	resultChan chan<- CompressedChunk) {
-
+	resultChan chan<- CompressedChunk,
+) {
 	defer pc.wg.Done()
 
 	for chunk := range chunkChan {
@@ -308,10 +309,16 @@ func (pc *ParallelCompressor) compressChunk(data []byte) ([]byte, error) {
 	buf := bytes.NewBuffer(buffer[:0])
 
 	switch pc.algorithm {
+	case None:
+		// No compression, just return original data
+		return data, nil
+
 	case Gzip:
 		w, _ := gzip.NewWriterLevel(buf, pc.getGzipLevel())
 		_, err := w.Write(data)
-		w.Close()
+		if closeErr := w.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
 		return buf.Bytes(), err
 
 	case Snappy:
@@ -319,23 +326,37 @@ func (pc *ParallelCompressor) compressChunk(data []byte) ([]byte, error) {
 
 	case LZ4:
 		w := lz4.NewWriter(buf)
-		w.Apply(lz4.CompressionLevelOption(pc.getLZ4Level()))
+		if err := w.Apply(lz4.CompressionLevelOption(pc.getLZ4Level())); err != nil {
+			return nil, err
+		}
 		_, err := w.Write(data)
-		w.Close()
+		if closeErr := w.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
 		return buf.Bytes(), err
 
 	case Zstd:
 		encoder, _ := zstd.NewWriter(buf,
 			zstd.WithEncoderLevel(pc.getZstdLevel()))
 		_, err := encoder.Write(data)
-		encoder.Close()
+		if closeErr := encoder.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
 		return buf.Bytes(), err
 
 	case S2:
 		return s2.EncodeSnappy(nil, data), nil
 
+	case Deflate:
+		w, _ := flate.NewWriter(buf, pc.getDeflateLevel())
+		_, err := w.Write(data)
+		if closeErr := w.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+		return buf.Bytes(), err
+
 	default:
-		return nil, errors.New(errors.ErrorTypeConfig,
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig,
 			"unsupported compression algorithm for parallel compression")
 	}
 }
@@ -343,12 +364,16 @@ func (pc *ParallelCompressor) compressChunk(data []byte) ([]byte, error) {
 // decompressChunk decompresses a single chunk
 func (pc *ParallelCompressor) decompressChunk(data []byte) ([]byte, error) {
 	switch pc.algorithm {
+	case None:
+		// No decompression needed, just return original data
+		return data, nil
+
 	case Gzip:
 		r, err := gzip.NewReader(bytes.NewReader(data))
 		if err != nil {
 			return nil, err
 		}
-		defer r.Close()
+		defer func() { _ = r.Close() }() // Ignore close error in decompression
 		return io.ReadAll(r)
 
 	case Snappy:
@@ -360,14 +385,19 @@ func (pc *ParallelCompressor) decompressChunk(data []byte) ([]byte, error) {
 
 	case Zstd:
 		decoder, _ := zstd.NewReader(bytes.NewReader(data))
-		defer decoder.Close()
+		defer decoder.Close() // Ignore close error
 		return io.ReadAll(decoder)
 
 	case S2:
 		return s2.Decode(nil, data)
 
+	case Deflate:
+		r := flate.NewReader(bytes.NewReader(data))
+		defer func() { _ = r.Close() }() // Ignore close error in decompression
+		return io.ReadAll(r)
+
 	default:
-		return nil, errors.New(errors.ErrorTypeConfig,
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig,
 			"unsupported compression algorithm for parallel decompression")
 	}
 }
@@ -398,9 +428,7 @@ func (pc *ParallelCompressor) createHeader(numChunks, originalSize int) []byte {
 	header := pool.GetByteSlice()
 
 	if cap(header) < 12 {
-
 		header = make([]byte, 12)
-
 	}
 
 	defer pool.PutByteSlice(header)
@@ -409,6 +437,8 @@ func (pc *ParallelCompressor) createHeader(numChunks, originalSize int) []byte {
 	// Map algorithm to byte
 	var algByte byte
 	switch pc.algorithm {
+	case None:
+		algByte = 0
 	case Gzip:
 		algByte = 1
 	case Snappy:
@@ -419,6 +449,8 @@ func (pc *ParallelCompressor) createHeader(numChunks, originalSize int) []byte {
 		algByte = 4
 	case S2:
 		algByte = 5
+	case Deflate:
+		algByte = 6
 	default:
 		algByte = 0
 	}
@@ -452,6 +484,10 @@ func (pc *ParallelCompressor) getGzipLevel() int {
 	switch pc.level {
 	case Fastest:
 		return gzip.BestSpeed
+	case Default:
+		return gzip.DefaultCompression
+	case Better:
+		return gzip.BestCompression
 	case Best:
 		return gzip.BestCompression
 	default:
@@ -463,6 +499,10 @@ func (pc *ParallelCompressor) getLZ4Level() lz4.CompressionLevel {
 	switch pc.level {
 	case Fastest:
 		return lz4.Fast
+	case Default:
+		return lz4.Level4
+	case Better:
+		return lz4.Level7
 	case Best:
 		return lz4.Level9
 	default:
@@ -474,10 +514,29 @@ func (pc *ParallelCompressor) getZstdLevel() zstd.EncoderLevel {
 	switch pc.level {
 	case Fastest:
 		return zstd.SpeedFastest
+	case Default:
+		return zstd.SpeedDefault
+	case Better:
+		return zstd.SpeedBetterCompression
 	case Best:
 		return zstd.SpeedBestCompression
 	default:
 		return zstd.SpeedDefault
+	}
+}
+
+func (pc *ParallelCompressor) getDeflateLevel() int {
+	switch pc.level {
+	case Fastest:
+		return flate.BestSpeed
+	case Default:
+		return flate.DefaultCompression
+	case Better:
+		return flate.BestCompression
+	case Best:
+		return flate.BestCompression
+	default:
+		return flate.DefaultCompression
 	}
 }
 

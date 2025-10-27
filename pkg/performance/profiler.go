@@ -120,7 +120,7 @@ func (p *Profiler) Start() {
 	runtime.ReadMemStats(&p.memStats)
 
 	if p.cpuProfile != nil {
-		pprof.StartCPUProfile(nil)
+		_ = pprof.StartCPUProfile(nil)
 	}
 }
 
@@ -261,7 +261,7 @@ func NewResourceMonitor() *ResourceMonitor {
 
 	return &ResourceMonitor{
 		process:      proc,
-		startCPUTime: cpuTime.Total(),
+		startCPUTime: cpuTime.User + cpuTime.System,
 		startTime:    time.Now(),
 	}
 }
@@ -277,7 +277,8 @@ func (rm *ResourceMonitor) GetResourceUsage() (*ResourceUsage, error) {
 	cpuTime, err := rm.process.Times()
 	if err == nil {
 		elapsed := time.Since(rm.startTime).Seconds()
-		usage.CPUPercent = ((cpuTime.Total() - rm.startCPUTime) / elapsed) * 100
+		currentCPUTime := cpuTime.User + cpuTime.System
+		usage.CPUPercent = ((currentCPUTime - rm.startCPUTime) / elapsed) * 100
 	}
 
 	// Memory usage
@@ -368,7 +369,7 @@ func (lt *LatencyTracker) GetPercentiles() (p50, p95, p99 time.Duration) {
 	p95 = sorted[len(sorted)*95/100]
 	p99 = sorted[len(sorted)*99/100]
 
-	return
+	return p50, p95, p99
 }
 
 // ProfileResult contains profiling results

@@ -1,10 +1,10 @@
-package base
+package baseconnector
 
 import (
 	"context"
 	"fmt"
 	"math"
-	"math/rand"
+	"math/rand" //nolint:gosec
 	"time"
 )
 
@@ -120,7 +120,7 @@ func (rp *RetryPolicy) calculateDelay(attempt int) time.Duration {
 		maxDelay := delay + delta
 
 		// Random value between min and max
-		delay = minDelay + (rand.Float64() * (maxDelay - minDelay))
+		delay = minDelay + (rand.Float64() * (maxDelay - minDelay)) // #nosec G404 - non-cryptographic jitter
 	}
 
 	return time.Duration(delay)
@@ -150,10 +150,10 @@ func (rp *RetryPolicy) WithMaxAttempts(attempts int) *RetryPolicy {
 }
 
 // WithDelay returns a new policy with updated delays
-func (rp *RetryPolicy) WithDelay(initial, max time.Duration) *RetryPolicy {
+func (rp *RetryPolicy) WithDelay(initial, maximum time.Duration) *RetryPolicy {
 	policy := rp.Clone()
 	policy.InitialDelay = initial
-	policy.MaxDelay = max
+	policy.MaxDelay = maximum
 	return policy
 }
 

@@ -1,3 +1,4 @@
+// Package json provides JSON file destination connector for Nebula
 package json
 
 import (

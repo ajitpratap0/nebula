@@ -57,8 +57,8 @@ type KafkaConsumer struct {
 
 	// Event processing
 	eventHandler EventHandler
-	batchHandler BatchEventHandler
-	processor    *StreamProcessor
+	batchHandler BatchEventHandler //nolint:unused // Reserved for batch event processing
+	processor    *StreamProcessor  //nolint:unused // Reserved for stream processing pipeline
 
 	// Topic subscriptions
 	topics []string
@@ -498,7 +498,7 @@ func (kp *KafkaProducer) buildSaramaConfig() *sarama.Config {
 	if kp.config.SecurityProtocol == "SASL_SSL" || kp.config.SecurityProtocol == "SSL" {
 		config.Net.TLS.Enable = true
 		config.Net.TLS.Config = &tls.Config{
-			InsecureSkipVerify: kp.config.TLSInsecureSkipVerify,
+			InsecureSkipVerify: kp.config.TLSInsecureSkipVerify, //nolint:gosec // User-controlled config for dev/test environments
 		}
 	}
 

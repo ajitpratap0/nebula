@@ -3,6 +3,7 @@ package profiling
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"runtime"
 	"runtime/pprof"
@@ -10,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/metrics"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"go.uber.org/zap"
 )
 
@@ -19,13 +20,20 @@ import (
 type ProfileType string
 
 const (
-	CPUProfile       ProfileType = "cpu"
-	MemoryProfile    ProfileType = "memory"
-	BlockProfile     ProfileType = "block"
-	MutexProfile     ProfileType = "mutex"
+	// CPUProfile represents CPU profiling mode
+	CPUProfile ProfileType = "cpu"
+	// MemoryProfile represents memory profiling mode
+	MemoryProfile ProfileType = "memory"
+	// BlockProfile represents blocking operation profiling mode
+	BlockProfile ProfileType = "block"
+	// MutexProfile represents mutex contention profiling mode
+	MutexProfile ProfileType = "mutex"
+	// GoroutineProfile represents goroutine profiling mode
 	GoroutineProfile ProfileType = "goroutine"
-	TraceProfile     ProfileType = "trace"
-	AllProfiles      ProfileType = "all"
+	// TraceProfile represents execution trace profiling mode
+	TraceProfile ProfileType = "trace"
+	// AllProfiles represents all available profiling modes
+	AllProfiles ProfileType = "all"
 )
 
 // ProfileConfig contains configuration for profiling
@@ -146,8 +154,8 @@ func (p *Profiler) Start(ctx context.Context) error {
 	p.startTime = time.Now()
 
 	// Create output directory
-	if err := os.MkdirAll(p.config.OutputDir, 0755); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create profile directory")
+	if err := os.MkdirAll(p.config.OutputDir, 0o755); err != nil {
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create profile directory")
 	}
 
 	// Configure profile rates
@@ -203,7 +211,9 @@ func (p *Profiler) Stop() error {
 	// Stop CPU profiling
 	if p.cpuFile != nil {
 		pprof.StopCPUProfile()
-		p.cpuFile.Close()
+		if err := p.cpuFile.Close(); err != nil {
+			p.logger.Warn("Failed to close CPU profile file", zap.Error(err))
+		}
 		p.logger.Info("CPU profile saved",
 			zap.String("file", p.cpuFile.Name()))
 	}
@@ -211,7 +221,9 @@ func (p *Profiler) Stop() error {
 	// Stop trace
 	if p.traceFile != nil {
 		trace.Stop()
-		p.traceFile.Close()
+		if err := p.traceFile.Close(); err != nil {
+			p.logger.Warn("Failed to close trace file", zap.Error(err))
+		}
 		p.logger.Info("trace saved",
 			zap.String("file", p.traceFile.Name()))
 	}
@@ -279,14 +291,14 @@ func (p *Profiler) startCPUProfile() error {
 	filename := fmt.Sprintf("%s/cpu_%s.prof", p.config.OutputDir, p.timestamp())
 	file, err := os.Create(filename)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create CPU profile file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create CPU profile file")
 	}
 
 	p.cpuFile = file
 
 	if err := pprof.StartCPUProfile(file); err != nil {
-		file.Close()
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to start CPU profiling")
+		_ = file.Close() // Ignore close error
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to start CPU profiling")
 	}
 
 	// Stop CPU profiling after duration
@@ -303,14 +315,14 @@ func (p *Profiler) startTrace() error {
 	filename := fmt.Sprintf("%s/trace_%s.out", p.config.OutputDir, p.timestamp())
 	file, err := os.Create(filename)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create trace file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create trace file")
 	}
 
 	p.traceFile = file
 
 	if err := trace.Start(file); err != nil {
-		file.Close()
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to start tracing")
+		_ = file.Close() // Ignore close error
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to start tracing")
 	}
 
 	return nil
@@ -320,13 +332,13 @@ func (p *Profiler) saveMemoryProfile() error {
 	filename := fmt.Sprintf("%s/memory_%s.prof", p.config.OutputDir, p.timestamp())
 	file, err := os.Create(filename)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create memory profile file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create memory profile file")
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	runtime.GC() // Force GC before heap profile
 	if err := pprof.WriteHeapProfile(file); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to write memory profile")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to write memory profile")
 	}
 
 	p.logger.Info("memory profile saved", zap.String("file", filename))
@@ -337,12 +349,12 @@ func (p *Profiler) saveBlockProfile() error {
 	filename := fmt.Sprintf("%s/block_%s.prof", p.config.OutputDir, p.timestamp())
 	file, err := os.Create(filename)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create block profile file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create block profile file")
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	if err := pprof.Lookup("block").WriteTo(file, 0); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to write block profile")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to write block profile")
 	}
 
 	p.logger.Info("block profile saved", zap.String("file", filename))
@@ -353,12 +365,12 @@ func (p *Profiler) saveMutexProfile() error {
 	filename := fmt.Sprintf("%s/mutex_%s.prof", p.config.OutputDir, p.timestamp())
 	file, err := os.Create(filename)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create mutex profile file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create mutex profile file")
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	if err := pprof.Lookup("mutex").WriteTo(file, 0); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to write mutex profile")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to write mutex profile")
 	}
 
 	p.logger.Info("mutex profile saved", zap.String("file", filename))
@@ -369,12 +381,12 @@ func (p *Profiler) saveGoroutineProfile() error {
 	filename := fmt.Sprintf("%s/goroutine_%s.prof", p.config.OutputDir, p.timestamp())
 	file, err := os.Create(filename)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create goroutine profile file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create goroutine profile file")
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	if err := pprof.Lookup("goroutine").WriteTo(file, 2); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to write goroutine profile")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to write goroutine profile")
 	}
 
 	p.logger.Info("goroutine profile saved", zap.String("file", filename))
@@ -382,10 +394,18 @@ func (p *Profiler) saveGoroutineProfile() error {
 }
 
 func (p *Profiler) saveAllProfiles() {
-	p.saveMemoryProfile()
-	p.saveBlockProfile()
-	p.saveMutexProfile()
-	p.saveGoroutineProfile()
+	if err := p.saveMemoryProfile(); err != nil {
+		p.logger.Error("Failed to save memory profile", zap.Error(err))
+	}
+	if err := p.saveBlockProfile(); err != nil {
+		p.logger.Error("Failed to save block profile", zap.Error(err))
+	}
+	if err := p.saveMutexProfile(); err != nil {
+		p.logger.Error("Failed to save mutex profile", zap.Error(err))
+	}
+	if err := p.saveGoroutineProfile(); err != nil {
+		p.logger.Error("Failed to save goroutine profile", zap.Error(err))
+	}
 }
 
 func (p *Profiler) collectRuntimeMetrics(ctx context.Context) {
@@ -412,7 +432,11 @@ func (p *Profiler) collectRuntimeMetrics(ctx context.Context) {
 			p.metricsData.TotalAllocBytes = memStats.TotalAlloc
 			p.metricsData.SysBytes = memStats.Sys
 			p.metricsData.NumGC = memStats.NumGC
-			p.metricsData.GCPauseTotal = time.Duration(memStats.PauseTotalNs)
+			if memStats.PauseTotalNs > math.MaxInt64 {
+				p.metricsData.GCPauseTotal = time.Duration(math.MaxInt64)
+			} else {
+				p.metricsData.GCPauseTotal = time.Duration(memStats.PauseTotalNs)
+			}
 			if memStats.NumGC > 0 {
 				p.metricsData.GCPauseLast = time.Duration(memStats.PauseNs[(memStats.NumGC+255)%256])
 			}
@@ -443,32 +467,32 @@ func (p *Profiler) generateReport() error {
 	filename := fmt.Sprintf("%s/report_%s.txt", p.config.OutputDir, p.timestamp())
 	file, err := os.Create(filename)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to create report file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to create report file")
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // Ignore close error
 
-	fmt.Fprintf(file, "Nebula Performance Profile Report\n")
-	fmt.Fprintf(file, "=================================\n\n")
-	fmt.Fprintf(file, "Duration: %v\n", time.Since(p.startTime))
-	fmt.Fprintf(file, "CPU Count: %d\n", metrics.NumCPU)
-	fmt.Fprintf(file, "GOMAXPROCS: %d\n\n", metrics.GOMAXPROCS)
+	_, _ = fmt.Fprintf(file, "Nebula Performance Profile Report\n")
+	_, _ = fmt.Fprintf(file, "=================================\n\n")
+	_, _ = fmt.Fprintf(file, "Duration: %v\n", time.Since(p.startTime))
+	_, _ = fmt.Fprintf(file, "CPU Count: %d\n", metrics.NumCPU)
+	_, _ = fmt.Fprintf(file, "GOMAXPROCS: %d\n\n", metrics.GOMAXPROCS)
 
-	fmt.Fprintf(file, "Memory Statistics:\n")
-	fmt.Fprintf(file, "-----------------\n")
-	fmt.Fprintf(file, "Current Allocated: %.2f MB\n", float64(metrics.AllocBytes)/(1024*1024))
-	fmt.Fprintf(file, "Total Allocated: %.2f MB\n", float64(metrics.TotalAllocBytes)/(1024*1024))
-	fmt.Fprintf(file, "System Memory: %.2f MB\n", float64(metrics.SysBytes)/(1024*1024))
-	fmt.Fprintf(file, "GC Runs: %d\n", metrics.NumGC)
-	fmt.Fprintf(file, "GC Pause Total: %v\n", metrics.GCPauseTotal)
-	fmt.Fprintf(file, "GC Pause Last: %v\n\n", metrics.GCPauseLast)
+	_, _ = fmt.Fprintf(file, "Memory Statistics:\n")
+	_, _ = fmt.Fprintf(file, "-----------------\n")
+	_, _ = fmt.Fprintf(file, "Current Allocated: %.2f MB\n", float64(metrics.AllocBytes)/(1024*1024))
+	_, _ = fmt.Fprintf(file, "Total Allocated: %.2f MB\n", float64(metrics.TotalAllocBytes)/(1024*1024))
+	_, _ = fmt.Fprintf(file, "System Memory: %.2f MB\n", float64(metrics.SysBytes)/(1024*1024))
+	_, _ = fmt.Fprintf(file, "GC Runs: %d\n", metrics.NumGC)
+	_, _ = fmt.Fprintf(file, "GC Pause Total: %v\n", metrics.GCPauseTotal)
+	_, _ = fmt.Fprintf(file, "GC Pause Last: %v\n\n", metrics.GCPauseLast)
 
-	fmt.Fprintf(file, "Goroutine Statistics:\n")
-	fmt.Fprintf(file, "--------------------\n")
-	fmt.Fprintf(file, "Current Goroutines: %d\n\n", metrics.NumGoroutines)
+	_, _ = fmt.Fprintf(file, "Goroutine Statistics:\n")
+	_, _ = fmt.Fprintf(file, "--------------------\n")
+	_, _ = fmt.Fprintf(file, "Current Goroutines: %d\n\n", metrics.NumGoroutines)
 
 	// Analysis
-	fmt.Fprintf(file, "Performance Analysis:\n")
-	fmt.Fprintf(file, "--------------------\n")
+	_, _ = fmt.Fprintf(file, "Performance Analysis:\n")
+	_, _ = fmt.Fprintf(file, "--------------------\n")
 
 	if len(metrics.Samples) > 0 {
 		// Memory growth analysis
@@ -476,12 +500,12 @@ func (p *Profiler) generateReport() error {
 		lastSample := metrics.Samples[len(metrics.Samples)-1]
 		memGrowth := float64(lastSample.AllocBytes-firstSample.AllocBytes) / (1024 * 1024)
 
-		fmt.Fprintf(file, "Memory Growth: %.2f MB\n", memGrowth)
-		fmt.Fprintf(file, "Goroutine Growth: %d\n", lastSample.NumGoroutines-firstSample.NumGoroutines)
+		_, _ = fmt.Fprintf(file, "Memory Growth: %.2f MB\n", memGrowth)
+		_, _ = fmt.Fprintf(file, "Goroutine Growth: %d\n", lastSample.NumGoroutines-firstSample.NumGoroutines)
 
 		// GC pressure
 		gcPressure := float64(lastSample.GCPauseNs-firstSample.GCPauseNs) / 1e6 // Convert to ms
-		fmt.Fprintf(file, "GC Pause Growth: %.2f ms\n", gcPressure)
+		_, _ = fmt.Fprintf(file, "GC Pause Growth: %.2f ms\n", gcPressure)
 	}
 
 	p.logger.Info("performance report generated", zap.String("file", filename))

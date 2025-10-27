@@ -24,6 +24,8 @@ docker_test_output.*
 quick_test.*
 memory_test.*
 continuous_test.*
+test/benchmarks/pipeline_profile_*.json
+test/benchmarks/test_profiles/*
 
 # Benchmark results
 benchmark-results/
@@ -56,12 +58,18 @@ build-errors.log
 *.swo
 *~
 
+# CLAUDE.md
+CLAUDE.md
+
 # OS files
 .DS_Store
 Thumbs.db
 
 # Log files
 *.log
+
+# claude
+CLAUDE.md
 
 # Coverage files
 coverage.out

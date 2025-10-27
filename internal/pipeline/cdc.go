@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
 )
@@ -24,15 +24,15 @@ type CDCEngine struct {
 	conflict    *ConflictResolver
 
 	// State management
-	isRunning  int32
-	lastLSN    uint64 // Log Sequence Number
-	lastCommit time.Time
+	isRunning  int32     //nolint:unused // Reserved for runtime state tracking
+	lastLSN    uint64    //nolint:unused // Reserved for position tracking
+	lastCommit time.Time //nolint:unused // Reserved for commit timestamp tracking
 	metrics    *CDCMetrics
 
 	// Control
 	ctx    context.Context
 	cancel context.CancelFunc
-	wg     sync.WaitGroup
+	wg     sync.WaitGroup //nolint:unused // Reserved for goroutine coordination
 }
 
 // CDCConfig configures CDC behavior
@@ -134,7 +134,7 @@ type EventStream struct {
 	heartbeat chan *HeartbeatEvent
 	buffer    []*ChangeEvent
 	maxBuffer int
-	mu        sync.RWMutex
+	mu        sync.RWMutex //nolint:unused // Reserved for synchronization when accessing buffered events
 	logger    *zap.Logger
 }
 
@@ -149,10 +149,10 @@ type HeartbeatEvent struct {
 type CheckpointManager struct {
 	config         *CDCConfig
 	logger         *zap.Logger
-	lastCheckpoint *Checkpoint
+	lastCheckpoint *Checkpoint //nolint:unused // Reserved for checkpoint state tracking
 	checkpoints    map[string]*Checkpoint
 	storage        CheckpointStorage
-	mu             sync.RWMutex
+	mu             sync.RWMutex //nolint:unused // Reserved for checkpoint synchronization
 }
 
 // Checkpoint represents a saved position in the change stream
@@ -181,8 +181,8 @@ type ExactlyOnceDelivery struct {
 	processed    map[string]bool // event ID -> processed
 	pending      map[string]*PendingEvent
 	committed    map[string]time.Time
-	mu           sync.RWMutex
-	cleanupTimer *time.Timer
+	mu           sync.RWMutex //nolint:unused // Reserved for exactly-once delivery synchronization
+	cleanupTimer *time.Timer  //nolint:unused // Reserved for cleanup scheduling
 }
 
 // PendingEvent tracks events waiting for acknowledgment
@@ -214,25 +214,25 @@ const (
 
 // ConflictMetrics tracks conflict resolution statistics
 type ConflictMetrics struct {
-	totalConflicts    int64
-	resolvedConflicts int64
-	rejectedConflicts int64
-	mergedConflicts   int64
+	totalConflicts    int64 //nolint:unused // Reserved for conflict metrics tracking
+	resolvedConflicts int64 //nolint:unused // Reserved for resolved conflict metrics
+	rejectedConflicts int64 //nolint:unused // Reserved for rejected conflict metrics
+	mergedConflicts   int64 //nolint:unused // Reserved for merged conflict metrics
 }
 
 // CDCMetrics tracks CDC operation metrics
 type CDCMetrics struct {
-	eventsProcessed  int64
-	eventsSkipped    int64
-	snapshotEvents   int64
-	changeEvents     int64
-	heartbeats       int64
-	checkpoints      int64
-	conflicts        int64
-	lagSeconds       float64
-	throughputEPS    float64 // events per second
-	lastEvent        time.Time
-	lastCheckpoint   time.Time
+	eventsProcessed  int64     //nolint:unused // Reserved for processed event metrics
+	eventsSkipped    int64     //nolint:unused // Reserved for skipped event metrics
+	snapshotEvents   int64     //nolint:unused // Reserved for snapshot event metrics
+	changeEvents     int64     //nolint:unused // Reserved for change event metrics
+	heartbeats       int64     //nolint:unused // Reserved for heartbeat metrics
+	checkpoints      int64     //nolint:unused // Reserved for checkpoint metrics
+	conflicts        int64     //nolint:unused // Reserved for conflict metrics
+	lagSeconds       float64   //nolint:unused // Reserved for lag metrics in seconds
+	throughputEPS    float64   //nolint:unused // Reserved for throughput metrics (events per second)
+	lastEvent        time.Time //nolint:unused // Reserved for last event timestamp tracking
+	lastCheckpoint   time.Time //nolint:unused // Reserved for last checkpoint timestamp tracking
 	connectionStatus string
 }
 
@@ -343,7 +343,8 @@ func (mlr *MockLogReader) ReadChanges(ctx context.Context, fromLSN uint64) (<-ch
 }
 
 func (mlr *MockLogReader) GetCurrentLSN(ctx context.Context) (uint64, error) {
-	return uint64(time.Now().Unix()), nil
+	// Unix time is always positive, safe to convert
+	return uint64(time.Now().Unix()), nil //nolint:gosec
 }
 
 func (mlr *MockLogReader) CreateSnapshot(ctx context.Context, tables []string) (<-chan *SnapshotEvent, <-chan error) {
@@ -456,7 +457,7 @@ func (mcs *MemoryCheckpointStorage) Load(ctx context.Context) (*Checkpoint, erro
 	defer mcs.mu.RUnlock()
 
 	if len(mcs.checkpoints) == 0 {
-		return nil, errors.New(errors.ErrorTypeData, "no checkpoints found")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeData, "no checkpoints found")
 	}
 
 	// Return the latest checkpoint

@@ -11,6 +11,8 @@ import (
 )
 
 // JSONPool manages pooled JSON encoders and decoders
+//
+//nolint:revive // Name intentionally includes "JSON" for clarity
 type JSONPool struct {
 	encoderPool sync.Pool
 	decoderPool sync.Pool
@@ -159,7 +161,7 @@ func MarshalMultiple(values []interface{}, separator []byte) ([]byte, error) {
 
 	for i, v := range values {
 		if i > 0 && separator != nil {
-			buf.Write(separator)
+			_, _ = buf.Write(separator) // Ignore write error
 		}
 
 		if err := enc.Encode(v); err != nil {
@@ -202,7 +204,7 @@ func MarshalArray(values []interface{}) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		buf.Write(data)
+		_, _ = buf.Write(data) // Ignore write error
 	}
 
 	buf.WriteByte(']')
@@ -236,7 +238,7 @@ func NewStreamingEncoder(w io.Writer, isArray bool) *StreamingEncoder {
 	}
 
 	if isArray {
-		_, _ = w.Write([]byte{'['})
+		_, _ = w.Write([]byte{'['}) // Ignore write error
 	}
 
 	return se
@@ -255,9 +257,9 @@ func (se *StreamingEncoder) SetPretty(pretty bool, indent string) {
 func (se *StreamingEncoder) Encode(v interface{}) error {
 	if se.isArray {
 		if !se.firstRecord {
-			se.writer.Write([]byte{','})
+			_, _ = se.writer.Write([]byte{','}) // Ignore write error
 			if se.pretty {
-				se.writer.Write([]byte{'\n'})
+				_, _ = se.writer.Write([]byte{'\n'}) // Ignore write error
 			}
 		}
 		se.firstRecord = false
@@ -277,9 +279,9 @@ func (se *StreamingEncoder) Encode(v interface{}) error {
 func (se *StreamingEncoder) Close() error {
 	if se.isArray {
 		if se.pretty {
-			se.writer.Write([]byte{'\n'})
+			_, _ = se.writer.Write([]byte{'\n'}) // Ignore write error
 		}
-		se.writer.Write([]byte{']'})
+		_, _ = se.writer.Write([]byte{']'}) // Ignore write error
 	}
 
 	PutEncoder(se.encoder)
@@ -289,7 +291,7 @@ func (se *StreamingEncoder) Close() error {
 // OptimizedJSONWriter provides high-performance JSON writing with minimal allocations
 type OptimizedJSONWriter struct {
 	buffer     []byte
-	bytePool   *pool.Pool[[]byte]
+	bytePool   *pool.Pool[[]byte] //nolint:unused // Reserved for byte buffer pooling
 	escapeHTML bool
 }
 

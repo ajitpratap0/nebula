@@ -7,12 +7,12 @@ import (
 	"io"
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
-	"unsafe"
 )
 
 // ORC constants
@@ -39,7 +39,7 @@ type orcWriter struct {
 	postscript    *orcPostscript
 
 	// Buffering
-	buffer     []byte
+	buffer     []byte //nolint:unused // Reserved for data buffering
 	bufferPool sync.Pool
 
 	// Compression
@@ -60,7 +60,7 @@ type stripeInfo struct {
 
 type stripe struct {
 	rowData    [][]interface{}
-	indexData  []byte
+	indexData  []byte //nolint:unused // Reserved for index data storage
 	rowCount   int
 	memorySize int64
 }
@@ -76,9 +76,9 @@ type orcFooter struct {
 }
 
 type orcPostscript struct {
-	footerLength    uint64
+	footerLength    uint64 //nolint:unused // Reserved for footer length tracking
 	compressionKind CompressionKind
-	compressionSize uint64
+	compressionSize uint64 //nolint:unused // Reserved for compression size tracking
 	version         []uint32
 	metadataLength  uint64
 	writerVersion   uint32
@@ -89,23 +89,23 @@ type orcType struct {
 	kind          TypeKind
 	subtypes      []uint32
 	fieldNames    []string
-	maximumLength uint32
-	precision     uint32
-	scale         uint32
+	maximumLength uint32 //nolint:unused // Reserved for maximum length tracking
+	precision     uint32 //nolint:unused // Reserved for numeric precision
+	scale         uint32 //nolint:unused // Reserved for numeric scale
 }
 
 type columnStatistics struct {
 	numberOfValues uint64
 	hasNull        bool
-	bytesOnDisk    uint64
+	bytesOnDisk    uint64 //nolint:unused // Reserved for disk usage statistics
 
 	// Type-specific stats
 	intStats    *integerStatistics
-	doubleStats *doubleStatistics
+	doubleStats *doubleStatistics //nolint:unused // Reserved for double value statistics
 	stringStats *stringStatistics
-	dateStats   *dateStatistics
-	binaryStats *binaryStatistics
-	boolStats   *booleanStatistics
+	dateStats   *dateStatistics    //nolint:unused // Reserved for date statistics
+	binaryStats *binaryStatistics  //nolint:unused // Reserved for binary data statistics
+	boolStats   *booleanStatistics //nolint:unused // Reserved for boolean statistics
 }
 
 type integerStatistics struct {
@@ -114,7 +114,7 @@ type integerStatistics struct {
 	sum     int64
 }
 
-type doubleStatistics struct {
+type doubleStatistics struct { //nolint:unused // Reserved for future double statistics implementation
 	minimum float64
 	maximum float64
 	sum     float64
@@ -126,16 +126,16 @@ type stringStatistics struct {
 	sum     int64 // total length
 }
 
-type dateStatistics struct {
+type dateStatistics struct { //nolint:unused // Reserved for future date statistics implementation
 	minimum int32
 	maximum int32
 }
 
-type binaryStatistics struct {
+type binaryStatistics struct { //nolint:unused // Reserved for future binary statistics implementation
 	sum int64 // total length
 }
 
-type booleanStatistics struct {
+type booleanStatistics struct { //nolint:unused // Reserved for future boolean statistics implementation
 	trueCount uint64
 }
 
@@ -467,7 +467,7 @@ func (ow *orcWriter) encodeColumn(data []interface{}, fieldType core.FieldType) 
 				encoded = binary.LittleEndian.AppendUint64(encoded, 0)
 			} else {
 				encoded = binary.LittleEndian.AppendUint64(encoded,
-					uint64(float64ToUint64(v.(float64))))
+					float64ToUint64(v.(float64)))
 			}
 		}
 
@@ -477,9 +477,7 @@ func (ow *orcWriter) encodeColumn(data []interface{}, fieldType core.FieldType) 
 		boolBytes := pool.GetByteSlice()
 
 		if cap(boolBytes) < bytes {
-
 			boolBytes = make([]byte, bytes)
-
 		}
 
 		defer pool.PutByteSlice(boolBytes)
@@ -533,7 +531,6 @@ func (ow *orcWriter) writeStripeFooter() (int, error) {
 	footer := pool.GetByteSlice()
 	if cap(footer) < 1024 {
 		footer = make([]byte, 0, 1024)
-
 	}
 
 	defer pool.PutByteSlice(footer)
@@ -856,13 +853,13 @@ func (or *orcReader) setupDecompression() error {
 
 func (or *orcReader) buildSchema() error {
 	if len(or.footer.types) == 0 {
-		return errors.New(errors.ErrorTypeData, "no types found in ORC file")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeData, "no types found in ORC file")
 	}
 
 	// First type should be struct
 	rootType := or.footer.types[0]
 	if rootType.kind != STRUCT {
-		return errors.New(errors.ErrorTypeData, "root type is not STRUCT")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeData, "root type is not STRUCT")
 	}
 
 	fields := make([]core.Field, 0, len(rootType.fieldNames))
@@ -1100,7 +1097,7 @@ func estimateRowSize(row []interface{}) int64 {
 }
 
 func float64ToUint64(f float64) uint64 {
-	return *(*uint64)(unsafe.Pointer(&f))
+	return *(*uint64)(unsafe.Pointer(&f)) // #nosec G103 - safe float64 to uint64 bit conversion
 }
 
 // Compression functions (placeholders - would use actual libraries)

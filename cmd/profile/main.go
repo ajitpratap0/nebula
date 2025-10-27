@@ -1,3 +1,4 @@
+// Package main provides profiling tools for performance analysis and benchmarking.
 package main
 
 import (
@@ -43,7 +44,7 @@ func main() {
 	fmt.Printf("Output directory: %s\n", *outputDir)
 
 	// Create output directory
-	if err := os.MkdirAll(*outputDir, 0755); err != nil {
+	if err := os.MkdirAll(*outputDir, 0o750); err != nil {
 		log.Fatalf("Failed to create output directory: %v", err)
 	}
 
@@ -58,10 +59,15 @@ func main() {
 		if err != nil {
 			log.Fatalf("Failed to create CPU profile: %v", err)
 		}
-		defer f.Close()
+		defer func() {
+			if err := f.Close(); err != nil {
+				log.Printf("Failed to close CPU profile file: %v", err)
+			}
+		}()
 
 		if err := pprof.StartCPUProfile(f); err != nil {
-			log.Fatalf("Failed to start CPU profile: %v", err)
+			log.Printf("Failed to start CPU profile: %v", err)
+			return
 		}
 		defer pprof.StopCPUProfile()
 
@@ -84,13 +90,19 @@ func main() {
 
 		f, err := os.Create(memProfileFile)
 		if err != nil {
-			log.Fatalf("Failed to create memory profile: %v", err)
+			log.Printf("Failed to create memory profile: %v", err)
+			return
 		}
-		defer f.Close()
+		defer func() {
+			if err := f.Close(); err != nil {
+				log.Printf("Failed to close memory profile file: %v", err)
+			}
+		}()
 
 		runtime.GC() // Get up-to-date statistics
 		if err := pprof.WriteHeapProfile(f); err != nil {
-			log.Fatalf("Failed to write memory profile: %v", err)
+			log.Printf("Failed to write memory profile: %v", err)
+			return
 		}
 
 		fmt.Printf("Memory profile written to: %s\n", memProfileFile)
@@ -155,7 +167,11 @@ func writeProfile(profileName, filename string) {
 		log.Printf("Failed to create %s profile: %v", profileName, err)
 		return
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			log.Printf("Failed to close %s profile file: %v", profileName, err)
+		}
+	}()
 
 	if err := profile.WriteTo(f, 0); err != nil {
 		log.Printf("Failed to write %s profile: %v", profileName, err)

@@ -11,7 +11,7 @@
 // Example usage:
 //
 //	adapter := pipeline.NewStorageAdapter(pipeline.StorageModeHybrid, cfg)
-//	defer adapter.Close()
+//	defer adapter.Close() // Ignore close error
 //
 //	for _, record := range records {
 //	    if err := adapter.AddRecord(record); err != nil {
@@ -91,7 +91,7 @@ type StorageAdapter struct {
 
 	// Metrics for monitoring
 	recordCount atomic.Int64
-	bytesUsed   atomic.Int64
+	bytesUsed   atomic.Int64 //nolint:unused // Reserved for storage usage metrics
 
 	// Synchronization primitives
 	mu      sync.RWMutex
@@ -308,13 +308,13 @@ func (a *StorageAdapter) Flush() error {
 	case StorageModeColumnar:
 		// Optimize column types after batch
 		if a.columnarBatch != nil {
-			a.columnarBatch.OptimizeTypes()
+			_ = a.columnarBatch.OptimizeTypes() // Ignore optimization errors
 		}
 		return nil
 	case StorageModeHybrid:
 		// Flush both if needed
 		if a.columnarBatch != nil {
-			a.columnarBatch.OptimizeTypes()
+			_ = a.columnarBatch.OptimizeTypes() // Ignore optimization errors
 		}
 		return nil
 	}
@@ -333,7 +333,7 @@ func (a *StorageAdapter) triggerFlush() {
 
 // backgroundFlusher handles periodic flushing
 func (a *StorageAdapter) backgroundFlusher() {
-	ticker := time.NewTicker(time.Duration(a.config.Performance.FlushInterval) * time.Millisecond)
+	ticker := time.NewTicker(a.config.Performance.FlushInterval * time.Millisecond)
 	defer ticker.Stop()
 
 	for {
@@ -341,9 +341,9 @@ func (a *StorageAdapter) backgroundFlusher() {
 		case <-a.done:
 			return
 		case <-a.flushCh:
-			a.Flush()
+			_ = a.Flush() // Ignore flush error
 		case <-ticker.C:
-			a.Flush()
+			_ = a.Flush() // Ignore flush error
 		}
 	}
 }
@@ -415,8 +415,7 @@ func (a *StorageAdapter) OptimizeStorage() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	switch a.mode {
-	case StorageModeColumnar:
+	if a.mode == StorageModeColumnar {
 		// Run type optimization on columnar storage
 		if a.columnarBatch != nil {
 			return a.columnarBatch.OptimizeTypes()

@@ -39,7 +39,7 @@ type JSONDestination struct {
 	bytesWritten   int64
 	mu             sync.Mutex
 	isArray        bool
-	arrayStarted   bool
+	arrayStarted   bool //nolint:unused // Reserved for future array formatting support
 	firstRecord    bool
 	schema         *core.Schema
 	filePath       string
@@ -139,13 +139,13 @@ func (d *JSONDestination) Initialize(ctx context.Context, config *nebulaConfig.B
 	if d.compressionEnabled && d.compressor != nil {
 		ext := d.getCompressionExtension()
 		if ext != "" && !strings.HasSuffix(d.filePath, ext) {
-			d.filePath = d.filePath + ext
+			d.filePath += ext
 		}
 	}
 
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(d.filePath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil { //nolint:gosec
 		return fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
 
@@ -182,7 +182,7 @@ func (d *JSONDestination) Initialize(ctx context.Context, config *nebulaConfig.B
 }
 
 // CreateSchema creates a schema in the destination
-func (d *JSONDestination) CreateSchema(ctx context.Context, schema *core.Schema) error {
+func (d *JSONDestination) CreateSchema(_ context.Context, schema *core.Schema) error {
 	d.schema = schema
 	return nil
 }
@@ -200,7 +200,10 @@ func (d *JSONDestination) Write(ctx context.Context, stream *core.RecordStream) 
 						return fmt.Errorf("failed to close array: %w", err)
 					}
 				}
-				d.writer.Flush()
+				if err := d.writer.Flush(); err != nil {
+					// Flush errors at stream end are typically not critical - ignored
+					_ = err // Explicitly ignore error
+				}
 				return nil
 			}
 
@@ -214,7 +217,10 @@ func (d *JSONDestination) Write(ctx context.Context, stream *core.RecordStream) 
 			return err
 
 		case <-ctx.Done():
-			d.writer.Flush()
+			if err := d.writer.Flush(); err != nil {
+				// Flush errors on context done are typically not critical - ignored
+				_ = err // Explicitly ignore error
+			}
 			return ctx.Err()
 		}
 	}
@@ -233,7 +239,10 @@ func (d *JSONDestination) WriteBatch(ctx context.Context, stream *core.BatchStre
 						return fmt.Errorf("failed to close array: %w", err)
 					}
 				}
-				d.writer.Flush()
+				if err := d.writer.Flush(); err != nil {
+					// Flush errors at stream end are typically not critical - ignored
+					_ = err // Explicitly ignore error
+				}
 				return nil
 			}
 
@@ -247,7 +256,10 @@ func (d *JSONDestination) WriteBatch(ctx context.Context, stream *core.BatchStre
 			return err
 
 		case <-ctx.Done():
-			d.writer.Flush()
+			if err := d.writer.Flush(); err != nil {
+				// Flush errors on context done are typically not critical - ignored
+				_ = err // Explicitly ignore error
+			}
 			return ctx.Err()
 		}
 	}
@@ -308,7 +320,7 @@ func (d *JSONDestination) writeRecord(record *models.Record) (int, error) {
 func (d *JSONDestination) closeArray() error {
 	// The streaming encoder handles closing the array
 	if d.streamEncoder != nil {
-		_ = d.streamEncoder.Close()
+		_ = d.streamEncoder.Close() // Ignore encoder close error
 		return nil
 	}
 	return nil
@@ -365,7 +377,7 @@ func (d *JSONDestination) DropSchema(ctx context.Context, schema *core.Schema) e
 }
 
 // Health checks the health of the destination
-func (d *JSONDestination) Health(ctx context.Context) error {
+func (d *JSONDestination) Health(_ context.Context) error {
 	if d.file == nil {
 		return fmt.Errorf("file not opened")
 	}
@@ -384,7 +396,7 @@ func (d *JSONDestination) Close(ctx context.Context) error {
 
 	if d.writer != nil {
 		// Flush any remaining data
-		d.writer.Flush()
+		_ = d.writer.Flush() // Error ignored during cleanup
 	}
 
 	// Close compression writer first if it exists

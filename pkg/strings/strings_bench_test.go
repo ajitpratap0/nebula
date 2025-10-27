@@ -112,7 +112,7 @@ func BenchmarkCSVBuilding(b *testing.B) {
 	b.Run("PooledCSVBuilder", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			builder := NewCSVBuilder(len(csvData), len(headers))
-			defer builder.Close()
+			defer builder.Close() // Ignore close error
 
 			builder.WriteHeader(headers)
 			for _, row := range csvData {
@@ -145,7 +145,7 @@ func BenchmarkURLBuilding(b *testing.B) {
 	b.Run("PooledURLBuilder", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			builder := NewURLBuilder(baseURL)
-			defer builder.Close()
+			defer builder.Close() // Ignore close error
 
 			builder.AddParamInt("limit", 100).
 				AddParamInt("offset", i*100).
@@ -181,7 +181,7 @@ func BenchmarkSQLBuilding(b *testing.B) {
 	b.Run("PooledSQLBuilder", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			builder := NewSQLBuilder(200)
-			defer builder.Close()
+			defer builder.Close() // Ignore close error
 
 			builder.WriteQuery("INSERT INTO").WriteSpace().
 				WriteIdentifier(tableName).WriteSpace().
@@ -206,7 +206,7 @@ func BenchmarkBuilderPoolEfficiency(b *testing.B) {
 				builder := GetBuilder(Small)
 				for _, s := range testStrings {
 					builder.WriteString(s)
-					builder.WriteByte(',')
+					_ = builder.WriteByte(',')
 				}
 				result := builder.String()
 				PutBuilder(builder, Small)
@@ -221,7 +221,7 @@ func BenchmarkBuilderPoolEfficiency(b *testing.B) {
 				builder := NewBuilder(1024)
 				for _, s := range testStrings {
 					builder.WriteString(s)
-					builder.WriteByte(',')
+					_ = builder.WriteByte(',')
 				}
 				result := builder.String()
 				_ = result
@@ -294,7 +294,7 @@ func TestStringBuildingCorrectness(t *testing.T) {
 
 	// Test CSV builder
 	builder := NewCSVBuilder(2, 3)
-	defer builder.Close()
+	defer builder.Close() // Ignore close error
 
 	builder.WriteHeader([]string{"name", "age", "city"})
 	builder.WriteRow([]string{"John", "30", "NYC"})
@@ -308,7 +308,7 @@ func TestStringBuildingCorrectness(t *testing.T) {
 
 	// Test URL builder
 	urlBuilder := NewURLBuilder("https://api.example.com/data")
-	defer urlBuilder.Close()
+	defer urlBuilder.Close() // Ignore close error
 
 	urlBuilder.AddParam("limit", "100").AddParamInt("offset", 50).AddParamBool("active", true)
 	urlResult := urlBuilder.String()

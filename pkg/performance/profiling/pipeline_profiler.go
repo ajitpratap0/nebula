@@ -10,9 +10,9 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"go.uber.org/zap"
 )
 
@@ -132,7 +132,7 @@ func (p *PipelineProfiler) Start(ctx context.Context) error {
 
 	// Start system profiling
 	if err := p.profiler.Start(ctx); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeInternal, "failed to start profiler")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "failed to start profiler")
 	}
 
 	p.logger.Info("pipeline profiling started")
@@ -303,12 +303,12 @@ func (p *PipelineProfiler) getStageMetricsCopy() map[string]*StageMetrics {
 	p.stageMutex.RLock()
 	defer p.stageMutex.RUnlock()
 
-	copy := make(map[string]*StageMetrics)
+	stagesCopy := make(map[string]*StageMetrics)
 	for k, v := range p.stageMetrics {
 		metricsCopy := *v
-		copy[k] = &metricsCopy
+		stagesCopy[k] = &metricsCopy
 	}
-	return copy
+	return stagesCopy
 }
 
 func (p *PipelineProfiler) generateRecommendations(throughput float64, analysis *AnalysisResult) []string {
@@ -362,7 +362,7 @@ func (p *PipelineProfiler) saveReport(result *ProfileResult) error {
 	}
 
 	// Write to file
-	if err := os.WriteFile(filename, data, 0644); err != nil {
+	if err := os.WriteFile(filename, data, 0o600); err != nil {
 		return fmt.Errorf("failed to write profile report: %w", err)
 	}
 

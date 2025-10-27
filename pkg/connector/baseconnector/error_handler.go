@@ -1,4 +1,4 @@
-package base
+package baseconnector
 
 import (
 	"context"
@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"go.uber.org/zap"
 )
@@ -37,7 +37,7 @@ func NewErrorHandler(logger *zap.Logger, maxRetries int, baseDelay time.Duration
 }
 
 // HandleError processes an error with appropriate handling
-func (eh *ErrorHandler) HandleError(ctx context.Context, err error, record *models.Record) error {
+func (eh *ErrorHandler) HandleError(_ context.Context, err error, record *models.Record) error {
 	if err == nil {
 		return nil
 	}
@@ -61,12 +61,12 @@ func (eh *ErrorHandler) HandleError(ctx context.Context, err error, record *mode
 	if eh.ShouldRetry(err) {
 		atomic.AddInt64(&eh.retriedErrors, 1)
 		eh.logger.Warn("retryable error occurred", fields...)
-		return errors.Wrap(err, errors.ErrorTypeTimeout, "error can be retried")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeTimeout, "error can be retried")
 	}
 
 	atomic.AddInt64(&eh.fatalErrors, 1)
 	eh.logger.Error("fatal error occurred", fields...)
-	return errors.Wrap(err, errors.ErrorTypeInternal, "error cannot be retried")
+	return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeInternal, "error cannot be retried")
 }
 
 // ShouldRetry determines if an error should be retried
@@ -76,12 +76,12 @@ func (eh *ErrorHandler) ShouldRetry(err error) bool {
 	}
 
 	// Check if error is explicitly marked as non-retryable
-	if errors.IsType(err, errors.ErrorTypeInternal) {
+	if nebulaerrors.IsType(err, nebulaerrors.ErrorTypeInternal) {
 		return false
 	}
 
 	// Check if error is explicitly marked as retryable
-	if errors.IsRetryable(err) {
+	if nebulaerrors.IsRetryable(err) {
 		return true
 	}
 
@@ -133,8 +133,8 @@ func (eh *ErrorHandler) ShouldRetry(err error) bool {
 	}
 
 	// Default: retry network and timeout errors
-	return errors.IsType(err, errors.ErrorTypeConnection) ||
-		errors.IsType(err, errors.ErrorTypeTimeout)
+	return nebulaerrors.IsType(err, nebulaerrors.ErrorTypeConnection) ||
+		nebulaerrors.IsType(err, nebulaerrors.ErrorTypeTimeout)
 }
 
 // GetRetryDelay calculates the retry delay for a given attempt
@@ -144,7 +144,15 @@ func (eh *ErrorHandler) GetRetryDelay(attempt int) time.Duration {
 	}
 
 	// Exponential backoff with jitter
-	delay := eh.baseDelay * time.Duration(1<<uint(attempt-1))
+	// Ensure attempt doesn't cause overflow
+	shiftAmount := attempt - 1
+	if shiftAmount < 0 {
+		shiftAmount = 0
+	}
+	if shiftAmount > 63 { // Limit to prevent overflow
+		shiftAmount = 63
+	}
+	delay := eh.baseDelay * time.Duration(1<<uint(shiftAmount))
 
 	// Cap at 5 minutes
 	maxDelay := 5 * time.Minute
@@ -213,25 +221,25 @@ func (eh *ErrorHandler) categorizeError(err error) string {
 	}
 
 	// Check for known error types
-	if errors.IsType(err, errors.ErrorTypeConnection) {
+	if nebulaerrors.IsType(err, nebulaerrors.ErrorTypeConnection) {
 		return "connection"
 	}
-	if errors.IsType(err, errors.ErrorTypeTimeout) {
+	if nebulaerrors.IsType(err, nebulaerrors.ErrorTypeTimeout) {
 		return "timeout"
 	}
-	if errors.IsType(err, errors.ErrorTypeAuthentication) {
+	if nebulaerrors.IsType(err, nebulaerrors.ErrorTypeAuthentication) {
 		return "authentication"
 	}
-	if errors.IsType(err, errors.ErrorTypeRateLimit) {
+	if nebulaerrors.IsType(err, nebulaerrors.ErrorTypeRateLimit) {
 		return "rate_limit"
 	}
-	if errors.IsType(err, errors.ErrorTypeConfig) {
+	if nebulaerrors.IsType(err, nebulaerrors.ErrorTypeConfig) {
 		return "configuration"
 	}
-	if errors.IsType(err, errors.ErrorTypeData) {
+	if nebulaerrors.IsType(err, nebulaerrors.ErrorTypeData) {
 		return "data_error"
 	}
-	if errors.IsType(err, errors.ErrorTypeInternal) {
+	if nebulaerrors.IsType(err, nebulaerrors.ErrorTypeInternal) {
 		return "internal"
 	}
 

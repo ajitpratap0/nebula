@@ -44,11 +44,11 @@ func BenchmarkSimpleHybridComparison(b *testing.B) {
 					record.SetData("amount", float64(j)*1.5)
 					record.SetData("active", j%2 == 0)
 
-					adapter.AddRecord(record)
+					_ = adapter.AddRecord(record)
 					record.Release()
 				}
 
-				adapter.Flush()
+				_ = adapter.Flush() // Ignore flush error
 
 				runtime.GC()
 				runtime.ReadMemStats(&m2)
@@ -59,7 +59,7 @@ func BenchmarkSimpleHybridComparison(b *testing.B) {
 				b.ReportMetric(bytesPerRecord, "bytes/record")
 				b.ReportMetric(float64(adapter.GetRecordCount()), "total_records")
 
-				adapter.Close()
+				_ = adapter.Close() // Ignore close error
 			}
 		})
 	}
@@ -96,11 +96,11 @@ func BenchmarkColumnarOptimization(b *testing.B) {
 					record.SetData("value", j/100) // Integer that repeats
 					record.SetData("active", j%2 == 0)
 
-					adapter.AddRecord(record)
+					_ = adapter.AddRecord(record)
 					record.Release()
 				}
 
-				adapter.OptimizeStorage()
+				_ = adapter.OptimizeStorage()
 
 				runtime.GC()
 				runtime.ReadMemStats(&m2)
@@ -111,7 +111,7 @@ func BenchmarkColumnarOptimization(b *testing.B) {
 				b.ReportMetric(bytesPerRecord, "bytes/record")
 				b.ReportMetric(float64(size), "total_records")
 
-				adapter.Close()
+				_ = adapter.Close() // Ignore close error
 			}
 		})
 	}
@@ -147,7 +147,7 @@ func BenchmarkHybridDecisionMaking(b *testing.B) {
 					record.SetData("id", j)
 					record.SetData("data", "record_"+string(rune(j)))
 
-					adapter.AddRecord(record)
+					_ = adapter.AddRecord(record)
 					record.Release()
 				}
 
@@ -161,7 +161,7 @@ func BenchmarkHybridDecisionMaking(b *testing.B) {
 				b.ReportMetric(bytesPerRecord, "bytes/record")
 				b.ReportMetric(float64(len(string(actualMode))), "mode_choice")
 
-				adapter.Close()
+				_ = adapter.Close() // Ignore close error
 			}
 		})
 	}

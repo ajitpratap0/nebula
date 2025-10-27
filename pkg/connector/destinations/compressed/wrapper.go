@@ -1,3 +1,4 @@
+// Package compressed provides compression wrapper for Nebula destination connectors
 package compressed
 
 import (
@@ -7,8 +8,8 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/compression"
 	nebulaConfig "github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"go.uber.org/zap"
 )
@@ -21,7 +22,7 @@ type Wrapper struct {
 	level              compression.Level
 	compressor         compression.Compressor
 	compressedWriter   io.WriteCloser
-	originalWriter     io.Writer
+	originalWriter     io.Writer //nolint:unused // Reserved for fallback writer reference
 	logger             *zap.Logger
 }
 
@@ -63,7 +64,7 @@ func WrapConfig(cfg *nebulaConfig.BaseConfig) *nebulaConfig.BaseConfig {
 }
 
 // getCompressionExtension returns the file extension for the compression algorithm
-func getCompressionExtension(algorithm compression.Algorithm) string {
+func getCompressionExtension(algorithm compression.Algorithm) string { //nolint:unused // Reserved for file extension mapping
 	switch algorithm {
 	case compression.Gzip:
 		return ".gz"
@@ -144,7 +145,7 @@ func (w *Wrapper) extractCompressionConfig(config *nebulaConfig.BaseConfig) erro
 	var err error
 	w.compressor, err = compression.NewCompressor(compressionConfig)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to create compressor")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to create compressor")
 	}
 
 	return nil

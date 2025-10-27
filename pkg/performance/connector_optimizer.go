@@ -23,7 +23,7 @@ type ConnectorOptimizer struct {
 	compressor   *compression.CompressorPool
 	profiler     *Profiler
 	strategies   map[string]OptimizationStrategy
-	mu           sync.RWMutex
+	mu           sync.RWMutex //nolint:unused // Reserved for connector optimizer synchronization
 }
 
 // ConnectorOptConfig configures connector optimization
@@ -635,7 +635,7 @@ func (osd *OptimizedSnowflakeDestination) WriteBatch(ctx context.Context, stream
 // Close implements destination close
 func (osd *OptimizedSnowflakeDestination) Close(ctx context.Context) error {
 	if osd.writer != nil {
-		osd.writer.Close()
+		_ = osd.writer.Close()
 	}
 	return osd.destination.Close(ctx)
 }
@@ -986,7 +986,7 @@ func (ogd *OptimizedGenericDestination) Metrics() map[string]interface{} {
 }
 
 // Helper function to split records into batches
-func splitIntoBatches(records []*models.Record, batchSize int) []interface{} {
+func splitIntoBatches(records []*models.Record, batchSize int) []interface{} { //nolint:unused // Reserved for batch processing utility
 	var batches []interface{}
 	for i := 0; i < len(records); i += batchSize {
 		end := i + batchSize

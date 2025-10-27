@@ -30,6 +30,7 @@ func (r *RestCatalog) Connect(ctx context.Context, config CatalogConfig) error {
 func (r *RestCatalog) GetSchema(ctx context.Context, database, table string) (*core.Schema, error) {
 	return nil, fmt.Errorf("REST catalog GetSchema not implemented yet")
 }
+
 func (r *RestCatalog) WriteData(ctx context.Context, database, table string, batch []*pool.Record) error {
 	return fmt.Errorf("REST catalog WriteData not implemented yet")
 }
@@ -37,6 +38,7 @@ func (r *RestCatalog) WriteData(ctx context.Context, database, table string, bat
 func (r *RestCatalog) Close(ctx context.Context) error {
 	return nil
 }
+
 func (r *RestCatalog) Health(ctx context.Context) error {
 	return fmt.Errorf("REST catalog not initialized")
 }

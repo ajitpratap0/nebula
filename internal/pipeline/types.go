@@ -85,9 +85,13 @@ type ErrorHandlingStrategy struct {
 type BackpressureStrategy string
 
 const (
-	BackpressureDrop     BackpressureStrategy = "drop"
-	BackpressureBlock    BackpressureStrategy = "block"
+	// BackpressureDrop drops new incoming data when buffers are full
+	BackpressureDrop BackpressureStrategy = "drop"
+	// BackpressureBlock blocks the producer when buffers are full
+	BackpressureBlock BackpressureStrategy = "block"
+	// BackpressureAdaptive dynamically adjusts flow based on buffer utilization
 	BackpressureAdaptive BackpressureStrategy = "adaptive"
+	// BackpressureThrottle reduces the flow rate when buffers approach capacity
 	BackpressureThrottle BackpressureStrategy = "throttle"
 )
 
@@ -102,6 +106,8 @@ type FlowControlState struct {
 }
 
 // PipelineFusionConfig defines how stages can be fused for optimization
+//
+//nolint:revive // Name intentionally includes "Pipeline" for clarity in external usage
 type PipelineFusionConfig struct {
 	Enabled           bool              `json:"enabled"`
 	FusableStages     [][]string        `json:"fusable_stages"`
@@ -164,6 +170,8 @@ type PerformanceProfile struct {
 }
 
 // PipelineTopology represents the overall pipeline structure
+//
+//nolint:revive // Name intentionally includes "Pipeline" for clarity in external usage
 type PipelineTopology struct {
 	Stages       []DataFlowStage   `json:"stages"`
 	Connections  []StageConnection `json:"connections"`

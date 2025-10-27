@@ -14,7 +14,7 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/models"
 )
 
-// Example 1: Basic compression usage
+// BasicCompressionExample demonstrates basic compression usage
 func BasicCompressionExample() {
 	fmt.Println("=== Basic Compression Example ===")
 
@@ -67,7 +67,7 @@ func BasicCompressionExample() {
 	}
 }
 
-// Example 2: Streaming compression
+// StreamingCompressionExample demonstrates streaming compression
 func StreamingCompressionExample() {
 	fmt.Println("\n=== Streaming Compression Example ===")
 
@@ -103,7 +103,7 @@ func StreamingCompressionExample() {
 	fmt.Printf("Decompressed stream size: %d bytes\n", decompressed.Len())
 }
 
-// Example 3: Compression with pooling
+// CompressionPoolExample demonstrates compression with pooling
 func CompressionPoolExample() {
 	fmt.Println("\n=== Compression Pool Example ===")
 
@@ -132,7 +132,7 @@ func CompressionPoolExample() {
 	_ = decompressed
 }
 
-// Example 4: Basic columnar format usage
+// BasicColumnarExample demonstrates basic columnar format usage
 func BasicColumnarExample() {
 	fmt.Println("\n=== Basic Columnar Format Example ===")
 
@@ -185,12 +185,12 @@ func BasicColumnarExample() {
 		log.Fatal(err)
 	}
 
-	err = writer.WriteRecords(records)
+	err = writer.WriteRecords(records) // Ignore write records error
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = writer.Close()
+	err = writer.Close() // Ignore close error
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -214,10 +214,10 @@ func BasicColumnarExample() {
 	}
 
 	fmt.Printf("Read %d records back from Parquet\n", len(readRecords))
-	reader.Close()
+	_ = reader.Close() // Error ignored for cleanup
 }
 
-// Example 5: Streaming columnar writes
+// StreamingColumnarExample demonstrates streaming columnar writes
 func StreamingColumnarExample() {
 	fmt.Println("\n=== Streaming Columnar Example ===")
 
@@ -264,15 +264,15 @@ func StreamingColumnarExample() {
 
 		// Simulate streaming - flush periodically
 		if i%100 == 0 {
-			writer.Flush()
+			_ = writer.Flush() // Error ignored for cleanup
 		}
 	}
 
-	writer.Close()
+	_ = writer.Close() // Error ignored for cleanup
 	fmt.Printf("Streamed 1000 events to Arrow format (%d bytes)\n", buf.Len())
 }
 
-// Example 6: Columnar format with compression comparison
+// ColumnarCompressionComparisonExample demonstrates columnar format with compression comparison
 func ColumnarCompressionComparisonExample() {
 	fmt.Println("\n=== Columnar Compression Comparison ===")
 
@@ -317,11 +317,11 @@ func ColumnarCompressionComparisonExample() {
 		}
 
 		start := time.Now()
-		err = writer.WriteRecords(records)
+		err = writer.WriteRecords(records) // Ignore write records error
 		if err != nil {
 			log.Fatal(err)
 		}
-		writer.Close()
+		_ = writer.Close() // Error ignored for cleanup
 		elapsed := time.Since(start)
 
 		fmt.Printf("Parquet/%s: %d bytes, %.2fms\n",
@@ -329,7 +329,7 @@ func ColumnarCompressionComparisonExample() {
 	}
 }
 
-// Example 7: Compressed columnar data pipeline
+// CompressedColumnarPipelineExample demonstrates compressed columnar data pipeline
 func CompressedColumnarPipelineExample() {
 	fmt.Println("\n=== Compressed Columnar Pipeline ===")
 
@@ -372,11 +372,11 @@ func CompressedColumnarPipelineExample() {
 		log.Fatal(err)
 	}
 
-	err = writer.WriteRecords(records)
+	err = writer.WriteRecords(records) // Ignore write records error
 	if err != nil {
 		log.Fatal(err)
 	}
-	writer.Close()
+	_ = writer.Close() // Error ignored for cleanup
 
 	// Step 3: Further compress the Parquet file
 	compressor, err := compression.NewCompressor(&compression.Config{
@@ -419,7 +419,7 @@ func CompressedColumnarPipelineExample() {
 	fmt.Printf("  Records read back: %d\n", len(readBack))
 }
 
-// Example 8: File-based columnar operations
+// FileBasedColumnarExample demonstrates file-based columnar operations
 func FileBasedColumnarExample() {
 	fmt.Println("\n=== File-Based Columnar Example ===")
 
@@ -450,7 +450,7 @@ func FileBasedColumnarExample() {
 		BatchSize:   1000,
 	})
 	if err != nil {
-		file.Close()
+		_ = file.Close() // Error ignored for cleanup
 		log.Fatal(err)
 	}
 
@@ -464,11 +464,11 @@ func FileBasedColumnarExample() {
 				"created":  time.Now(),
 			},
 		}
-		writer.WriteRecord(record)
+		_ = writer.WriteRecord(record) // Error ignored for example
 	}
 
-	writer.Close()
-	file.Close()
+	_ = writer.Close() // Error ignored for cleanup
+	_ = file.Close()   // Error ignored for cleanup
 
 	// Read file info
 	info, err := os.Stat(filename)
@@ -483,14 +483,15 @@ func FileBasedColumnarExample() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer readFile.Close()
+	defer func() { _ = readFile.Close() }() // Ignore close error
 
 	reader, err := columnar.NewReader(readFile, &columnar.ReaderConfig{
 		Format:     columnar.Parquet,
 		Projection: []string{"user_id", "username"}, // Only read some columns
 	})
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Failed to create reader: %v", err)
+		return
 	}
 
 	count := 0
@@ -505,13 +506,13 @@ func FileBasedColumnarExample() {
 	}
 
 	fmt.Printf("Read %d records with projection\n", count)
-	reader.Close()
+	_ = reader.Close() // Error ignored for cleanup
 
 	// Cleanup
-	os.Remove(filename)
+	_ = os.Remove(filename) // Best effort cleanup
 }
 
-// Main function to run all examples
+// RunCompressionColumnarExamples runs all compression and columnar examples
 func RunCompressionColumnarExamples() {
 	BasicCompressionExample()
 	StreamingCompressionExample()

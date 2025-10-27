@@ -12,10 +12,10 @@ import (
 type Queue struct {
 	// Separate head and tail on different cache lines to avoid false sharing
 	head      atomic.Uint64
-	_padding1 [7]uint64 // 56 bytes padding to separate cache lines
+	_padding1 [7]uint64 //nolint:unused // 56 bytes padding to separate cache lines
 
 	tail      atomic.Uint64
-	_padding2 [7]uint64 // 56 bytes padding
+	_padding2 [7]uint64 //nolint:unused // 56 bytes padding
 
 	buffer   []unsafe.Pointer
 	capacity uint64
@@ -54,7 +54,7 @@ func (q *Queue) Enqueue(item interface{}) bool {
 		// Try to claim the slot
 		if q.tail.CompareAndSwap(tail, next) {
 			// We own this slot, store the item
-			atomic.StorePointer(&q.buffer[tail], unsafe.Pointer(&item))
+			atomic.StorePointer(&q.buffer[tail], unsafe.Pointer(&item)) // #nosec G103 - safe atomic pointer store
 			return true
 		}
 
@@ -123,10 +123,10 @@ type MPMCQueue struct {
 
 	// Separate enqueue and dequeue indices on different cache lines
 	enqueuePos atomic.Uint64
-	_padding1  [7]uint64
+	_padding1  [7]uint64 //nolint:unused
 
 	dequeuePos atomic.Uint64
-	_padding2  [7]uint64
+	_padding2  [7]uint64 //nolint:unused
 }
 
 // slot represents a queue slot with sequence number for ordering
@@ -171,7 +171,7 @@ func (q *MPMCQueue) Enqueue(item interface{}) bool {
 			// Slot is ready for enqueue
 			if q.enqueuePos.CompareAndSwap(pos, pos+1) {
 				// We own this slot
-				atomic.StorePointer(&slot.data, unsafe.Pointer(&item))
+				atomic.StorePointer(&slot.data, unsafe.Pointer(&item)) // #nosec G103 - safe atomic pointer store
 				slot.sequence.Store(pos + 1)
 				return true
 			}
@@ -253,10 +253,10 @@ type RingBuffer struct {
 
 	// Separate read and write positions
 	writePos  atomic.Uint64
-	_padding1 [7]uint64
+	_padding1 [7]uint64 //nolint:unused
 
 	readPos   atomic.Uint64
-	_padding2 [7]uint64
+	_padding2 [7]uint64 //nolint:unused
 }
 
 // NewRingBuffer creates a new lock-free ring buffer with the given capacity.

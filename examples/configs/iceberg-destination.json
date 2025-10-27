@@ -26,7 +26,7 @@
       "warehouse": "s3://warehouse/",
       "catalog_name": "nessie",
       "database": "dummy",
-      "table": "test_csv",
+      "table": "nyc_taxi",
       "branch": "main",
       "prop_s3.region": "us-east-1",
       "prop_s3.endpoint": "http://localhost:9000",

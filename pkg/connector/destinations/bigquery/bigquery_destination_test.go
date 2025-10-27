@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/stretchr/testify/assert"
@@ -160,25 +160,25 @@ func TestBigQueryDestination_GetStats(t *testing.T) {
 
 func TestBigQueryDestination_MicroBatching(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Create base connector and initialize it
-	baseConn := base.NewBaseConnector("test-bigquery", core.ConnectorTypeDestination, "1.0.0")
+	baseConn := baseconnector.NewBaseConnector("test-bigquery", core.ConnectorTypeDestination, "1.0.0")
 	testConfig := &config.BaseConfig{
 		Name: "test-bigquery",
 		Reliability: config.ReliabilityConfig{
 			RetryAttempts: 3,
-			RetryDelay:   1,
+			RetryDelay:    1,
 		},
 	}
 	err := baseConn.Initialize(ctx, testConfig)
 	require.NoError(t, err)
-	
+
 	dest := &BigQueryDestination{
 		BaseConnector: baseConn,
-		batchSize:    3,
-		batchTimeout: 100 * time.Millisecond,
-		microBatch:   pool.GetBatchSlice(3),
-		batchChan:    make(chan *RecordBatch, 10),
+		batchSize:     3,
+		batchTimeout:  100 * time.Millisecond,
+		microBatch:    pool.GetBatchSlice(3),
+		batchChan:     make(chan *RecordBatch, 10),
 	}
 
 	// Add records that don't fill the batch

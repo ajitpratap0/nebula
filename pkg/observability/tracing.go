@@ -66,6 +66,8 @@ type LoggingConfig struct {
 }
 
 // ObservabilityConfig contains all observability configuration
+//
+//nolint:revive // Name intentionally includes "Observability" for clarity
 type ObservabilityConfig struct {
 	Tracing TracingConfig
 	Metrics MetricsConfig
@@ -216,7 +218,7 @@ func (ct *ConnectorTracer) StartSpan(ctx context.Context, operation string) (con
 
 // TraceRecord traces a record processing operation
 func (ct *ConnectorTracer) TraceRecord(ctx context.Context, recordID string, operation string, fn func() error) error {
-	ctx, span := ct.StartSpan(ctx, operation)
+	_, span := ct.StartSpan(ctx, operation)
 	defer span.End()
 
 	span.SetAttribute("record.id", recordID)
@@ -247,7 +249,7 @@ func (ct *ConnectorTracer) TraceRecord(ctx context.Context, recordID string, ope
 
 // TraceBatch traces a batch processing operation
 func (ct *ConnectorTracer) TraceBatch(ctx context.Context, batchSize int, operation string, fn func() error) error {
-	ctx, span := ct.StartSpan(ctx, operation)
+	_, span := ct.StartSpan(ctx, operation)
 	defer span.End()
 
 	span.SetAttribute("batch.size", batchSize)

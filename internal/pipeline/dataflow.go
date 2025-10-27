@@ -118,7 +118,7 @@ type StageExecutor struct {
 	errorCh   chan *StreamingError
 	metrics   *StageMetrics
 	logger    *zap.Logger
-	isRunning int32
+	isRunning int32 //nolint:unused // Reserved for stage execution state tracking
 	wg        sync.WaitGroup
 }
 
@@ -355,8 +355,9 @@ func (df *DataFlow) distributeOutput(ctx context.Context, executor *StageExecuto
 	connections := df.connections[executor.stage.Name]
 	if len(connections) == 0 {
 		// Final stage, just drain the output
-		for range executor.outputCh {
+		for record := range executor.outputCh {
 			// Record processed but don't forward
+			_ = record // Explicitly acknowledge we're discarding the record
 		}
 		return
 	}
@@ -456,12 +457,15 @@ type ExtractProcessor struct {
 	logger *zap.Logger
 }
 
-func (p *ExtractProcessor) Process(ctx context.Context, record *StreamingRecord) (*StreamingRecord, error) {
+func (p *ExtractProcessor) Process(_ context.Context, record *StreamingRecord) (*StreamingRecord, error) {
 	// Placeholder for extraction logic
 	return record, nil
 }
 
+// Name returns the processor name
 func (p *ExtractProcessor) Name() string { return "extract" }
+
+// Type returns the processor type
 func (p *ExtractProcessor) Type() string { return "extract" }
 
 // TransformProcessor handles transformation logic
@@ -474,7 +478,10 @@ func (p *TransformProcessor) Process(ctx context.Context, record *StreamingRecor
 	return record, nil
 }
 
+// Name returns the processor name
 func (p *TransformProcessor) Name() string { return "transform" }
+
+// Type returns the processor type
 func (p *TransformProcessor) Type() string { return "transform" }
 
 // LoadProcessor handles loading logic

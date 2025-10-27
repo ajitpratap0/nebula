@@ -3,6 +3,7 @@ package columnar
 
 import (
 	"fmt"
+	"math"
 	"time"
 )
 
@@ -80,7 +81,11 @@ func (c *StringColumn) Append(value interface{}) error {
 		if code, exists := c.dict[str]; exists {
 			c.codes = append(c.codes, code)
 		} else {
-			newCode := uint32(len(c.dict))
+			dictLen := len(c.dict)
+			if dictLen > math.MaxUint32 {
+				return fmt.Errorf("dictionary size exceeds uint32 limit")
+			}
+			newCode := uint32(dictLen)
 			c.dict[str] = newCode
 			c.codes = append(c.codes, newCode)
 		}
@@ -115,7 +120,12 @@ func (c *StringColumn) convertToDictionary() {
 		if code, exists := c.dict[v]; exists {
 			c.codes = append(c.codes, code)
 		} else {
-			newCode := uint32(len(c.dict))
+			dictLen := len(c.dict)
+			if dictLen > math.MaxUint32 {
+				// Dictionary size exceeds uint32 limit, skip remaining values
+				break
+			}
+			newCode := uint32(dictLen)
 			c.dict[v] = newCode
 			c.codes = append(c.codes, newCode)
 		}
@@ -157,8 +167,8 @@ func (c *StringColumn) MemoryUsage() int64 {
 type IntColumn struct {
 	values   []int64
 	min, max int64
-	packed   bool
-	bitWidth int
+	packed   bool //nolint:unused // Reserved for packed storage optimization
+	bitWidth int  //nolint:unused // Reserved for bit packing optimization
 }
 
 // NewIntColumn creates a new integer column

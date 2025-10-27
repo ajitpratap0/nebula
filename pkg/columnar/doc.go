@@ -138,7 +138,7 @@
 //			pipeline.StorageModeHybrid,
 //			config,
 //		)
-//		defer adapter.Close()
+//		defer adapter.Close() // Ignore close error
 //
 //		// Process records - adapter chooses optimal storage
 //		for _, record := range records {

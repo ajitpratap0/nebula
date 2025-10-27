@@ -169,7 +169,6 @@ func applyCPUOptimizations() *performance.Metrics {
 		profiler.IncrementRecords(1)
 		return nil
 	})
-
 	if err != nil {
 		log.Printf("CPU optimization error: %v", err)
 	}
@@ -389,9 +388,7 @@ func processRecordBaseline(record *models.Record) {
 	temp := pool.GetByteSlice()
 
 	if cap(temp) < 1024 {
-
 		temp = make([]byte, 1024)
-
 	}
 
 	defer pool.PutByteSlice(temp)
@@ -477,7 +474,7 @@ func FullPipelineExample() {
 			items[j] = r
 		}
 
-		cpuOptimizer.ExecuteParallel(ctx, items, func(item interface{}) error {
+		_ = cpuOptimizer.ExecuteParallel(ctx, items, func(item interface{}) error {
 			record := item.(*models.Record)
 
 			// Compress large fields

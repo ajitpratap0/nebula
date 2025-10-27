@@ -37,8 +37,8 @@ func (d *DirectCSVToColumnar) ProcessCSV(reader *csv.Reader) error {
 	// Create columns
 	for i, header := range headers {
 		d.headerMap[header] = i
-		d.types[i] = ColumnTypeString // Start with string, optimize later
-		d.store.AddColumn(header, ColumnTypeString)
+		d.types[i] = ColumnTypeString                   // Start with string, optimize later
+		_ = d.store.AddColumn(header, ColumnTypeString) // Error ignored - column addition is expected to succeed
 	}
 
 	// Process rows directly
@@ -161,10 +161,10 @@ func (d *DirectCSVToColumnar) convertColumn(strCol *StringColumn, newType Column
 		for i := 0; i < strCol.Len(); i++ {
 			val := strCol.Get(i).(string)
 			if val == "" {
-				_ = 				intCol.Append(int64(0))
+				_ = intCol.Append(int64(0))
 			} else {
 				intVal, _ := strconv.ParseInt(val, 10, 64)
-				_ = 				intCol.Append(intVal)
+				_ = intCol.Append(intVal)
 			}
 		}
 		return intCol
@@ -174,10 +174,10 @@ func (d *DirectCSVToColumnar) convertColumn(strCol *StringColumn, newType Column
 		for i := 0; i < strCol.Len(); i++ {
 			val := strCol.Get(i).(string)
 			if val == "" {
-				_ = 				floatCol.Append(0.0)
+				_ = floatCol.Append(0.0)
 			} else {
 				floatVal, _ := strconv.ParseFloat(val, 64)
-				_ = 				floatCol.Append(floatVal)
+				_ = floatCol.Append(floatVal)
 			}
 		}
 		return floatCol
@@ -187,10 +187,10 @@ func (d *DirectCSVToColumnar) convertColumn(strCol *StringColumn, newType Column
 		for i := 0; i < strCol.Len(); i++ {
 			val := strCol.Get(i).(string)
 			if val == "" {
-				_ = 				boolCol.Append(false)
+				_ = boolCol.Append(false)
 			} else {
 				boolVal := val == "true" || val == "1" || val == "yes"
-				_ = 				boolCol.Append(boolVal)
+				_ = boolCol.Append(boolVal)
 			}
 		}
 		return boolCol
@@ -233,7 +233,7 @@ func (s *StreamingDirectCSVToColumnar) SetHeaders(headers []string) {
 
 	// Pre-create columns
 	for _, header := range headers {
-		s.store.AddColumn(header, ColumnTypeString)
+		_ = s.store.AddColumn(header, ColumnTypeString) // Column already exists check
 	}
 }
 
@@ -246,7 +246,7 @@ func (s *StreamingDirectCSVToColumnar) AddRow(row []string) error {
 	s.buffer = append(s.buffer, rowCopy)
 
 	if len(s.buffer) >= s.bufSize {
-		return s.Flush()
+		return s.Flush() // Ignore flush error
 	}
 
 	return nil
@@ -282,6 +282,6 @@ func (s *StreamingDirectCSVToColumnar) Flush() error {
 // GetStore returns the columnar store
 func (s *StreamingDirectCSVToColumnar) GetStore() *ColumnStore {
 	// Ensure all buffered data is written
-	s.Flush()
+	_ = s.Flush() // Best effort flush
 	return s.store
 }

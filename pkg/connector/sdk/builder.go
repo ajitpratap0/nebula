@@ -6,11 +6,11 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/compression"
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/logger"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"go.uber.org/zap"
 )
@@ -143,8 +143,8 @@ func (cb *ConnectorBuilder) WithConfigProperty(name string, schema map[string]in
 func (cb *ConnectorBuilder) WithDefaults(
 	batchSize, bufferSize, maxConcurrency int,
 	requestTimeout, retryDelay time.Duration,
-	retryAttempts, rateLimit int) *ConnectorBuilder {
-
+	retryAttempts, rateLimit int,
+) *ConnectorBuilder {
 	cb.defaultBatchSize = batchSize
 	cb.defaultBufferSize = bufferSize
 	cb.defaultMaxConcurrency = maxConcurrency
@@ -158,20 +158,20 @@ func (cb *ConnectorBuilder) WithDefaults(
 // WithOptimization is deprecated - unified pool system is always enabled.
 // This method is kept for backward compatibility but has no effect.
 // Deprecated: The unified pool system is always enabled in the current architecture.
-func (cb *ConnectorBuilder) WithOptimization(enabled bool, config interface{}) *ConnectorBuilder {
+func (cb *ConnectorBuilder) WithOptimization(_ bool, _ interface{}) *ConnectorBuilder {
 	// No-op: unified pool system is always enabled
 	return cb
 }
 
 // WithCompression enables/disables compression with specified algorithm and level
-func (cb *ConnectorBuilder) WithCompression(enabled bool, algorithm compression.Algorithm, level compression.Level) *ConnectorBuilder {
+func (cb *ConnectorBuilder) WithCompression(_ bool, _ compression.Algorithm, _ compression.Level) *ConnectorBuilder {
 	// Compression is handled separately from pool system
 	// This is kept for compatibility but doesn't affect pool behavior
 	return cb
 }
 
 // WithCompressionThreshold sets the minimum size threshold for compression
-func (cb *ConnectorBuilder) WithCompressionThreshold(threshold int) *ConnectorBuilder {
+func (cb *ConnectorBuilder) WithCompressionThreshold(_ int) *ConnectorBuilder {
 	// Compression thresholds are handled separately from pool system
 	// This is kept for compatibility
 	return cb
@@ -216,15 +216,15 @@ func (cb *ConnectorBuilder) WithConfigValidator(validator func(*config.BaseConfi
 // Returns an error if name, type, or version are missing or invalid.
 func (cb *ConnectorBuilder) Validate() error {
 	if cb.name == "" {
-		return errors.New(errors.ErrorTypeConfig, "connector name is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "connector name is required")
 	}
 
 	if cb.connectorType != core.ConnectorTypeSource && cb.connectorType != core.ConnectorTypeDestination {
-		return errors.New(errors.ErrorTypeConfig, "invalid connector type")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "invalid connector type")
 	}
 
 	if cb.version == "" {
-		return errors.New(errors.ErrorTypeConfig, "connector version is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "connector version is required")
 	}
 
 	return nil
@@ -267,8 +267,8 @@ func (cb *ConnectorBuilder) CreateBaseConfig(name string) *config.BaseConfig {
 
 // CreateBaseConnector creates a BaseConnector instance with the builder's configuration.
 // The BaseConnector provides common functionality like circuit breakers and rate limiting.
-func (cb *ConnectorBuilder) CreateBaseConnector() *base.BaseConnector {
-	baseConnector := base.NewBaseConnector(cb.name, cb.connectorType, cb.version)
+func (cb *ConnectorBuilder) CreateBaseConnector() *baseconnector.BaseConnector {
+	baseConnector := baseconnector.NewBaseConnector(cb.name, cb.connectorType, cb.version)
 
 	// Unified pool system is always enabled
 	cb.logger.Debug("unified pool system enabled for connector", zap.String("name", cb.name))
@@ -374,8 +374,8 @@ func (sb *SourceBuilder) WithConfigProperty(name string, schema map[string]inter
 func (sb *SourceBuilder) WithDefaults(
 	batchSize, bufferSize, maxConcurrency int,
 	requestTimeout, retryDelay time.Duration,
-	retryAttempts, rateLimit int) *SourceBuilder {
-
+	retryAttempts, rateLimit int,
+) *SourceBuilder {
 	sb.ConnectorBuilder.WithDefaults(batchSize, bufferSize, maxConcurrency, requestTimeout, retryDelay, retryAttempts, rateLimit)
 	return sb
 }
@@ -487,8 +487,8 @@ func (sb *SourceBuilder) WithStateManagement(
 	getPosition func() core.Position,
 	setPosition func(core.Position) error,
 	getState func() core.State,
-	setState func(core.State) error) *SourceBuilder {
-
+	setState func(core.State) error,
+) *SourceBuilder {
 	sb.getPositionHook = getPosition
 	sb.setPositionHook = setPosition
 	sb.getStateHook = getState
@@ -568,8 +568,8 @@ func (db *DestinationBuilder) WithConfigProperty(name string, schema map[string]
 func (db *DestinationBuilder) WithDefaults(
 	batchSize, bufferSize, maxConcurrency int,
 	requestTimeout, retryDelay time.Duration,
-	retryAttempts, rateLimit int) *DestinationBuilder {
-
+	retryAttempts, rateLimit int,
+) *DestinationBuilder {
 	db.ConnectorBuilder.WithDefaults(batchSize, bufferSize, maxConcurrency, requestTimeout, retryDelay, retryAttempts, rateLimit)
 	return db
 }
@@ -700,8 +700,8 @@ func (db *DestinationBuilder) WithUpsertHook(hook func(context.Context, []*model
 // WithSchemaManagement sets schema management hooks
 func (db *DestinationBuilder) WithSchemaManagement(
 	alterSchema func(context.Context, *core.Schema, *core.Schema) error,
-	dropSchema func(context.Context, *core.Schema) error) *DestinationBuilder {
-
+	dropSchema func(context.Context, *core.Schema) error,
+) *DestinationBuilder {
 	db.alterSchemaHook = alterSchema
 	db.dropSchemaHook = dropSchema
 	return db

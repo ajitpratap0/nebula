@@ -1,14 +1,11 @@
+// Package mongodbcdc provides MongoDB Change Data Capture (CDC) source connector for Nebula
 package mongodbcdc
 
 import (
-	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/connector/registry"
 )
 
 func init() {
 	// Register MongoDB CDC source with the registry
-	registry.GetRegistry().RegisterSource("mongodb-cdc", func(cfg *config.BaseConfig) (core.Source, error) {
-		return NewMongoDBCDCSource(cfg)
-	})
+	_ = registry.GetRegistry().RegisterSource("mongodb-cdc", NewMongoDBCDCSource) // Ignore registration error - will fail later if needed
 }

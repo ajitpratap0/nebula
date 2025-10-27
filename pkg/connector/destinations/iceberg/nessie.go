@@ -10,6 +10,7 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	icebergGo "github.com/shubham-tomar/iceberg-go"
 	"github.com/shubham-tomar/iceberg-go/catalog"
 	"github.com/shubham-tomar/iceberg-go/catalog/rest"
@@ -130,14 +131,15 @@ func (n *NessieCatalog) GetSchema(ctx context.Context, database, table string) (
 		zap.String("identifier", fmt.Sprintf("%s.%s", database, table)))
 
 	iceSchema := tbl.Schema()
-	var fields []core.Field
+	schemaFields := iceSchema.Fields()
+	fields := make([]core.Field, 0, len(schemaFields))
 
 	n.logger.Debug("Table schema details",
 		zap.String("table", table),
 		zap.Int("schema_id", iceSchema.ID),
-		zap.Int("field_count", len(iceSchema.Fields())))
+		zap.Int("field_count", len(schemaFields)))
 
-	for _, field := range iceSchema.Fields() {
+	for _, field := range schemaFields {
 		coreField := convertIcebergFieldToCore(field)
 		fields = append(fields, coreField)
 
@@ -154,6 +156,45 @@ func (n *NessieCatalog) GetSchema(ctx context.Context, database, table string) (
 		Name:   table,
 		Fields: fields,
 	}, nil
+}
+
+// Utility methods for schema and batch conversion
+func (n *NessieCatalog) convertSchema(icebergSchema *icebergGo.Schema) (*arrow.Schema, error) {
+	tempDest := &IcebergDestination{
+		logger:          n.logger,
+		schemaValidator: &SimpleSchemaValidator{},
+		bufferConfig: BufferConfig{
+			StringDataMultiplier:  32,
+			ListElementMultiplier: 5,
+		},
+	}
+
+	// Ensure proper initialization without builder pool (not needed for schema conversion)
+	return tempDest.icebergToArrowSchema(icebergSchema)
+}
+
+func (n *NessieCatalog) convertBatch(arrowSchema *arrow.Schema, batch []*pool.Record) (arrow.Record, error) {
+	tempDest := &IcebergDestination{
+		logger:          n.logger,
+		schemaValidator: &SimpleSchemaValidator{},
+		bufferConfig: BufferConfig{
+			StringDataMultiplier:  32,
+			ListElementMultiplier: 5,
+		},
+	}
+
+	// Initialize builder pool with proper cleanup
+	allocator := memory.NewGoAllocator()
+	tempDest.builderPool = NewArrowBuilderPool(allocator, n.logger)
+
+	// Ensure cleanup of temporary builder pool resources
+	defer func() {
+		if tempDest.builderPool != nil {
+			tempDest.builderPool.Clear()
+		}
+	}()
+
+	return tempDest.batchToArrowRecord(arrowSchema, batch)
 }
 
 func (n *NessieCatalog) WriteData(ctx context.Context, database, table string, batch []*pool.Record) error {
@@ -175,8 +216,7 @@ func (n *NessieCatalog) WriteData(ctx context.Context, database, table string, b
 		zap.String("database", database))
 
 	icebergSchema := tbl.Schema()
-	tempDest := &IcebergDestination{logger: n.logger}
-	arrowSchema, err := tempDest.icebergToArrowSchema(icebergSchema)
+	arrowSchema, err := n.convertSchema(icebergSchema)
 	if err != nil {
 		return fmt.Errorf("failed to convert schema: %w", err)
 	}
@@ -185,7 +225,7 @@ func (n *NessieCatalog) WriteData(ctx context.Context, database, table string, b
 		zap.Int("batch_size", len(batch)),
 		zap.Int("schema_fields", len(arrowSchema.Fields())))
 
-	arrowRecord, err := tempDest.batchToArrowRecord(arrowSchema, batch)
+	arrowRecord, err := n.convertBatch(arrowSchema, batch)
 	if err != nil {
 		return fmt.Errorf("failed to convert batch to Arrow: %w", err)
 	}
@@ -253,6 +293,7 @@ func (n *NessieCatalog) CreateBranch(ctx context.Context, branchName, fromRef st
 func (n *NessieCatalog) MergeBranch(ctx context.Context, branchName, targetBranch string) error {
 	return fmt.Errorf("MergeBranch not implemented yet")
 }
+
 func (n *NessieCatalog) ListBranches(ctx context.Context) ([]string, error) {
 	return nil, fmt.Errorf("ListBranches not implemented yet")
 }

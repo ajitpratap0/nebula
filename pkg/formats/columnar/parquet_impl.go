@@ -162,12 +162,12 @@ func (pw *parquetWriter) flushBatch() error {
 	pw.currentBatch = 0
 
 	// TODO: Track bytes written accurately
-	pw.bytesWritten += int64(record.NumRows() * 100) // Estimate
+	pw.bytesWritten += record.NumRows() * 100 // Estimate
 
 	return nil
 }
 
-func (pw *parquetWriter) appendValue(colIdx int, value interface{}, dataType arrow.DataType) error {
+func (pw *parquetWriter) appendValue(colIdx int, value interface{}, _ arrow.DataType) error {
 	builder := pw.recordBuilder.Field(colIdx)
 
 	if value == nil {
@@ -526,7 +526,7 @@ func arrowToNebulaType(arrowType arrow.DataType) core.FieldType {
 	}
 }
 
-func getParquetCompression(compression string) compress.Compression {
+func getParquetCompression(_ string) compress.Compression {
 	// Note: Using file.WithCompressionFor() when creating writer instead
 	// This function is kept for compatibility but compression is set differently
 	return compress.Codecs.Snappy

@@ -275,7 +275,9 @@ func (s *CSVHybridSource) readColumnar(ctx context.Context, recordCh chan<- *poo
 			row, err := s.reader.Read()
 			if err == io.EOF {
 				// Flush any remaining data
-				s.storage.Flush()
+				if err := s.storage.Flush(); err != nil {
+					errorCh <- fmt.Errorf("failed to flush storage: %w", err)
+				}
 				return
 			}
 			if err != nil {
@@ -305,7 +307,9 @@ func (s *CSVHybridSource) readColumnar(ctx context.Context, recordCh chan<- *poo
 
 			// Periodically optimize columnar storage
 			if rowCount%batchSize == 0 {
-				s.storage.OptimizeStorage()
+				if err := s.storage.OptimizeStorage(); err != nil {
+					// Log optimization error but don't fail
+				}
 			}
 		}
 	}
@@ -313,11 +317,19 @@ func (s *CSVHybridSource) readColumnar(ctx context.Context, recordCh chan<- *poo
 
 // Close closes the file and storage
 func (s *CSVHybridSource) Close(ctx context.Context) error {
+	var errs []error
 	if s.file != nil {
-		s.file.Close()
+		if err := s.file.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("failed to close file: %w", err))
+		}
 	}
 	if s.storage != nil {
-		s.storage.Close()
+		if err := s.storage.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("failed to close storage: %w", err))
+		}
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("close errors: %v", errs)
 	}
 	return nil
 }

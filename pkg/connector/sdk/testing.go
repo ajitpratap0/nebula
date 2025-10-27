@@ -77,23 +77,23 @@ func (ts *TestSuite) TestSourceConnector(source core.Source, config *config.Base
 		}
 	})
 
-	ts.t.Run("Capabilities", func(t *testing.T) {
+	ts.t.Run("Capabilities", func(_ *testing.T) {
 		ts.testSourceCapabilities(source)
 	})
 
-	ts.t.Run("Read", func(t *testing.T) {
+	ts.t.Run("Read", func(_ *testing.T) {
 		if source.SupportsBatch() {
 			ts.testSourceRead(ctx, source)
 		}
 	})
 
-	ts.t.Run("ReadBatch", func(t *testing.T) {
+	ts.t.Run("ReadBatch", func(_ *testing.T) {
 		if source.SupportsBatch() {
 			ts.testSourceReadBatch(ctx, source)
 		}
 	})
 
-	ts.t.Run("StateManagement", func(t *testing.T) {
+	ts.t.Run("StateManagement", func(_ *testing.T) {
 		if source.SupportsIncremental() {
 			ts.testSourceStateManagement(source)
 		}
@@ -130,11 +130,11 @@ func (ts *TestSuite) TestDestinationConnector(destination core.Destination, conf
 		}
 	})
 
-	ts.t.Run("Capabilities", func(t *testing.T) {
+	ts.t.Run("Capabilities", func(_ *testing.T) {
 		ts.testDestinationCapabilities(destination)
 	})
 
-	ts.t.Run("SchemaOperations", func(t *testing.T) {
+	ts.t.Run("SchemaOperations", func(_ *testing.T) {
 		ts.testDestinationSchemaOperations(ctx, destination)
 	})
 
@@ -315,7 +315,9 @@ func (ts *TestSuite) testSourceStateManagement(source core.Source) {
 	}
 
 	// Restore original state
-	source.SetState(originalState)
+	if err := source.SetState(originalState); err != nil {
+		ts.logger.Error("Failed to restore original state", zap.Error(err))
+	}
 
 	ts.logger.Info("State management test completed")
 }
@@ -551,7 +553,7 @@ func (bs *BenchmarkSuite) BenchmarkSourceThroughput(source core.Source, config *
 	if err := source.Initialize(ctx, config); err != nil {
 		bs.b.Fatal(err)
 	}
-	defer source.Close(ctx)
+	defer source.Close(ctx) //nolint:errcheck // Benchmark cleanup, error not critical
 
 	bs.b.ResetTimer()
 	bs.b.ReportAllocs()
@@ -581,7 +583,7 @@ func (bs *BenchmarkSuite) BenchmarkDestinationThroughput(destination core.Destin
 	if err := destination.Initialize(ctx, config); err != nil {
 		bs.b.Fatal(err)
 	}
-	defer destination.Close(ctx)
+	defer destination.Close(ctx) //nolint:errcheck // Benchmark cleanup, error not critical
 
 	// Create test records
 	records := make(chan *models.Record, bs.recordCount)

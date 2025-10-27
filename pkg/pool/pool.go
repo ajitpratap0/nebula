@@ -68,14 +68,14 @@ type Pool[T any] struct {
 //	    func() *Buffer { return &Buffer{data: make([]byte, 0, 1024)} },
 //	    func(b *Buffer) { b.data = b.data[:0] },
 //	)
-func New[T any](new func() T, reset func(T)) *Pool[T] {
+func New[T any](newFunc func() T, reset func(T)) *Pool[T] {
 	p := &Pool[T]{
-		new:   new,
+		new:   newFunc,
 		reset: reset,
 	}
 	p.pool.New = func() interface{} {
 		atomic.AddInt64(&p.stats.allocated, 1)
-		return new()
+		return newFunc()
 	}
 	return p
 }
@@ -242,7 +242,7 @@ var (
 		func() []byte {
 			return make([]byte, 0, 1024)
 		},
-		func(b []byte) {
+		func(_ []byte) {
 			// Reset slice length (assignment not needed)
 		},
 	)
@@ -253,7 +253,7 @@ var (
 		func() []byte {
 			return make([]byte, 0, 64)
 		},
-		func(b []byte) {
+		func(_ []byte) {
 			// Reset slice length (assignment not needed)
 		},
 	)
@@ -487,7 +487,7 @@ func NewBufferPool() *BufferPool {
 			func() []byte {
 				return make([]byte, size)
 			},
-			func(b []byte) {
+			func(_ []byte) {
 				// Reset slice length (assignment not needed)
 			},
 		)

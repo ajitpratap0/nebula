@@ -149,12 +149,12 @@ func (aw *arrowWriter) flushBatch() error {
 	aw.currentBatch = 0
 
 	// Track bytes written
-	aw.bytesWritten += int64(record.NumRows() * 64) // Estimate
+	aw.bytesWritten += record.NumRows() * 64 // Estimate
 
 	return nil
 }
 
-func (aw *arrowWriter) appendValue(colIdx int, value interface{}, dataType arrow.DataType) error {
+func (aw *arrowWriter) appendValue(colIdx int, value interface{}, _ arrow.DataType) error {
 	builder := aw.recordBuilder.Field(colIdx)
 
 	if value == nil {

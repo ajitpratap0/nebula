@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/ajitpratap0/nebula/pkg/compression"
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/formats/columnar"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 )
@@ -24,7 +24,7 @@ type BulkLoader struct {
 	compressor   *compression.CompressorPool
 	metrics      *BulkLoadMetrics
 	stages       []LoadStage
-	mu           sync.RWMutex
+	mu           sync.RWMutex //nolint:unused // Reserved for bulk loader synchronization
 }
 
 // BulkLoadConfig configures bulk loading
@@ -228,7 +228,7 @@ func (bl *BulkLoader) Load(ctx context.Context, records []*models.Record) error 
 	}
 
 	if len(loadErrors) > 0 {
-		return errors.New(errors.ErrorTypeData, stringpool.Sprintf("bulk load errors: %v", loadErrors))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeData, stringpool.Sprintf("bulk load errors: %v", loadErrors))
 	}
 
 	return nil
@@ -242,14 +242,14 @@ func (bl *BulkLoader) loadBatch(ctx context.Context, records []*models.Record) e
 		var err error
 		processed, err = stage.Process(ctx, processed)
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, stringpool.Sprintf("stage %s failed", stage.Name()))
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, stringpool.Sprintf("stage %s failed", stage.Name()))
 		}
 	}
 
 	// Create files
 	files, err := bl.createFiles(processed)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeFile, "file creation failed")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "file creation failed")
 	}
 
 	// Upload files with retries
@@ -272,7 +272,7 @@ func (bl *BulkLoader) splitIntoBatches(records []*models.Record) [][]*models.Rec
 
 	// Calculate batch size based on memory limit
 	recordSize := bl.estimateRecordSize(records[0])
-	maxBatchSize := int(bl.config.MemoryLimit / int64(recordSize))
+	maxBatchSize := int(bl.config.MemoryLimit / recordSize)
 	if maxBatchSize > bl.config.MaxBatchSize {
 		maxBatchSize = bl.config.MaxBatchSize
 	}
@@ -320,7 +320,7 @@ func (bl *BulkLoader) createFiles(records []*models.Record) ([]*LoadFile, error)
 	case "json":
 		files = append(files, bl.createJSONFile(records))
 	default:
-		return nil, errors.New(errors.ErrorTypeConfig, stringpool.Sprintf("unsupported format: %s", bl.config.FileFormat))
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig, stringpool.Sprintf("unsupported format: %s", bl.config.FileFormat))
 	}
 
 	return files, nil
@@ -341,8 +341,8 @@ func (bl *BulkLoader) createParquetFile(records []*models.Record) *LoadFile {
 	}
 
 	writer, _ := columnar.NewWriter(builder, config)
-	writer.WriteRecords(records)
-	writer.Close()
+	_ = writer.WriteRecords(records) // Ignore write records error
+	_ = writer.Close()               // Ignore close error
 
 	// Get data from pooled builder
 	originalSize := builder.Len()
@@ -371,7 +371,7 @@ func (bl *BulkLoader) createAvroFile(records []*models.Record) *LoadFile {
 
 	// In practice, would use Avro writer
 	for _, record := range records {
-		fmt.Fprintf(builder, "%v\n", record.Data)
+		_, _ = fmt.Fprintf(builder, "%v\n", record.Data)
 	}
 
 	data := stringpool.StringToBytes(builder.String())
@@ -414,7 +414,7 @@ func (bl *BulkLoader) createCSVFile(records []*models.Record) *LoadFile {
 				if i > 0 {
 					builder.WriteString(",")
 				}
-				fmt.Fprintf(builder, "%v", record.Data[h])
+				_, _ = fmt.Fprintf(builder, "%v", record.Data[h])
 			}
 			builder.WriteString("\n")
 		}
@@ -442,7 +442,7 @@ func (bl *BulkLoader) createJSONFile(records []*models.Record) *LoadFile {
 
 	// Write JSON lines
 	for _, record := range records {
-		fmt.Fprintf(builder, "%v\n", record.Data)
+		_, _ = fmt.Fprintf(builder, "%v\n", record.Data)
 	}
 
 	data := stringpool.StringToBytes(builder.String())
@@ -478,7 +478,7 @@ func (bl *BulkLoader) uploadFileWithRetry(ctx context.Context, file *LoadFile) e
 		lastErr = err
 	}
 
-	return errors.Wrap(lastErr, errors.ErrorTypeConnection, stringpool.Sprintf("upload failed after %d attempts", bl.config.RetryAttempts))
+	return nebulaerrors.Wrap(lastErr, nebulaerrors.ErrorTypeConnection, stringpool.Sprintf("upload failed after %d attempts", bl.config.RetryAttempts))
 }
 
 // uploadFile uploads file to warehouse
@@ -514,10 +514,12 @@ type MemoryOptimizationStage struct {
 	optimizer *MemoryOptimizer
 }
 
+// Name returns the stage name
 func (mos *MemoryOptimizationStage) Name() string {
 	return "memory_optimization"
 }
 
+// Process optimizes records for memory efficiency
 func (mos *MemoryOptimizationStage) Process(ctx context.Context, records []*models.Record) ([]*models.Record, error) {
 	return mos.optimizer.OptimizeRecords(records), nil
 }
@@ -527,10 +529,12 @@ type SortingStage struct {
 	keys []string
 }
 
+// Name returns the stage name
 func (ss *SortingStage) Name() string {
 	return "sorting"
 }
 
+// Process sorts records based on sorting keys
 func (ss *SortingStage) Process(ctx context.Context, records []*models.Record) ([]*models.Record, error) {
 	// Simple bubble sort for demonstration
 	// In practice, use more efficient sorting
@@ -562,10 +566,12 @@ type PartitioningStage struct {
 	keys []string
 }
 
+// Name returns the stage name
 func (ps *PartitioningStage) Name() string {
 	return "partitioning"
 }
 
+// Process adds partition metadata to records
 func (ps *PartitioningStage) Process(ctx context.Context, records []*models.Record) ([]*models.Record, error) {
 	// Add partition metadata
 	for _, record := range records {
@@ -589,10 +595,12 @@ type ClusteringStage struct {
 	keys []string
 }
 
+// Name returns the stage name
 func (cs *ClusteringStage) Name() string {
 	return "clustering"
 }
 
+// Process groups records by cluster keys
 func (cs *ClusteringStage) Process(ctx context.Context, records []*models.Record) ([]*models.Record, error) {
 	// Group records by cluster keys
 	clusters := make(map[string][]*models.Record)
@@ -623,10 +631,12 @@ type FormatConversionStage struct {
 	compression string
 }
 
+// Name returns the stage name
 func (fcs *FormatConversionStage) Name() string {
 	return "format_conversion"
 }
 
+// Process converts records to target format
 func (fcs *FormatConversionStage) Process(ctx context.Context, records []*models.Record) ([]*models.Record, error) {
 	// Mark records as ready for format conversion
 	for _, record := range records {

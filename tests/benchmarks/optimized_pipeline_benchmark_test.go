@@ -20,7 +20,7 @@ func BenchmarkOptimizedPipelinePerformance(b *testing.B) {
 			// Create test data
 			testFile := fmt.Sprintf("/tmp/optimized_bench_%d.csv", recordCount)
 			createTestData(b, testFile, recordCount)
-			defer os.Remove(testFile)
+			defer func() { _ = os.Remove(testFile) }() // Best effort cleanup
 
 			b.ResetTimer()
 			b.ReportAllocs()
@@ -50,7 +50,7 @@ func processRecordsOptimized(b *testing.B, filename string) int {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	reader := csv.NewReader(file)
 	// Skip header
@@ -154,7 +154,7 @@ func processRecordsOptimized(b *testing.B, filename string) int {
 	for err := range resultChan {
 		// Extract count from error message (hacky but works)
 		var count int
-		fmt.Sscanf(err.Error(), "%d", &count)
+		_, _ = fmt.Sscanf(err.Error(), "%d", &count)
 		totalProcessed += count
 	}
 
@@ -224,14 +224,14 @@ func createTestData(b *testing.B, filename string, records int) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	writer := csv.NewWriter(file)
-	defer writer.Flush()
+	defer writer.Flush() // Ignore flush error
 
 	// Write header
 	headers := []string{"id", "name", "email", "age", "department", "salary", "created_at"}
-	_ = writer.Write(headers)
+	_ = writer.Write(headers) // Ignore write error
 
 	// Write records
 	departments := []string{"Engineering", "Sales", "Marketing", "HR", "Finance"}
@@ -245,6 +245,6 @@ func createTestData(b *testing.B, filename string, records int) {
 			fmt.Sprintf("%.2f", 50000+float64(i%50000)),
 			time.Now().Add(time.Duration(i) * time.Second).Format(time.RFC3339),
 		}
-		_ = writer.Write(record)
+		_ = writer.Write(record) // Ignore write error
 	}
 }

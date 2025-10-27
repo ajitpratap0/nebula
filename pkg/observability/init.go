@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -47,11 +48,12 @@ func initTracing(config TracingConfig) error {
 
 	// Configure sampling
 	var sampler sdktrace.Sampler
-	if config.SamplingRate <= 0 {
+	switch {
+	case config.SamplingRate <= 0:
 		sampler = sdktrace.NeverSample()
-	} else if config.SamplingRate >= 1.0 {
+	case config.SamplingRate >= 1.0:
 		sampler = sdktrace.AlwaysSample()
-	} else {
+	default:
 		sampler = sdktrace.TraceIDRatioBased(config.SamplingRate)
 	}
 
@@ -202,7 +204,16 @@ func Shutdown(ctx context.Context) error {
 	// Sync logger
 	if logger != nil {
 		if err := logger.Sync(); err != nil {
-			errors = append(errors, fmt.Errorf("failed to sync logger: %w", err))
+			// Ignore sync errors for stdout/stderr/stdin
+			// These are common in tests and when output is redirected
+			// See: https://github.com/uber-go/zap/issues/328
+			errStr := err.Error()
+			if !strings.Contains(errStr, "bad file descriptor") &&
+				!strings.Contains(errStr, "invalid argument") &&
+				!strings.Contains(errStr, "/dev/stdout") &&
+				!strings.Contains(errStr, "/dev/stderr") {
+				errors = append(errors, fmt.Errorf("failed to sync logger: %w", err))
+			}
 		}
 	}
 

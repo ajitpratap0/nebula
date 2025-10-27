@@ -12,6 +12,7 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/clients"
 	"github.com/ajitpratap0/nebula/pkg/config"
+
 	// "github.com/ajitpratap0/nebula/pkg/connector/core" // TODO: uncomment when implementing actual source
 	// "github.com/ajitpratap0/nebula/pkg/connector/sources" // TODO: uncomment when implementing actual source
 	"github.com/ajitpratap0/nebula/pkg/pool"
@@ -49,9 +50,9 @@ func (m *MockGoogleSheetsServer) generateMockData(rows, cols int) [][]interface{
 			case 0:
 				row[j] = fmt.Sprintf("text_%d_%d", i, j)
 			case 1:
-				row[j] = float64(rand.Intn(1000))
+				row[j] = float64(rand.Intn(1000)) // #nosec G404 - test data generation
 			case 2:
-				row[j] = rand.Intn(2) == 1
+				row[j] = rand.Intn(2) == 1 // #nosec G404 - test data generation
 			case 3:
 				row[j] = time.Now().Add(time.Duration(i) * time.Hour).Format(time.RFC3339)
 			}
@@ -252,7 +253,7 @@ func BenchmarkGoogleSheetsMemoryUsage(b *testing.B) {
 					}
 
 					records = append(records, record)
-				_ = records // Use records to avoid linter warning
+					_ = records // Use records to avoid linter warning
 				}
 
 				// Force GC to get accurate memory stats
@@ -341,11 +342,12 @@ func BenchmarkGoogleSheetsSchemaDetection(b *testing.B) {
 					}
 
 					// Determine type
-					if hasBoolean && !hasString && !hasNumber {
+					switch {
+					case hasBoolean && !hasString && !hasNumber:
 						schema[fmt.Sprintf("column_%d", colIdx)] = "boolean"
-					} else if hasNumber && !hasString {
+					case hasNumber && !hasString:
 						schema[fmt.Sprintf("column_%d", colIdx)] = "float"
-					} else {
+					default:
 						schema[fmt.Sprintf("column_%d", colIdx)] = "string"
 					}
 				}

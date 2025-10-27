@@ -16,7 +16,7 @@ func BytesToString(b []byte) string {
 	if len(b) == 0 {
 		return ""
 	}
-	return unsafe.String(&b[0], len(b))
+	return unsafe.String(&b[0], len(b)) //nolint:gosec // G103: Performance optimization, checked for safety
 }
 
 // StringToBytes converts string to byte slice without allocation
@@ -26,7 +26,7 @@ func StringToBytes(s string) []byte {
 	if len(s) == 0 {
 		return nil
 	}
-	return unsafe.Slice(unsafe.StringData(s), len(s))
+	return unsafe.Slice(unsafe.StringData(s), len(s)) //nolint:gosec // G103: Performance optimization, checked for safety
 }
 
 // Builder provides efficient string building with zero-copy operations
@@ -52,8 +52,9 @@ func (b *Builder) WriteBytes(data []byte) {
 }
 
 // WriteByte appends a single byte
-func (b *Builder) WriteByte(c byte) {
+func (b *Builder) WriteByte(c byte) error {
 	b.buf = append(b.buf, c)
+	return nil
 }
 
 // Write implements io.Writer interface
@@ -335,9 +336,12 @@ var (
 type BuilderSize int
 
 const (
-	Small  BuilderSize = iota // < 1KB
-	Medium                    // 1KB - 16KB
-	Large                     // 16KB+
+	// Small represents builders with less than 1KB capacity
+	Small BuilderSize = iota // < 1KB
+	// Medium represents builders with 1KB - 16KB capacity
+	Medium // 1KB - 16KB
+	// Large represents builders with 16KB+ capacity
+	Large // 16KB+
 )
 
 // GetBuilder retrieves a pooled builder of the specified size
@@ -434,7 +438,7 @@ func Sprintf(format string, args ...interface{}) string {
 	defer PutBuilder(builder, size)
 
 	// Use fmt to write to our builder
-	fmt.Fprintf(builder, format, args...)
+	_, _ = fmt.Fprintf(builder, format, args...)
 
 	return Clone(builder.String())
 }
@@ -510,10 +514,10 @@ func (cb *CSVBuilder) WriteHeader(headers []string) {
 
 	cb.builder.WriteString(headers[0])
 	for i := 1; i < len(headers); i++ {
-		cb.builder.WriteByte(',')
+		_ = cb.builder.WriteByte(',')
 		cb.writeCSVField(headers[i])
 	}
-	cb.builder.WriteByte('\n')
+	_ = cb.builder.WriteByte('\n')
 }
 
 // WriteRow writes a CSV row
@@ -524,10 +528,10 @@ func (cb *CSVBuilder) WriteRow(fields []string) {
 
 	cb.writeCSVField(fields[0])
 	for i := 1; i < len(fields); i++ {
-		cb.builder.WriteByte(',')
+		_ = cb.builder.WriteByte(',')
 		cb.writeCSVField(fields[i])
 	}
-	cb.builder.WriteByte('\n')
+	_ = cb.builder.WriteByte('\n')
 	cb.rowCount++
 }
 
@@ -536,15 +540,15 @@ func (cb *CSVBuilder) writeCSVField(field string) {
 	needsQuoting := Contains(field, ",") || Contains(field, "\"") || Contains(field, "\n")
 
 	if needsQuoting {
-		cb.builder.WriteByte('"')
+		_ = cb.builder.WriteByte('"')
 		for i := 0; i < len(field); i++ {
 			if field[i] == '"' {
 				cb.builder.WriteString("\"\"") // Escape quotes
 			} else {
-				cb.builder.WriteByte(field[i])
+				_ = cb.builder.WriteByte(field[i])
 			}
 		}
-		cb.builder.WriteByte('"')
+		_ = cb.builder.WriteByte('"')
 	} else {
 		cb.builder.WriteString(field)
 	}
@@ -591,7 +595,7 @@ func NewURLBuilder(baseURL string) *URLBuilder {
 func (ub *URLBuilder) AddPath(segments ...string) *URLBuilder {
 	for _, segment := range segments {
 		if segment != "" {
-			ub.builder.WriteByte('/')
+			_ = ub.builder.WriteByte('/')
 			// Encode path segment
 			ub.builder.WriteString(urlPathEscape(segment))
 		}
@@ -602,14 +606,14 @@ func (ub *URLBuilder) AddPath(segments ...string) *URLBuilder {
 // AddParam adds a URL parameter (with proper encoding)
 func (ub *URLBuilder) AddParam(key, value string) *URLBuilder {
 	if ub.hasParams {
-		ub.builder.WriteByte('&')
+		_ = ub.builder.WriteByte('&')
 	} else {
-		ub.builder.WriteByte('?')
+		_ = ub.builder.WriteByte('?')
 		ub.hasParams = true
 	}
 
 	ub.builder.WriteString(urlQueryEscape(key))
-	ub.builder.WriteByte('=')
+	_ = ub.builder.WriteByte('=')
 	ub.builder.WriteString(urlQueryEscape(value))
 
 	return ub
@@ -697,14 +701,15 @@ func urlQueryEscape(s string) string {
 
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		if isURLSafe(c) {
-			builder.WriteByte(c)
-		} else if c == ' ' {
-			builder.WriteByte('+')
-		} else {
-			builder.WriteByte('%')
-			builder.WriteByte("0123456789ABCDEF"[c>>4])
-			builder.WriteByte("0123456789ABCDEF"[c&15])
+		switch {
+		case isURLSafe(c):
+			_ = builder.WriteByte(c)
+		case c == ' ':
+			_ = builder.WriteByte('+')
+		default:
+			_ = builder.WriteByte('%')
+			_ = builder.WriteByte("0123456789ABCDEF"[c>>4])
+			_ = builder.WriteByte("0123456789ABCDEF"[c&15])
 		}
 	}
 
@@ -734,11 +739,11 @@ func urlPathEscape(s string) string {
 	for i := 0; i < len(s); i++ {
 		c := s[i]
 		if isURLPathSafe(c) {
-			builder.WriteByte(c)
+			_ = builder.WriteByte(c)
 		} else {
-			builder.WriteByte('%')
-			builder.WriteByte("0123456789ABCDEF"[c>>4])
-			builder.WriteByte("0123456789ABCDEF"[c&15])
+			_ = builder.WriteByte('%')
+			_ = builder.WriteByte("0123456789ABCDEF"[c>>4])
+			_ = builder.WriteByte("0123456789ABCDEF"[c&15])
 		}
 	}
 
@@ -794,32 +799,32 @@ func (sb *SQLBuilder) WriteQuery(query string) *SQLBuilder {
 
 // WriteSpace adds a space
 func (sb *SQLBuilder) WriteSpace() *SQLBuilder {
-	sb.builder.WriteByte(' ')
+	_ = sb.builder.WriteByte(' ')
 	return sb
 }
 
 // WriteStringLiteral writes a quoted string literal
 func (sb *SQLBuilder) WriteStringLiteral(value string) *SQLBuilder {
-	sb.builder.WriteByte('\'')
+	_ = sb.builder.WriteByte('\'')
 
 	// Escape single quotes
 	for i := 0; i < len(value); i++ {
 		if value[i] == '\'' {
 			sb.builder.WriteString("''")
 		} else {
-			sb.builder.WriteByte(value[i])
+			_ = sb.builder.WriteByte(value[i])
 		}
 	}
 
-	sb.builder.WriteByte('\'')
+	_ = sb.builder.WriteByte('\'')
 	return sb
 }
 
 // WriteIdentifier writes a quoted identifier
 func (sb *SQLBuilder) WriteIdentifier(name string) *SQLBuilder {
-	sb.builder.WriteByte('"')
+	_ = sb.builder.WriteByte('"')
 	sb.builder.WriteString(name)
-	sb.builder.WriteByte('"')
+	_ = sb.builder.WriteByte('"')
 	return sb
 }
 

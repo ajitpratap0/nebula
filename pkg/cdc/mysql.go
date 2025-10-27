@@ -8,15 +8,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"github.com/go-mysql-org/go-mysql/canal"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/go-mysql-org/go-mysql/replication"
 	"github.com/go-mysql-org/go-mysql/schema"
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql" // MySQL driver for database/sql
 	"go.uber.org/zap"
 )
 
@@ -91,7 +91,7 @@ func (c *MySQLConnector) Connect(config CDCConfig) error {
 	defer c.mutex.Unlock()
 
 	if err := config.Validate(); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "invalid config")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "invalid config")
 	}
 
 	c.config = config
@@ -132,14 +132,14 @@ func (c *MySQLConnector) Connect(config CDCConfig) error {
 	var err error
 	c.db, err = sql.Open("mysql", config.ConnectionStr)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to connect to MySQL")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to connect to MySQL")
 	}
 
 	// Test connection
 	var version string
 	err = c.db.QueryRow("SELECT VERSION()").Scan(&version)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeQuery, "failed to query MySQL version")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "failed to query MySQL version")
 	}
 
 	c.logger.Info("connected to MySQL", zap.String("version", version))
@@ -153,7 +153,7 @@ func (c *MySQLConnector) Connect(config CDCConfig) error {
 
 	c.canal, err = canal.NewCanal(cfg)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to create canal")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to create canal")
 	}
 
 	// Setup binlog syncer
@@ -175,17 +175,17 @@ func (c *MySQLConnector) Connect(config CDCConfig) error {
 	// Get current binlog position if not specified
 	if mysqlConfig.StartPosition == "" {
 		if err := c.getCurrentPosition(); err != nil {
-			return errors.Wrap(err, errors.ErrorTypeQuery, "failed to get current position")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "failed to get current position")
 		}
 	} else {
 		if err := c.parsePosition(mysqlConfig.StartPosition); err != nil {
-			return errors.Wrap(err, errors.ErrorTypeConfig, "failed to parse start position")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to parse start position")
 		}
 	}
 
 	// Load table schemas
 	if err := c.loadTableSchemas(); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeQuery, "failed to load table schemas")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "failed to load table schemas")
 	}
 
 	c.updateHealth("connected", "Connected to MySQL", nil)
@@ -203,7 +203,7 @@ func (c *MySQLConnector) Subscribe(tables []string) error {
 	defer c.mutex.Unlock()
 
 	if c.running {
-		return errors.New(errors.ErrorTypeConfig, "connector is already running")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "connector is already running")
 	}
 
 	// Filter tables to monitor
@@ -224,7 +224,7 @@ func (c *MySQLConnector) Subscribe(tables []string) error {
 // ReadChanges returns a channel of change events
 func (c *MySQLConnector) ReadChanges(ctx context.Context) (<-chan ChangeEvent, error) {
 	if !c.running {
-		return nil, errors.New(errors.ErrorTypeConfig, "connector is not running")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "connector is not running")
 	}
 
 	return c.eventCh, nil
@@ -248,17 +248,17 @@ func (c *MySQLConnector) GetPosition() Position {
 // Acknowledge confirms processing of events up to the given position
 func (c *MySQLConnector) Acknowledge(position Position) error {
 	if position.Type != "mysql_binlog" {
-		return errors.New(errors.ErrorTypeData, stringpool.Sprintf("invalid position type: %s", position.Type))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeData, stringpool.Sprintf("invalid position type: %s", position.Type))
 	}
 
 	posStr, ok := position.Value.(string)
 	if !ok {
-		return errors.New(errors.ErrorTypeData, stringpool.Sprintf("invalid position value type: %T", position.Value))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeData, stringpool.Sprintf("invalid position value type: %T", position.Value))
 	}
 
 	newPos, err := c.parsePositionString(posStr)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to parse position")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to parse position")
 	}
 
 	c.mutex.Lock()
@@ -294,7 +294,7 @@ func (c *MySQLConnector) Stop() error {
 
 	// Close database connection
 	if c.db != nil {
-		c.db.Close()
+		_ = c.db.Close() // Best effort close
 	}
 
 	c.updateHealth("stopped", "Connector stopped", nil)
@@ -329,7 +329,7 @@ func (c *MySQLConnector) getCurrentPosition() error {
 
 	err := c.db.QueryRow("SHOW MASTER STATUS").Scan(&file, &pos, nil, nil, nil)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeQuery, "failed to get master status")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeQuery, "failed to get master status")
 	}
 
 	c.position = mysql.Position{
@@ -355,12 +355,12 @@ func (c *MySQLConnector) parsePosition(posStr string) error {
 func (c *MySQLConnector) parsePositionString(posStr string) (mysql.Position, error) {
 	parts := strings.Split(posStr, ":")
 	if len(parts) != 2 {
-		return mysql.Position{}, errors.New(errors.ErrorTypeData, stringpool.Sprintf("invalid position format: %s", posStr))
+		return mysql.Position{}, nebulaerrors.New(nebulaerrors.ErrorTypeData, stringpool.Sprintf("invalid position format: %s", posStr))
 	}
 
 	pos, err := strconv.ParseUint(parts[1], 10, 32)
 	if err != nil {
-		return mysql.Position{}, errors.Wrap(err, errors.ErrorTypeData, stringpool.Sprintf("invalid position number: %s", parts[1]))
+		return mysql.Position{}, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, stringpool.Sprintf("invalid position number: %s", parts[1]))
 	}
 
 	return mysql.Position{
@@ -480,7 +480,7 @@ func (c *MySQLConnector) processBinlogEvent(ev *replication.BinlogEvent) error {
 func (c *MySQLConnector) processRotateEvent(e *replication.RotateEvent) error {
 	c.mutex.Lock()
 	c.position.Name = string(e.NextLogName)
-	c.position.Pos = uint32(e.Position)
+	c.position.Pos = uint32(e.Position) //nolint:gosec // G115: Position from MySQL binlog events are expected to fit in uint32
 	c.mutex.Unlock()
 
 	c.logger.Debug("binlog rotated",
@@ -518,6 +518,21 @@ func (c *MySQLConnector) processRowsEvent(header *replication.EventHeader, e *re
 		operation = OperationUpdate
 	case replication.DELETE_ROWS_EVENTv0, replication.DELETE_ROWS_EVENTv1, replication.DELETE_ROWS_EVENTv2:
 		operation = OperationDelete
+	case replication.UNKNOWN_EVENT, replication.START_EVENT_V3, replication.QUERY_EVENT, replication.STOP_EVENT,
+		replication.ROTATE_EVENT, replication.INTVAR_EVENT, replication.LOAD_EVENT, replication.SLAVE_EVENT,
+		replication.CREATE_FILE_EVENT, replication.APPEND_BLOCK_EVENT, replication.EXEC_LOAD_EVENT,
+		replication.DELETE_FILE_EVENT, replication.NEW_LOAD_EVENT, replication.RAND_EVENT, replication.USER_VAR_EVENT,
+		replication.FORMAT_DESCRIPTION_EVENT, replication.XID_EVENT, replication.BEGIN_LOAD_QUERY_EVENT,
+		replication.EXECUTE_LOAD_QUERY_EVENT, replication.TABLE_MAP_EVENT, replication.INCIDENT_EVENT,
+		replication.HEARTBEAT_EVENT, replication.IGNORABLE_EVENT, replication.ROWS_QUERY_EVENT,
+		replication.GTID_EVENT, replication.ANONYMOUS_GTID_EVENT, replication.PREVIOUS_GTIDS_EVENT,
+		replication.TRANSACTION_CONTEXT_EVENT, replication.VIEW_CHANGE_EVENT, replication.XA_PREPARE_LOG_EVENT,
+		replication.PARTIAL_UPDATE_ROWS_EVENT, replication.TRANSACTION_PAYLOAD_EVENT, replication.HEARTBEAT_LOG_EVENT_V2,
+		replication.GTID_TAGGED_LOG_EVENT, replication.MARIADB_ANNOTATE_ROWS_EVENT, replication.MARIADB_BINLOG_CHECKPOINT_EVENT,
+		replication.MARIADB_GTID_EVENT, replication.MARIADB_GTID_LIST_EVENT, replication.MARIADB_START_ENCRYPTION_EVENT,
+		replication.MARIADB_QUERY_COMPRESSED_EVENT, replication.MARIADB_WRITE_ROWS_COMPRESSED_EVENT_V1,
+		replication.MARIADB_UPDATE_ROWS_COMPRESSED_EVENT_V1, replication.MARIADB_DELETE_ROWS_COMPRESSED_EVENT_V1:
+		return nil // Non-row-change events are ignored for CDC purposes
 	default:
 		return nil // Unsupported event type
 	}
@@ -531,30 +546,35 @@ func (c *MySQLConnector) processRowsEvent(header *replication.EventHeader, e *re
 		case OperationInsert:
 			after, err = c.rowToMap(e.Rows[i], tableSchema)
 			if err != nil {
-				return errors.Wrap(err, errors.ErrorTypeData, "failed to convert insert row")
+				return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to convert insert row")
 			}
 
 		case OperationUpdate:
 			if i+1 >= len(e.Rows) {
-				return errors.New(errors.ErrorTypeData, "incomplete update row data")
+				return nebulaerrors.New(nebulaerrors.ErrorTypeData, "incomplete update row data")
 			}
 
 			before, err = c.rowToMap(e.Rows[i], tableSchema)
 			if err != nil {
-				return errors.Wrap(err, errors.ErrorTypeData, "failed to convert update before row")
+				return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to convert update before row")
 			}
 
 			i++ // Move to next row (after image)
 			after, err = c.rowToMap(e.Rows[i], tableSchema)
 			if err != nil {
-				return errors.Wrap(err, errors.ErrorTypeData, "failed to convert update after row")
+				return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to convert update after row")
 			}
 
 		case OperationDelete:
 			before, err = c.rowToMap(e.Rows[i], tableSchema)
 			if err != nil {
-				return errors.Wrap(err, errors.ErrorTypeData, "failed to convert delete row")
+				return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to convert delete row")
 			}
+
+		case OperationDDL, OperationCommit:
+			// These operations shouldn't reach this row-processing code
+			// but added for exhaustiveness
+			continue
 		}
 
 		event := ChangeEvent{
@@ -576,7 +596,7 @@ func (c *MySQLConnector) processRowsEvent(header *replication.EventHeader, e *re
 		}
 
 		if err := c.sendEvent(event); err != nil {
-			return errors.Wrap(err, errors.ErrorTypeConnection, "failed to send event")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to send event")
 		}
 	}
 
@@ -614,7 +634,7 @@ func (c *MySQLConnector) processQueryEvent(e *replication.QueryEvent) error {
 // rowToMap converts a MySQL row to a map
 func (c *MySQLConnector) rowToMap(row []interface{}, table *schema.Table) (map[string]interface{}, error) {
 	if len(row) != len(table.Columns) {
-		return nil, errors.New(errors.ErrorTypeData, stringpool.Sprintf("row column count mismatch: got %d, expected %d",
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeData, stringpool.Sprintf("row column count mismatch: got %d, expected %d",
 			len(row), len(table.Columns)))
 	}
 
@@ -725,7 +745,7 @@ func (c *MySQLConnector) sendEvent(event ChangeEvent) error {
 		c.updateMetrics(func(m *EventMetrics) {
 			m.EventsErrored++
 		})
-		return errors.New(errors.ErrorTypeCapability, "event channel is full")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "event channel is full")
 	}
 }
 

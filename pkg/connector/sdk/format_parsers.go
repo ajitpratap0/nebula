@@ -17,9 +17,9 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/compression"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 )
@@ -118,11 +118,11 @@ func NewCSVParser(config *CSVParserConfig) *CSVParser {
 
 // ParseFile parses a CSV file and returns records and schema
 func (cp *CSVParser) ParseFile(ctx context.Context, filePath string) (*ParseResult, error) {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - SDK function, filePath from connector config
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeFile, "failed to open CSV file")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to open CSV file")
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	return cp.ParseReader(ctx, file)
 }
@@ -137,7 +137,12 @@ func (cp *CSVParser) ParseReader(ctx context.Context, reader io.Reader) (*ParseR
 		// Start decompression in a goroutine
 		errChan := make(chan error, 1)
 		go func() {
-			defer pw.Close()
+			defer func() {
+				if err := pw.Close(); err != nil {
+					// Pipe writer close errors can be ignored in this context
+					// as the decompression process is completing
+				}
+			}()
 			err := cp.compressor.DecompressStream(pw, reader)
 			errChan <- err
 		}()
@@ -146,8 +151,8 @@ func (cp *CSVParser) ParseReader(ctx context.Context, reader io.Reader) (*ParseR
 		select {
 		case err := <-errChan:
 			if err != nil {
-				pr.Close()
-				return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to decompress CSV data")
+				_ = pr.Close() // Close reader on error
+				return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to decompress CSV data")
 			}
 		default:
 			// Continue with decompressed reader
@@ -178,7 +183,7 @@ func (cp *CSVParser) ParseReader(ctx context.Context, reader io.Reader) (*ParseR
 			if err == io.EOF {
 				break
 			}
-			return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to skip CSV row")
+			return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to skip CSV row")
 		}
 	}
 
@@ -186,7 +191,7 @@ func (cp *CSVParser) ParseReader(ctx context.Context, reader io.Reader) (*ParseR
 	if cp.config.HasHeader {
 		headers, err := cp.reader.Read()
 		if err != nil {
-			return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to read CSV headers")
+			return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to read CSV headers")
 		}
 		cp.headers = make([]string, len(headers))
 		copy(cp.headers, headers)
@@ -206,7 +211,7 @@ func (cp *CSVParser) ParseReader(ctx context.Context, reader io.Reader) (*ParseR
 			break
 		}
 		if err != nil {
-			result.Errors = append(result.Errors, errors.Wrap(err, errors.ErrorTypeData, "failed to read CSV row"))
+			result.Errors = append(result.Errors, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to read CSV row"))
 			continue
 		}
 
@@ -348,17 +353,17 @@ func NewJSONParser(config *JSONParserConfig) *JSONParser {
 
 // ParseFile parses a JSON file and returns records and schema
 func (jp *JSONParser) ParseFile(ctx context.Context, filePath string) (*ParseResult, error) {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - SDK function, filePath from connector config
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeFile, "failed to open JSON file")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to open JSON file")
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	// Auto-detect format if needed
 	if jp.config.Format == JSONFormatAuto {
 		format, err := jp.detectFormat(filePath)
 		if err != nil {
-			return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to detect JSON format")
+			return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to detect JSON format")
 		}
 		jp.config.Format = format
 	}
@@ -376,7 +381,12 @@ func (jp *JSONParser) ParseReader(ctx context.Context, reader io.Reader) (*Parse
 		// Start decompression in a goroutine
 		errChan := make(chan error, 1)
 		go func() {
-			defer pw.Close()
+			defer func() {
+				if err := pw.Close(); err != nil {
+					// Pipe writer close errors can be ignored in this context
+					// as the decompression process is completing
+				}
+			}()
 			err := jp.compressor.DecompressStream(pw, reader)
 			errChan <- err
 		}()
@@ -385,8 +395,8 @@ func (jp *JSONParser) ParseReader(ctx context.Context, reader io.Reader) (*Parse
 		select {
 		case err := <-errChan:
 			if err != nil {
-				pr.Close()
-				return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to decompress JSON data")
+				_ = pr.Close() // Close reader on error
+				return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to decompress JSON data")
 			}
 		default:
 			// Continue with decompressed reader
@@ -401,7 +411,7 @@ func (jp *JSONParser) ParseReader(ctx context.Context, reader io.Reader) (*Parse
 	case JSONFormatLines:
 		return jp.parseJSONLines(ctx, reader)
 	default:
-		return nil, errors.New(errors.ErrorTypeData, fmt.Sprintf("unsupported JSON format: %s", jp.config.Format))
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeData, fmt.Sprintf("unsupported JSON format: %s", jp.config.Format))
 	}
 }
 
@@ -420,10 +430,10 @@ func (jp *JSONParser) parseJSONArray(ctx context.Context, reader io.Reader) (*Pa
 	// Expect opening bracket
 	token, err := decoder.Token()
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to read JSON array start")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to read JSON array start")
 	}
 	if delim, ok := token.(gojson.Delim); !ok || delim != '[' {
-		return nil, errors.New(errors.ErrorTypeData, "expected JSON array to start with '['")
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeData, "expected JSON array to start with '['")
 	}
 
 	var sampleRecords []*models.Record
@@ -438,7 +448,7 @@ func (jp *JSONParser) parseJSONArray(ctx context.Context, reader io.Reader) (*Pa
 
 		var obj map[string]interface{}
 		if err := decoder.Decode(&obj); err != nil {
-			result.Errors = append(result.Errors, errors.Wrap(err, errors.ErrorTypeData, "failed to decode JSON object"))
+			result.Errors = append(result.Errors, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to decode JSON object"))
 			continue
 		}
 
@@ -516,7 +526,7 @@ func (jp *JSONParser) parseJSONLines(ctx context.Context, reader io.Reader) (*Pa
 
 		var obj map[string]interface{}
 		if err := jsonpool.Unmarshal([]byte(line), &obj); err != nil {
-			result.Errors = append(result.Errors, errors.Wrap(err, errors.ErrorTypeData, "failed to parse JSON line"))
+			result.Errors = append(result.Errors, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to parse JSON line"))
 			continue
 		}
 
@@ -542,7 +552,7 @@ func (jp *JSONParser) parseJSONLines(ctx context.Context, reader io.Reader) (*Pa
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeData, "error reading JSON lines")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "error reading JSON lines")
 	}
 
 	// Perform type inference if enabled
@@ -600,25 +610,23 @@ func (jp *JSONParser) inferSchema(sampleRecords []*models.Record) (*core.Schema,
 
 // detectFormat auto-detects JSON format by reading file header
 func (jp *JSONParser) detectFormat(filePath string) (JSONFormat, error) {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - SDK function, filePath from connector config
 	if err != nil {
-		return "", errors.Wrap(err, errors.ErrorTypeFile, "failed to open file for format detection")
+		return "", nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to open file for format detection")
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	// Read first few bytes to determine format
 	header := pool.GetByteSlice()
 
 	if cap(header) < 1024 {
-
 		header = make([]byte, 1024)
-
 	}
 
 	defer pool.PutByteSlice(header)
 	n, err := file.Read(header)
 	if err != nil && err != io.EOF {
-		return "", errors.Wrap(err, errors.ErrorTypeFile, "failed to read file header")
+		return "", nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to read file header")
 	}
 
 	headerStr := strings.TrimSpace(string(header[:n]))
@@ -629,7 +637,7 @@ func (jp *JSONParser) detectFormat(filePath string) (JSONFormat, error) {
 		return JSONFormatLines, nil
 	}
 
-	return "", errors.New(errors.ErrorTypeData, "unable to detect JSON format")
+	return "", nebulaerrors.New(nebulaerrors.ErrorTypeData, "unable to detect JSON format")
 }
 
 // FormatWriter provides writing capabilities for different file formats
@@ -676,15 +684,15 @@ func NewCSVWriter(config *CSVParserConfig) *CSVWriter {
 func (cw *CSVWriter) WriteToFile(ctx context.Context, filePath string, records []*models.Record, schema *core.Schema) error {
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(filePath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeFile, "failed to create directory")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to create directory")
 	}
 
 	file, err := os.Create(filePath)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeFile, "failed to create CSV file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to create CSV file")
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	return cw.WriteToWriter(ctx, file, records, schema)
 }
@@ -699,7 +707,11 @@ func (cw *CSVWriter) WriteToWriter(ctx context.Context, writer io.Writer, record
 		// Start compression in a goroutine
 		errChan := make(chan error, 1)
 		go func() {
-			defer pr.Close()
+			defer func() {
+				if err := pr.Close(); err != nil {
+					// Pipe reader close errors can be ignored
+				}
+			}()
 			err := cw.compressor.CompressStream(writer, pr)
 			errChan <- err
 		}()
@@ -709,7 +721,9 @@ func (cw *CSVWriter) WriteToWriter(ctx context.Context, writer io.Writer, record
 
 		// Ensure we close the pipe writer at the end
 		defer func() {
-			pw.Close()
+			if err := pw.Close(); err != nil {
+				// Pipe writer close errors can be ignored
+			}
 			// Wait for compression to complete
 			if err := <-errChan; err != nil {
 				cw.logger.Error("compression error", zap.Error(err))
@@ -737,7 +751,7 @@ func (cw *CSVWriter) WriteToWriter(ctx context.Context, writer io.Writer, record
 	// Write headers if configured
 	if cw.config.HasHeader && len(cw.headers) > 0 {
 		if err := cw.writer.Write(cw.headers); err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, "failed to write CSV headers")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to write CSV headers")
 		}
 	}
 
@@ -757,14 +771,14 @@ func (cw *CSVWriter) WriteToWriter(ctx context.Context, writer io.Writer, record
 		}
 
 		if err := cw.writer.Write(row); err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, "failed to write CSV row")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to write CSV row")
 		}
 		cw.recordCount++
 	}
 
 	cw.writer.Flush()
 	if err := cw.writer.Error(); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "CSV writer error")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "CSV writer error")
 	}
 
 	cw.logger.Info("CSV writing completed",
@@ -797,15 +811,15 @@ func NewJSONWriter(config *JSONParserConfig) *JSONWriter {
 func (jw *JSONWriter) WriteToFile(ctx context.Context, filePath string, records []*models.Record) error {
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(filePath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeFile, "failed to create directory")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to create directory")
 	}
 
 	file, err := os.Create(filePath)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeFile, "failed to create JSON file")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeFile, "failed to create JSON file")
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // Ignore close error
 
 	return jw.WriteToWriter(ctx, file, records)
 }
@@ -820,7 +834,11 @@ func (jw *JSONWriter) WriteToWriter(ctx context.Context, writer io.Writer, recor
 		// Start compression in a goroutine
 		errChan := make(chan error, 1)
 		go func() {
-			defer pr.Close()
+			defer func() {
+				if err := pr.Close(); err != nil {
+					// Pipe reader close errors can be ignored
+				}
+			}()
 			err := jw.compressor.CompressStream(writer, pr)
 			errChan <- err
 		}()
@@ -830,7 +848,9 @@ func (jw *JSONWriter) WriteToWriter(ctx context.Context, writer io.Writer, recor
 
 		// Ensure we close the pipe writer at the end
 		defer func() {
-			pw.Close()
+			if err := pw.Close(); err != nil {
+				// Pipe writer close errors can be ignored
+			}
 			// Wait for compression to complete
 			if err := <-errChan; err != nil {
 				jw.logger.Error("compression error", zap.Error(err))
@@ -844,7 +864,7 @@ func (jw *JSONWriter) WriteToWriter(ctx context.Context, writer io.Writer, recor
 	case JSONFormatLines:
 		return jw.writeJSONLines(ctx, writer, records)
 	default:
-		return errors.New(errors.ErrorTypeData, fmt.Sprintf("unsupported JSON format: %s", jw.config.Format))
+		return nebulaerrors.New(nebulaerrors.ErrorTypeData, fmt.Sprintf("unsupported JSON format: %s", jw.config.Format))
 	}
 }
 
@@ -866,18 +886,18 @@ func (jw *JSONWriter) writeJSONArray(ctx context.Context, writer io.Writer, reco
 
 		jsonData, err := jsonpool.MarshalIndent(record.Data, "  ", "  ")
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, "failed to marshal record to JSON")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to marshal record to JSON")
 		}
 
 		buf.WriteString("  ")
-		buf.Write(jsonData)
+		_, _ = buf.Write(jsonData) // Ignore write error
 		jw.recordCount++
 	}
 
 	buf.WriteString("\n]")
 
 	if _, err := writer.Write(buf.Bytes()); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to write JSON array")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to write JSON array")
 	}
 
 	jw.logger.Info("JSON array writing completed",
@@ -899,16 +919,16 @@ func (jw *JSONWriter) writeJSONLines(ctx context.Context, writer io.Writer, reco
 
 		jsonData, err := jsonpool.Marshal(record.Data)
 		if err != nil {
-			return errors.Wrap(err, errors.ErrorTypeData, "failed to marshal record to JSON")
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to marshal record to JSON")
 		}
 
-		buf.Write(jsonData)
+		_, _ = buf.Write(jsonData) // Ignore write error
 		buf.WriteString("\n")
 		jw.recordCount++
 	}
 
 	if _, err := writer.Write(buf.Bytes()); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to write JSON lines")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to write JSON lines")
 	}
 
 	jw.logger.Info("JSON lines writing completed",

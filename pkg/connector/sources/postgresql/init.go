@@ -1,3 +1,4 @@
+// Package postgresql provides PostgreSQL source connector functionality with connection pooling.
 package postgresql
 
 import (

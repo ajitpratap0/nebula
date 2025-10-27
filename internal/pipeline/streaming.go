@@ -160,12 +160,20 @@ func (sp *StreamingPipeline) Run(ctx context.Context) error {
 	if err := sp.source.Initialize(ctx, nil); err != nil {
 		return fmt.Errorf("failed to initialize source: %w", err)
 	}
-	defer sp.source.Close(ctx)
+	defer func() {
+		if err := sp.source.Close(ctx); err != nil {
+			sp.logger.Debug("failed to close source", zap.Error(err))
+		}
+	}()
 
 	if err := sp.destination.Initialize(ctx, nil); err != nil {
 		return fmt.Errorf("failed to initialize destination: %w", err)
 	}
-	defer sp.destination.Close(ctx)
+	defer func() {
+		if err := sp.destination.Close(ctx); err != nil {
+			sp.logger.Debug("failed to close destination", zap.Error(err))
+		}
+	}()
 
 	// Start monitoring
 	sp.wg.Add(2)
@@ -364,14 +372,14 @@ func (sp *StreamingPipeline) distributeWork(ctx context.Context, records chan<- 
 			return fmt.Errorf("failed to start batch stream: %w", err)
 		}
 		return sp.processBatchStream(ctx, recordStream, records, errors)
-	} else {
-		// Fall back to regular streaming
-		recordStream, err := sp.source.Read(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to start record stream: %w", err)
-		}
-		return sp.processRecordStream(ctx, recordStream, records, errors)
 	}
+
+	// Fall back to regular streaming
+	recordStream, err := sp.source.Read(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to start record stream: %w", err)
+	}
+	return sp.processRecordStream(ctx, recordStream, records, errors)
 }
 
 // processBatchStream handles batch-based source streams
@@ -520,7 +528,7 @@ func (sp *StreamingPipeline) transformStage(ctx context.Context, in <-chan *Stre
 	workerWg.Wait()
 }
 
-func (sp *StreamingPipeline) transformWorker(ctx context.Context, workerID int, in <-chan *StreamingRecord, out chan<- *StreamingRecord, errors chan<- *StreamingError, wg *sync.WaitGroup) {
+func (sp *StreamingPipeline) transformWorker(ctx context.Context, _ int, in <-chan *StreamingRecord, out chan<- *StreamingRecord, errors chan<- *StreamingError, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for {
@@ -563,7 +571,8 @@ func (sp *StreamingPipeline) loadStage(ctx context.Context, in <-chan *Streaming
 func (sp *StreamingPipeline) loadWorker(
 	ctx context.Context, workerID int,
 	in <-chan *StreamingRecord, errors chan<- *StreamingError,
-	wg *sync.WaitGroup) {
+	wg *sync.WaitGroup,
+) {
 	defer wg.Done()
 
 	batch := pool.GetBatchSlice(sp.config.BatchSize)

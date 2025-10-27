@@ -1,3 +1,4 @@
+// Package main provides CDC integration testing for PostgreSQL, MySQL, and MongoDB connectors.
 package main
 
 import (
@@ -82,7 +83,7 @@ func testPostgreSQLCDC(ctx context.Context) {
 	fmt.Printf("   Supports Realtime: %v\n", source.SupportsRealtime())
 
 	// Clean up
-	source.Close(ctx)
+	_ = source.Close(ctx)
 }
 
 func testMySQLCDC(ctx context.Context) {
@@ -134,7 +135,7 @@ func testMySQLCDC(ctx context.Context) {
 	fmt.Printf("   Supports Realtime: %v\n", source.SupportsRealtime())
 
 	// Clean up
-	source.Close(ctx)
+	_ = source.Close(ctx)
 }
 
 func testMongoDBCDC(ctx context.Context) {
@@ -186,11 +187,11 @@ func testMongoDBCDC(ctx context.Context) {
 	fmt.Printf("   Supports Realtime: %v\n", source.SupportsRealtime())
 
 	// Clean up
-	source.Close(ctx)
+	_ = source.Close(ctx)
 }
 
 // Example: Reading CDC events
-func readCDCEvents(ctx context.Context, source core.Source) {
+func readCDCEvents(ctx context.Context, source core.Source) { //nolint:unused // Example function for demonstration purposes
 	// Start reading changes
 	stream, err := source.Read(ctx)
 	if err != nil {

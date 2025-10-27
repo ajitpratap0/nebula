@@ -46,7 +46,7 @@ type DeadLetterQueue struct {
 type DLQMetrics struct {
 	totalRecords   int64
 	expiredRecords int64
-	retriedRecords int64
+	retriedRecords int64 //nolint:unused // Reserved for retry metrics tracking
 	lastCleanup    time.Time
 }
 
@@ -66,7 +66,7 @@ type RetryState struct {
 	nextRetry    time.Time
 	backoffDelay time.Duration
 	errorType    string
-	context      map[string]interface{}
+	context      map[string]interface{} //nolint:unused // Reserved for error context information
 }
 
 // PipelineCircuitBreaker provides circuit breaker functionality for error management
@@ -432,7 +432,7 @@ func (rm *RetryManager) calculateBackoff(errorID string, attempt int) time.Durat
 
 	// Exponential backoff with jitter
 	baseDelay := rm.config.RetryBackoffBase
-	exponentialDelay := time.Duration(1<<uint(attempt)) * baseDelay
+	exponentialDelay := time.Duration(1<<uint(attempt)) * baseDelay //nolint:gosec // G115: Safe conversion as attempt is bounded by MaxRetries
 
 	// Add jitter (±25%)
 	jitter := time.Duration(time.Now().UnixNano()%int64(exponentialDelay/4)) - exponentialDelay/8

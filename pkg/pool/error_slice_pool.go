@@ -32,17 +32,18 @@ var globalErrorSlicePool = &ErrorSlicePool{
 
 // GetErrorSlice gets an error slice from the pool based on expected size
 func GetErrorSlice(expectedSize int) []error {
-	if expectedSize <= 10 {
+	switch {
+	case expectedSize <= 10:
 		if v, ok := globalErrorSlicePool.small.Get().([]error); ok {
 			return v
 		}
 		return make([]error, 0, 10)
-	} else if expectedSize <= 100 {
+	case expectedSize <= 100:
 		if v, ok := globalErrorSlicePool.medium.Get().([]error); ok {
 			return v
 		}
 		return make([]error, 0, 100)
-	} else {
+	default:
 		if v, ok := globalErrorSlicePool.large.Get().([]error); ok {
 			return v
 		}
@@ -60,12 +61,13 @@ func PutErrorSlice(errs []error) {
 	errs = errs[:0]
 
 	// Return to appropriate pool based on capacity
-	cap := cap(errs)
-	if cap <= 10 {
+	capacity := cap(errs)
+	switch {
+	case capacity <= 10:
 		globalErrorSlicePool.small.Put(&errs)
-	} else if cap <= 100 {
+	case capacity <= 100:
 		globalErrorSlicePool.medium.Put(&errs)
-	} else if cap <= 1000 {
+	case capacity <= 1000:
 		globalErrorSlicePool.large.Put(&errs)
 	}
 	// Don't pool very large slices to avoid memory bloat

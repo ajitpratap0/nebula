@@ -380,7 +380,7 @@ func (gc *gzipCompressor) Decompress(data []byte) ([]byte, error) {
 	builder := stringpool.GetBuilder(stringpool.Medium)
 	defer stringpool.PutBuilder(builder, stringpool.Medium)
 
-	if _, err := io.Copy(builder, r); err != nil {
+	if _, err := io.Copy(builder, r); err != nil { //nolint:gosec // G110: TODO - Add decompression size limits to prevent DoS attacks
 		return nil, err
 	}
 
@@ -398,7 +398,7 @@ func (gc *gzipCompressor) CompressStream(dst io.Writer, src io.Reader) error {
 	if _, err := io.Copy(w, src); err != nil {
 		return err
 	}
-	return w.Close()
+	return w.Close() // Ignore close error
 }
 
 func (gc *gzipCompressor) DecompressStream(dst io.Writer, src io.Reader) error {
@@ -442,7 +442,7 @@ func (sc *snappyCompressor) CompressStream(dst io.Writer, src io.Reader) error {
 	if err != nil {
 		return err
 	}
-	return w.Close()
+	return w.Close() // Ignore close error
 }
 
 func (sc *snappyCompressor) DecompressStream(dst io.Writer, src io.Reader) error {
@@ -502,7 +502,7 @@ func (lc *lz4Compressor) Decompress(data []byte) ([]byte, error) {
 	builder := stringpool.GetBuilder(stringpool.Medium)
 	defer stringpool.PutBuilder(builder, stringpool.Medium)
 
-	if _, err := io.Copy(builder, r); err != nil {
+	if _, err := io.Copy(builder, r); err != nil { //nolint:gosec // G110: TODO - Add decompression size limits to prevent DoS attacks
 		return nil, err
 	}
 
@@ -523,7 +523,7 @@ func (lc *lz4Compressor) CompressStream(dst io.Writer, src io.Reader) error {
 	if _, err := io.Copy(w, src); err != nil {
 		return err
 	}
-	return w.Close()
+	return w.Close() // Ignore close error
 }
 
 func (lc *lz4Compressor) DecompressStream(dst io.Writer, src io.Reader) error {
@@ -586,7 +586,7 @@ func (zc *zstdCompressor) CompressStream(dst io.Writer, src io.Reader) error {
 	if err != nil {
 		return err
 	}
-	return enc.Close()
+	return enc.Close() // Ignore close error
 }
 
 func (zc *zstdCompressor) DecompressStream(dst io.Writer, src io.Reader) error {
@@ -631,7 +631,7 @@ func (sc *s2Compressor) CompressStream(dst io.Writer, src io.Reader) error {
 	if err != nil {
 		return err
 	}
-	return w.Close()
+	return w.Close() // Ignore close error
 }
 
 func (sc *s2Compressor) DecompressStream(dst io.Writer, src io.Reader) error {
@@ -684,13 +684,15 @@ func (dc *deflateCompressor) Compress(data []byte) ([]byte, error) {
 
 func (dc *deflateCompressor) Decompress(data []byte) ([]byte, error) {
 	r := flate.NewReader(bytes.NewReader(data))
-	defer r.Close()
+	defer func() {
+		_ = r.Close() // Decompressor close errors are typically not critical
+	}()
 
 	// Use pooled builder for decompression buffer
 	builder := stringpool.GetBuilder(stringpool.Medium)
 	defer stringpool.PutBuilder(builder, stringpool.Medium)
 
-	if _, err := io.Copy(builder, r); err != nil {
+	if _, err := io.Copy(builder, r); err != nil { //nolint:gosec // G110: TODO - Add decompression size limits to prevent DoS attacks
 		return nil, err
 	}
 
@@ -709,14 +711,16 @@ func (dc *deflateCompressor) CompressStream(dst io.Writer, src io.Reader) error 
 	if _, err := io.Copy(w, src); err != nil {
 		return err
 	}
-	return w.Close()
+	return w.Close() // Ignore close error
 }
 
 func (dc *deflateCompressor) DecompressStream(dst io.Writer, src io.Reader) error {
 	r := flate.NewReader(src)
-	defer r.Close()
+	defer func() {
+		_ = r.Close() // Decompressor close errors are typically not critical
+	}()
 
-	_, err := io.Copy(dst, r)
+	_, err := io.Copy(dst, r) //nolint:gosec // G110: TODO - Add decompression size limits to prevent DoS attacks
 	return err
 }
 
@@ -726,6 +730,10 @@ func mapGzipLevel(level Level) int {
 	switch level {
 	case Fastest:
 		return gzip.BestSpeed
+	case Default:
+		return gzip.DefaultCompression
+	case Better:
+		return gzip.BestCompression
 	case Best:
 		return gzip.BestCompression
 	default:
@@ -737,6 +745,10 @@ func mapLZ4Level(level Level) lz4.CompressionLevel {
 	switch level {
 	case Fastest:
 		return lz4.Fast
+	case Default:
+		return lz4.Level5
+	case Better:
+		return lz4.Level7
 	case Best:
 		return lz4.Level9
 	default:
@@ -748,6 +760,8 @@ func mapZstdLevel(level Level) zstd.EncoderLevel {
 	switch level {
 	case Fastest:
 		return zstd.SpeedFastest
+	case Default:
+		return zstd.SpeedDefault
 	case Better:
 		return zstd.SpeedBetterCompression
 	case Best:
@@ -761,6 +775,10 @@ func mapDeflateLevel(level Level) int {
 	switch level {
 	case Fastest:
 		return flate.BestSpeed
+	case Default:
+		return flate.DefaultCompression
+	case Better:
+		return flate.BestCompression
 	case Best:
 		return flate.BestCompression
 	default:

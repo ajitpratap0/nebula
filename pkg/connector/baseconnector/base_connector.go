@@ -1,4 +1,4 @@
-// Package base provides the foundational BaseConnector that all Nebula connectors
+// Package baseconnector provides the foundational BaseConnector that all Nebula connectors
 // inherit from. It implements common functionality including circuit breakers,
 // rate limiting, health monitoring, metrics collection, and error handling.
 //
@@ -20,13 +20,13 @@
 // All connectors should embed BaseConnector to inherit its functionality:
 //
 //	type MyConnector struct {
-//	    *base.BaseConnector
+//	    *baseconnector.BaseConnector
 //	    // connector-specific fields
 //	}
 //
 //	func NewMyConnector() *MyConnector {
 //	    return &MyConnector{
-//	        BaseConnector: base.NewBaseConnector("my-connector", core.TypeSource, "1.0.0"),
+//	        BaseConnector: baseconnector.NewBaseConnector("my-connector", core.TypeSource, "1.0.0"),
 //	    }
 //	}
 //
@@ -44,7 +44,7 @@
 // Health Checks: Periodic health monitoring with automatic status updates
 // Metrics: Comprehensive performance and operational metrics
 // Error Handling: Intelligent retry logic with categorized error handling
-package base
+package baseconnector
 
 import (
 	"context"
@@ -54,10 +54,10 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/clients"
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	"github.com/ajitpratap0/nebula/pkg/logger"
 	"github.com/ajitpratap0/nebula/pkg/metrics"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"go.uber.org/zap"
 )
 
@@ -142,7 +142,7 @@ func NewBaseConnector(name string, connectorType core.ConnectorType, version str
 //
 //	connector := NewMyConnector()
 //	if err := connector.Initialize(ctx, config); err != nil {
-//	    return nil, errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize connector")
+//	    return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to initialize connector")
 //	}
 //	defer connector.Close(ctx)
 func (bc *BaseConnector) Initialize(ctx context.Context, config *config.BaseConfig) error {
@@ -253,14 +253,14 @@ func (bc *BaseConnector) SetPosition(position core.Position) error {
 }
 
 // Health performs a health check
-func (bc *BaseConnector) Health(ctx context.Context) error {
+func (bc *BaseConnector) Health(_ context.Context) error {
 	if bc.closed {
-		return errors.New(errors.ErrorTypeConnection, "connector is closed")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConnection, "connector is closed")
 	}
 
 	status := bc.healthChecker.GetStatus()
 	if status.Status != "healthy" {
-		return errors.Wrap(status.Error, errors.ErrorTypeHealth, "health check failed")
+		return nebulaerrors.Wrap(status.Error, nebulaerrors.ErrorTypeHealth, "health check failed")
 	}
 
 	return nil
@@ -312,7 +312,7 @@ func (bc *BaseConnector) Metrics() map[string]interface{} {
 }
 
 // Close shuts down the connector
-func (bc *BaseConnector) Close(ctx context.Context) error {
+func (bc *BaseConnector) Close(_ context.Context) error {
 	bc.closeMutex.Lock()
 	defer bc.closeMutex.Unlock()
 
@@ -371,7 +371,7 @@ func (bc *BaseConnector) ExecuteWithRetry(ctx context.Context, fn func() error) 
 //	    return externalService.Call()
 //	})
 //	if err != nil {
-//	    if errors.IsType(err, errors.ErrorTypeRateLimit) {
+//	    if errors.IsType(err, nebulaerrors.ErrorTypeRateLimit) {
 //	        // Circuit is open, back off
 //	    }
 //	}
@@ -398,7 +398,7 @@ func (bc *BaseConnector) RateLimit(ctx context.Context) error {
 }
 
 // RecordMetric records a metric
-func (bc *BaseConnector) RecordMetric(name string, value interface{}, metricType core.MetricType) {
+func (bc *BaseConnector) RecordMetric(name string, value interface{}, _ core.MetricType) {
 	bc.metricsCollector.Record(name, value)
 }
 
@@ -544,11 +544,11 @@ func (bc *BaseConnector) GetQualityChecker() core.DataQualityChecker {
 // Validate validates the connector configuration
 func (bc *BaseConnector) Validate() error {
 	if bc.config == nil {
-		return errors.New(errors.ErrorTypeConfig, "configuration is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "configuration is required")
 	}
 
 	if bc.config.Name == "" {
-		return errors.New(errors.ErrorTypeConfig, "connector name is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "connector name is required")
 	}
 
 	if bc.config.Performance.BatchSize <= 0 {

@@ -90,7 +90,7 @@ func (m *MockMetaAdsAPI) handleValidation(w http.ResponseWriter, _ *http.Request
 		"id":   "123456789",
 		"name": "Test User",
 	})
-	_, _ = w.Write(data)
+	_, _ = w.Write(data) // Ignore write error
 }
 
 func (m *MockMetaAdsAPI) handleCreateAsyncJob(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +112,7 @@ func (m *MockMetaAdsAPI) handleCreateAsyncJob(w http.ResponseWriter, r *http.Req
 	data, _ := jsonpool.Marshal(map[string]interface{}{
 		"report_run_id": jobID,
 	})
-	_, _ = w.Write(data)
+	_, _ = w.Write(data) // Ignore write error
 }
 
 func (m *MockMetaAdsAPI) processAsyncJob(jobID string) {
@@ -157,7 +157,7 @@ func (m *MockMetaAdsAPI) handleJobStatus(w http.ResponseWriter, r *http.Request,
 	}
 
 	data, _ := jsonpool.Marshal(response)
-	_, _ = w.Write(data)
+	_, _ = w.Write(data) // Ignore write error
 }
 
 func (m *MockMetaAdsAPI) handleSyncInsights(w http.ResponseWriter, _ *http.Request) {
@@ -191,7 +191,7 @@ func (m *MockMetaAdsAPI) handleSyncInsights(w http.ResponseWriter, _ *http.Reque
 	}
 
 	data, _ := jsonpool.Marshal(response)
-	_, _ = w.Write(data)
+	_, _ = w.Write(data) // Ignore write error
 }
 
 func (m *MockMetaAdsAPI) handleCampaigns(w http.ResponseWriter, _ *http.Request) {
@@ -199,7 +199,7 @@ func (m *MockMetaAdsAPI) handleCampaigns(w http.ResponseWriter, _ *http.Request)
 	data, _ := jsonpool.Marshal(map[string]interface{}{
 		"data": campaigns,
 	})
-	_, _ = w.Write(data)
+	_, _ = w.Write(data) // Ignore write error
 }
 
 func (m *MockMetaAdsAPI) handleAdsets(w http.ResponseWriter, _ *http.Request) {
@@ -207,7 +207,7 @@ func (m *MockMetaAdsAPI) handleAdsets(w http.ResponseWriter, _ *http.Request) {
 	data, _ := jsonpool.Marshal(map[string]interface{}{
 		"data": adsets,
 	})
-	_, _ = w.Write(data)
+	_, _ = w.Write(data) // Ignore write error
 }
 
 func (m *MockMetaAdsAPI) handleAds(w http.ResponseWriter, _ *http.Request) {
@@ -215,7 +215,7 @@ func (m *MockMetaAdsAPI) handleAds(w http.ResponseWriter, _ *http.Request) {
 	data, _ := jsonpool.Marshal(map[string]interface{}{
 		"data": ads,
 	})
-	_, _ = w.Write(data)
+	_, _ = w.Write(data) // Ignore write error
 }
 
 func (m *MockMetaAdsAPI) Close() {
@@ -362,7 +362,7 @@ func BenchmarkMetaAdsMockAPI(b *testing.B) {
 	for _, tier := range tiers {
 		b.Run(fmt.Sprintf("Tier_%s", tier), func(b *testing.B) {
 			mockAPI := NewMockMetaAdsAPI(tier)
-			defer mockAPI.Close()
+			defer mockAPI.Close() // Ignore close error
 
 			b.ResetTimer()
 
@@ -377,7 +377,7 @@ func BenchmarkMetaAdsMockAPI(b *testing.B) {
 				if err != nil {
 					b.Fatal(err)
 				}
-				resp.Body.Close()
+				_ = resp.Body.Close() // Ignore close error
 
 				// Simulate processing the response
 				recordCount := int64(200) // Mock record count from pagination

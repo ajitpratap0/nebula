@@ -16,7 +16,6 @@ import (
 
 // BenchmarkStreamingPipeline tests high-performance streaming pipeline
 func BenchmarkStreamingPipeline(b *testing.B) {
-
 	// Create optimized streaming config
 	config := &StreamingConfig{
 		InitialBufferSize:     100000,  // Large buffer for high throughput
@@ -122,7 +121,9 @@ func BenchmarkBackpressureController(b *testing.B) {
 	controller := NewBackpressureController("benchmark", config, logger)
 
 	ctx := context.Background()
-	controller.Start(ctx)
+	if err := controller.Start(ctx); err != nil {
+		b.Fatalf("Failed to start controller: %v", err)
+	}
 
 	// Create test record
 	record := pool.GetRecord()

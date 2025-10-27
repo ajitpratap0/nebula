@@ -41,7 +41,7 @@ func (s *IntegrationTestSuite) TearDownSuite() {
 
 	// Clean up temp directory
 	if s.tempDir != "" {
-		os.RemoveAll(s.tempDir)
+		_ = os.RemoveAll(s.tempDir) // Ignore cleanup errors
 	}
 
 	duration := time.Since(s.startTime)
@@ -61,7 +61,7 @@ func (s *IntegrationTestSuite) TempDir() string {
 // CreateTempFile creates a temporary file with content
 func (s *IntegrationTestSuite) CreateTempFile(name string, content []byte) string {
 	path := filepath.Join(s.tempDir, name)
-	err := os.WriteFile(path, content, 0644)
+	err := os.WriteFile(path, content, 0o644)
 	require.NoError(s.T(), err)
 	return path
 }
@@ -104,7 +104,7 @@ func NewTestEnvironment(t *testing.T) *TestEnvironment {
 
 	// Add cleanup for temp directory
 	env.AddCleanup(func() {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir) // Ignore cleanup errors
 	})
 
 	return env
@@ -163,7 +163,7 @@ func CreateTestData(t *testing.T, dir string, numFiles int, recordsPerFile int) 
 			require.NoError(t, err)
 		}
 
-		file.Close()
+		_ = file.Close() // Ignore close error
 		files = append(files, filename)
 	}
 

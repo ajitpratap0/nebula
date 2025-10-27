@@ -466,11 +466,12 @@ func (sp *simplePosition) String() string {
 
 func (sp *simplePosition) Compare(other core.Position) int {
 	if otherPos, ok := other.(*simplePosition); ok {
-		if sp.cursor == otherPos.cursor {
+		switch {
+		case sp.cursor == otherPos.cursor:
 			return 0
-		} else if sp.cursor < otherPos.cursor {
+		case sp.cursor < otherPos.cursor:
 			return -1
-		} else {
+		default:
 			return 1
 		}
 	}

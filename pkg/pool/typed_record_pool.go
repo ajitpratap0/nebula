@@ -103,42 +103,42 @@ func PutTypedRecord(tr *TypedRecord) {
 func (tr *TypedRecord) SetString(key, value string) {
 	tr.StringFields[key] = value
 	// Also set in the generic map for compatibility
-	tr.Record.SetData(key, value)
+	tr.SetData(key, value)
 }
 
 // SetInt sets an int field without boxing
 func (tr *TypedRecord) SetInt(key string, value int64) {
 	tr.IntFields[key] = value
 	// Also set in the generic map for compatibility
-	tr.Record.SetData(key, value)
+	tr.SetData(key, value)
 }
 
 // SetFloat sets a float field without boxing
 func (tr *TypedRecord) SetFloat(key string, value float64) {
 	tr.FloatFields[key] = value
 	// Also set in the generic map for compatibility
-	tr.Record.SetData(key, value)
+	tr.SetData(key, value)
 }
 
 // SetBool sets a bool field without boxing
 func (tr *TypedRecord) SetBool(key string, value bool) {
 	tr.BoolFields[key] = value
 	// Also set in the generic map for compatibility
-	tr.Record.SetData(key, value)
+	tr.SetData(key, value)
 }
 
 // SetTime sets a time field without boxing
 func (tr *TypedRecord) SetTime(key string, value time.Time) {
 	tr.TimeFields[key] = value
 	// Also set in the generic map for compatibility
-	tr.Record.SetData(key, value)
+	tr.SetData(key, value)
 }
 
 // SetBytes sets a bytes field without boxing
 func (tr *TypedRecord) SetBytes(key string, value []byte) {
 	tr.BytesFields[key] = value
 	// Also set in the generic map for compatibility
-	tr.Record.SetData(key, value)
+	tr.SetData(key, value)
 }
 
 // GetString gets a string field without unboxing

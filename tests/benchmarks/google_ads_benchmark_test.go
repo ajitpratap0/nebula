@@ -170,7 +170,7 @@ func (m *MockGoogleAdsServer) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	startIdx := 0
 	if request.PageToken != "" {
-		fmt.Sscanf(request.PageToken, "page_%d", &startIdx)
+		_, _ = fmt.Sscanf(request.PageToken, "page_%d", &startIdx)
 	}
 
 	endIdx := startIdx + pageSize
@@ -194,7 +194,7 @@ func (m *MockGoogleAdsServer) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	atomic.AddInt64(&m.bytesServed, int64(len(respBytes)))
 
 	w.Header().Set("Content-Type", "application/json")
-	_, _ = w.Write(respBytes)
+	_, _ = w.Write(respBytes) // Ignore write error
 }
 
 // BenchmarkGoogleAdsStreamingRead benchmarks streaming read performance
@@ -252,13 +252,14 @@ func BenchmarkGoogleAdsStreamingRead(b *testing.B) {
 			)
 
 			httpServer := &http.Server{
-				Addr:    ":0",
-				Handler: mockServer,
+				Addr:              ":0",
+				Handler:           mockServer,
+				ReadHeaderTimeout: 10 * time.Second,
 			}
 
 			// Start server
-			go httpServer.ListenAndServe()
-			defer httpServer.Shutdown(context.Background())
+			go func() { _ = httpServer.ListenAndServe() }()
+			defer func() { _ = httpServer.Shutdown(context.Background()) }()
 			time.Sleep(100 * time.Millisecond) // Let server start
 
 			// Calculate expected records
@@ -326,7 +327,7 @@ func BenchmarkGoogleAdsStreamingRead(b *testing.B) {
 				b.ReportMetric(float64(mockServer.bytesServed)/(1024*1024), "MB_transferred")
 				b.ReportMetric(duration.Seconds(), "total_seconds")
 
-				source.Close(ctx)
+				_ = source.Close(ctx)
 			}
 		})
 	}
@@ -358,7 +359,7 @@ func BenchmarkGoogleAdsPagination(b *testing.B) {
 
 				source, _ := sources.NewGoogleAdsSource("pagination_test", cfg)
 				ctx := context.Background()
-				source.Initialize(ctx, cfg)
+				_ = source.Initialize(ctx, cfg)
 
 				stream, _ := source.Read(ctx)
 
@@ -374,7 +375,7 @@ func BenchmarkGoogleAdsPagination(b *testing.B) {
 				b.ReportMetric(float64(pageCount), "pages")
 				b.ReportMetric(float64(recordCount)/float64(pageCount), "records_per_page")
 
-				source.Close(ctx)
+				_ = source.Close(ctx)
 			}
 		})
 	}
@@ -397,7 +398,7 @@ func BenchmarkGoogleAdsConcurrency(b *testing.B) {
 
 				source, _ := sources.NewGoogleAdsSource("concurrency_test", cfg)
 				ctx := context.Background()
-				source.Initialize(ctx, cfg)
+				_ = source.Initialize(ctx, cfg)
 
 				start := time.Now()
 				stream, _ := source.Read(ctx)
@@ -414,7 +415,7 @@ func BenchmarkGoogleAdsConcurrency(b *testing.B) {
 				b.ReportMetric(float64(recordCount)/duration.Seconds(), "records/sec")
 				b.ReportMetric(float64(concurrency), "concurrent_customers")
 
-				source.Close(ctx)
+				_ = source.Close(ctx)
 			}
 		})
 	}
@@ -472,7 +473,7 @@ func BenchmarkGoogleAdsQueryComplexity(b *testing.B) {
 
 				source, _ := sources.NewGoogleAdsSource("query_test", cfg)
 				ctx := context.Background()
-				source.Initialize(ctx, cfg)
+				_ = source.Initialize(ctx, cfg)
 
 				start := time.Now()
 				stream, _ := source.Read(ctx)
@@ -493,7 +494,7 @@ func BenchmarkGoogleAdsQueryComplexity(b *testing.B) {
 				b.ReportMetric(float64(totalBytes)/(1024*1024), "MB_processed")
 				b.ReportMetric(float64(q.size), "query_fields")
 
-				source.Close(ctx)
+				_ = source.Close(ctx)
 			}
 		})
 	}
@@ -515,7 +516,7 @@ func BenchmarkGoogleAdsMemoryUsage(b *testing.B) {
 
 				source, _ := sources.NewGoogleAdsSource("memory_test", cfg)
 				ctx := context.Background()
-				source.Initialize(ctx, cfg)
+				_ = source.Initialize(ctx, cfg)
 
 				stream, _ := source.Read(ctx)
 
@@ -529,7 +530,7 @@ func BenchmarkGoogleAdsMemoryUsage(b *testing.B) {
 				b.ReportMetric(float64(recordCount), "total_records")
 				b.ReportMetric(float64(batchSize), "configured_batch_size")
 
-				source.Close(ctx)
+				_ = source.Close(ctx)
 			}
 		})
 	}

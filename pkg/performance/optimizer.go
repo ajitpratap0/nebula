@@ -126,10 +126,9 @@ func (o *Optimizer) OptimizeCPU() {
 	}
 
 	// Enable CPU affinity if supported
-	if o.config.EnableAffinity {
-		// Platform-specific CPU affinity setting
-		// This would require platform-specific implementation
-	}
+	// Platform-specific CPU affinity setting would be implemented here
+	// Currently no-op as it requires platform-specific implementation
+	_ = o.config.EnableAffinity
 }
 
 // GetBuffer gets an optimized buffer
@@ -181,7 +180,7 @@ type BufferPool struct {
 	pool   sync.Pool
 	size   int
 	hits   int64
-	misses int64
+	misses int64 //nolint:unused // Reserved for cache miss tracking
 }
 
 // NewBufferPool creates a buffer pool
@@ -338,7 +337,7 @@ func NewBatchManager(optimalSize int, adaptive bool) *BatchManager {
 }
 
 // OptimizeSize optimizes batch size based on throughput
-func (bm *BatchManager) OptimizeSize(currentSize int, throughput float64) int {
+func (bm *BatchManager) OptimizeSize(_ int, throughput float64) int {
 	bm.mu.Lock()
 	defer bm.mu.Unlock()
 

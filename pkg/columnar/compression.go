@@ -72,12 +72,12 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 	var buf bytes.Buffer
 
 	// Write column type
-	if err := binary.Write(&buf, binary.LittleEndian, uint8(col.Type())); err != nil {
+	if err := binary.Write(&buf, binary.LittleEndian, uint8(col.Type())); err != nil { //nolint:gosec // G115: ColumnType values are small and fit in uint8
 		return nil, err
 	}
 
 	// Write column length
-	if err := binary.Write(&buf, binary.LittleEndian, uint32(col.Len())); err != nil {
+	if err := binary.Write(&buf, binary.LittleEndian, uint32(col.Len())); err != nil { //nolint:gosec // G115: Column lengths are expected to fit in uint32
 		return nil, err
 	}
 
@@ -120,7 +120,7 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 	case ColumnTypeBool:
 		boolCol := col.(*BoolColumn)
 		// Already bit-packed, write directly
-		if err := binary.Write(&buf, binary.LittleEndian, uint32(len(boolCol.values))); err != nil {
+		if err := binary.Write(&buf, binary.LittleEndian, uint32(len(boolCol.values))); err != nil { //nolint:gosec // G115: Bool column values length expected to fit in uint32
 			return nil, err
 		}
 		for _, word := range boolCol.values {
@@ -138,14 +138,22 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 			}
 
 			// Write dictionary size
-			if err := binary.Write(&buf, binary.LittleEndian, uint32(len(strCol.dict))); err != nil {
+			dictLen := len(strCol.dict)
+			if dictLen > 4294967295 { // math.MaxUint32
+				return nil, fmt.Errorf("dictionary size %d exceeds maximum uint32 value", dictLen)
+			}
+			if err := binary.Write(&buf, binary.LittleEndian, uint32(dictLen)); err != nil {
 				return nil, err
 			}
 
 			// Write dictionary entries
 			for str, code := range strCol.dict {
 				// Write string length and data
-				if err := binary.Write(&buf, binary.LittleEndian, uint32(len(str))); err != nil {
+				strLen := len(str)
+				if strLen > 4294967295 { // math.MaxUint32
+					return nil, fmt.Errorf("string length %d exceeds maximum uint32 value", strLen)
+				}
+				if err := binary.Write(&buf, binary.LittleEndian, uint32(strLen)); err != nil {
 					return nil, err
 				}
 				if _, err := buf.WriteString(str); err != nil {
@@ -170,7 +178,11 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 
 			// Write each string
 			for _, str := range strCol.values {
-				if err := binary.Write(&buf, binary.LittleEndian, uint32(len(str))); err != nil {
+				strLen := len(str)
+				if strLen > 4294967295 { // math.MaxUint32
+					return nil, fmt.Errorf("string length %d exceeds maximum uint32 value", strLen)
+				}
+				if err := binary.Write(&buf, binary.LittleEndian, uint32(strLen)); err != nil {
 					return nil, err
 				}
 				if _, err := buf.WriteString(str); err != nil {
@@ -188,7 +200,8 @@ func (c *CompressedColumnStore) serializeColumn(col Column) ([]byte, error) {
 
 // writeVarint writes a variable-length integer
 func writeVarint(buf *bytes.Buffer, v int64) error {
-	uv := uint64(v<<1) ^ uint64(v>>63) // zigzag encoding
+	// Zigzag encoding: intentional conversion from signed to unsigned
+	uv := uint64(v<<1) ^ uint64(v>>63) // #nosec G115 - intentional zigzag encoding
 	for uv >= 0x80 {
 		buf.WriteByte(byte(uv) | 0x80)
 		uv >>= 7

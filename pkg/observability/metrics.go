@@ -234,7 +234,7 @@ type PerformanceTracker struct {
 	collector      *MetricsCollector
 	operation      string
 	startTime      time.Time
-	recordsStart   int64
+	recordsStart   int64 //nolint:unused // Reserved for baseline performance tracking
 	recordsCurrent int64
 	errors         int64
 	retries        int64
@@ -361,7 +361,7 @@ func (cm *ConnectorMetrics) TrackOperation(ctx context.Context, operation string
 	start := time.Now()
 
 	// Start tracing
-	ctx, span := cm.Tracer.StartSpan(ctx, operation)
+	_, span := cm.Tracer.StartSpan(ctx, operation)
 	defer span.End()
 
 	// Execute operation

@@ -30,9 +30,7 @@ func BenchmarkStringOptimization(b *testing.B) {
 		},
 		{
 			name: "pool.GetColumnName",
-			fn: func(i int) string {
-				return pool.GetColumnName(i)
-			},
+			fn:   pool.GetColumnName,
 		},
 		{
 			name: "stringpool.Sprintf",

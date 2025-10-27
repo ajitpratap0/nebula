@@ -150,7 +150,7 @@ func BenchmarkSnowflakeOptimizedWrite(b *testing.B) {
 
 						for data := range uploadChan {
 							filename := fmt.Sprintf("batch_%d_%d.csv.gz", time.Now().UnixNano(), workerID)
-							stage.Upload(filename, data)
+							_ = stage.Upload(filename, data)
 							atomic.AddInt64(&bytesUploaded, int64(len(data)))
 						}
 					}(w)
@@ -292,7 +292,7 @@ func BenchmarkSnowflakeCompression(b *testing.B) {
 					var compBuf bytes.Buffer
 					gw, _ := gzip.NewWriterLevel(&compBuf, comp.level)
 					_, _ = io.Copy(gw, &csvBuf)
-					gw.Close()
+					_ = gw.Close() // Ignore close error
 					compressionTime = time.Since(start)
 					compressedSize = compBuf.Len()
 				} else {
@@ -434,7 +434,7 @@ func generateBatchData(recordCount int, compressionType string) []byte {
 		var compBuf bytes.Buffer
 		gw := gzip.NewWriter(&compBuf)
 		_, _ = io.Copy(gw, &buf)
-		gw.Close()
+		_ = gw.Close() // Ignore close error
 		return compBuf.Bytes()
 	}
 

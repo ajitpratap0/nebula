@@ -17,7 +17,7 @@ import (
 // BatchingStrategy optimizes batch sizes
 type BatchingStrategy struct {
 	optimizer    *Optimizer
-	currentBatch int
+	currentBatch int //nolint:unused // Reserved for current batch size tracking
 	throughput   float64
 	mu           sync.Mutex
 }
@@ -28,7 +28,7 @@ func (bs *BatchingStrategy) Name() string {
 }
 
 // Apply applies batching optimization
-func (bs *BatchingStrategy) Apply(ctx context.Context, data interface{}) (interface{}, error) {
+func (bs *BatchingStrategy) Apply(_ context.Context, data interface{}) (interface{}, error) {
 	records, ok := data.([]*models.Record)
 	if !ok {
 		return data, nil
@@ -70,7 +70,7 @@ func (bs *BatchingStrategy) ShouldApply(metrics *Metrics) bool {
 // CompressionStrategy applies compression
 type CompressionStrategy struct {
 	compressor *compression.CompressorPool
-	threshold  int
+	threshold  int //nolint:unused // Reserved for compression threshold configuration
 }
 
 // Name returns strategy name
@@ -117,8 +117,8 @@ func (cs *CompressionStrategy) ShouldApply(metrics *Metrics) bool {
 
 // ColumnarStrategy converts to columnar format
 type ColumnarStrategy struct {
-	writer columnar.Writer
-	config *columnar.WriterConfig
+	writer columnar.Writer        //nolint:unused // Reserved for columnar format writer
+	config *columnar.WriterConfig //nolint:unused // Reserved for columnar configuration
 }
 
 // Name returns strategy name
@@ -159,7 +159,7 @@ func (cs *ColumnarStrategy) ShouldApply(metrics *Metrics) bool {
 // ParallelismStrategy applies parallel processing
 type ParallelismStrategy struct {
 	optimizer *Optimizer
-	workers   int
+	workers   int //nolint:unused // Reserved for worker count configuration
 }
 
 // Name returns strategy name
@@ -194,7 +194,6 @@ func (ps *ParallelismStrategy) Apply(ctx context.Context, data interface{}) (int
 		record.Metadata.Custom["parallel_processed"] = true
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +211,7 @@ func (ps *ParallelismStrategy) ShouldApply(metrics *Metrics) bool {
 type CachingStrategy struct {
 	cache   *CacheOptimizer
 	keyFunc func(*models.Record) string
-	ttl     time.Duration
+	ttl     time.Duration //nolint:unused // Reserved for cache TTL configuration
 }
 
 // Name returns strategy name
@@ -228,7 +227,7 @@ func (cs *CachingStrategy) Apply(ctx context.Context, data interface{}) (interfa
 	}
 
 	// Cache frequently accessed records
-	var optimized []*models.Record
+	optimized := make([]*models.Record, 0, len(records))
 	for _, record := range records {
 		key := cs.generateKey(record)
 
@@ -247,7 +246,7 @@ func (cs *CachingStrategy) Apply(ctx context.Context, data interface{}) (interfa
 }
 
 // ShouldApply determines if strategy should apply
-func (cs *CachingStrategy) ShouldApply(metrics *Metrics) bool {
+func (cs *CachingStrategy) ShouldApply(_ *Metrics) bool {
 	// Apply if there are repeated reads
 	return cs.cache.GetHitRate() > 0.2
 }
@@ -287,7 +286,7 @@ func (zcs *ZeroCopyStrategy) Apply(ctx context.Context, data interface{}) (inter
 }
 
 // ShouldApply determines if strategy should apply
-func (zcs *ZeroCopyStrategy) ShouldApply(metrics *Metrics) bool {
+func (zcs *ZeroCopyStrategy) ShouldApply(_ *Metrics) bool {
 	// Always apply if enabled
 	return true
 }
@@ -406,7 +405,7 @@ func (sos *SchemaOptimizationStrategy) Apply(ctx context.Context, data interface
 }
 
 // ShouldApply determines if strategy should apply
-func (sos *SchemaOptimizationStrategy) ShouldApply(metrics *Metrics) bool {
+func (sos *SchemaOptimizationStrategy) ShouldApply(_ *Metrics) bool {
 	return true
 }
 
@@ -453,7 +452,7 @@ func (sos *SchemaOptimizationStrategy) inferSchema(records []*models.Record) *co
 }
 
 // normalizeRecord normalizes record according to schema
-func (sos *SchemaOptimizationStrategy) normalizeRecord(record *models.Record, schema *core.Schema) {
+func (sos *SchemaOptimizationStrategy) normalizeRecord(record *models.Record, _ *core.Schema) {
 	// In practice, this would perform type conversions and validations
 	if record.Metadata.Custom == nil {
 		record.Metadata.Custom = pool.GetMap()

@@ -73,8 +73,9 @@ type SimplePipeline struct {
 	transforms  []Transform      // Sequential transformations
 
 	// Configuration
-	batchSize   int // Records per batch
-	workerCount int // Parallel transform workers
+	batchSize     int           // Records per batch
+	workerCount   int           // Parallel transform workers
+	flushInterval time.Duration // Time interval for batch flushing
 
 	// Metrics
 	recordsProcessed int64     // Total successful records
@@ -97,8 +98,9 @@ type Transform func(ctx context.Context, record *models.Record) (*models.Record,
 // PipelineConfig contains pipeline configuration parameters that control
 // performance characteristics and resource usage.
 type PipelineConfig struct {
-	BatchSize   int // Number of records per batch (affects memory and latency)
-	WorkerCount int // Number of parallel transform workers (affects CPU usage)
+	BatchSize     int           // Number of records per batch (affects memory and latency)
+	WorkerCount   int           // Number of parallel transform workers (affects CPU usage)
+	FlushInterval time.Duration // Time interval for batch flushing (default: 1s)
 }
 
 // DefaultPipelineConfig returns default configuration optimized for
@@ -108,8 +110,9 @@ type PipelineConfig struct {
 //   - Decrease both for lower latency requirements
 func DefaultPipelineConfig() *PipelineConfig {
 	return &PipelineConfig{
-		BatchSize:   1000, // Balance between memory and throughput
-		WorkerCount: 4,    // Good for most multi-core systems
+		BatchSize:     5000,
+		WorkerCount:   4,
+		FlushInterval: 10 * time.Second,
 	}
 }
 
@@ -136,14 +139,15 @@ func NewSimplePipeline(source core.Source, destination core.Destination, config 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &SimplePipeline{
-		source:      source,
-		destination: destination,
-		transforms:  make([]Transform, 0),
-		batchSize:   config.BatchSize,
-		workerCount: config.WorkerCount,
-		logger:      logger.With(zap.String("component", "pipeline")),
-		ctx:         ctx,
-		cancel:      cancel,
+		source:        source,
+		destination:   destination,
+		transforms:    []Transform{},
+		batchSize:     config.BatchSize,
+		workerCount:   config.WorkerCount,
+		flushInterval: config.FlushInterval,
+		logger:        logger,
+		ctx:           ctx,
+		cancel:        cancel,
 	}
 }
 
@@ -335,10 +339,17 @@ func (p *SimplePipeline) batchCollector(ctx context.Context, in <-chan *models.R
 	defer p.wg.Done()
 	defer close(out)
 
-	p.logger.Info("starting batch collector")
+	p.logger.Info("starting batch collector", zap.Duration("flush_interval", p.flushInterval))
 
 	batch := pool.GetBatchSlice(p.batchSize)
-	ticker := time.NewTicker(time.Second) // Flush every second
+
+	// Ensure flush interval is positive, default to 1 second if not set
+	flushInterval := p.flushInterval
+	if flushInterval <= 0 {
+		flushInterval = time.Second
+	}
+
+	ticker := time.NewTicker(flushInterval)
 	defer ticker.Stop()
 
 	flush := func() {
@@ -487,6 +498,7 @@ func (p *SimplePipeline) Metrics() map[string]interface{} {
 		"throughput_rps":    throughput,
 		"worker_count":      p.workerCount,
 		"batch_size":        p.batchSize,
+		"flush_interval_ms": p.flushInterval.Milliseconds(),
 		"transform_count":   len(p.transforms),
 	}
 }

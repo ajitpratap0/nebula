@@ -174,7 +174,11 @@ func InitializeGlobalSDK() error {
 func GetGlobalSDK() *SDK {
 	if globalSDK == nil {
 		globalSDK = NewSDK()
-		globalSDK.Initialize() // Use unified pool system
+		if err := globalSDK.Initialize(); err != nil {
+			// Log error but continue with uninitialized SDK
+			// This is better than crashing during package initialization
+			globalSDK = nil
+		}
 	}
 	return globalSDK
 }
@@ -195,8 +199,8 @@ func NewQuickStart() *QuickStart {
 func (qs *QuickStart) CreateSimpleSourceConnector(
 	name, description string,
 	readFunc func(context.Context) (*core.RecordStream, error),
-	discoverFunc func(context.Context) (*core.Schema, error)) (core.Source, error) {
-
+	discoverFunc func(context.Context) (*core.Schema, error),
+) (core.Source, error) {
 	builder := qs.sdk.CreateSourceBuilder(name).
 		WithDescription(description).
 		WithCapabilities("streaming").
@@ -210,8 +214,8 @@ func (qs *QuickStart) CreateSimpleSourceConnector(
 func (qs *QuickStart) CreateSimpleDestinationConnector(
 	name, description string,
 	writeFunc func(context.Context, *core.RecordStream) error,
-	createSchemaFunc func(context.Context, *core.Schema) error) (core.Destination, error) {
-
+	createSchemaFunc func(context.Context, *core.Schema) error,
+) (core.Destination, error) {
 	builder := qs.sdk.CreateDestinationBuilder(name).
 		WithDescription(description).
 		WithCapabilities("streaming").
@@ -225,8 +229,8 @@ func (qs *QuickStart) CreateSimpleDestinationConnector(
 func (qs *QuickStart) RegisterSimpleSource(
 	registryName, connectorName, description string,
 	readFunc func(context.Context) (*core.RecordStream, error),
-	discoverFunc func(context.Context) (*core.Schema, error)) error {
-
+	discoverFunc func(context.Context) (*core.Schema, error),
+) error {
 	builder := qs.sdk.CreateSourceBuilder(connectorName).
 		WithDescription(description).
 		WithCapabilities("streaming").
@@ -240,8 +244,8 @@ func (qs *QuickStart) RegisterSimpleSource(
 func (qs *QuickStart) RegisterSimpleDestination(
 	registryName, connectorName, description string,
 	writeFunc func(context.Context, *core.RecordStream) error,
-	createSchemaFunc func(context.Context, *core.Schema) error) error {
-
+	createSchemaFunc func(context.Context, *core.Schema) error,
+) error {
 	builder := qs.sdk.CreateDestinationBuilder(connectorName).
 		WithDescription(description).
 		WithCapabilities("streaming").

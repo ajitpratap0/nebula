@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/base"
+	"github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/ajitpratap0/nebula/pkg/errors"
 	jsonpool "github.com/ajitpratap0/nebula/pkg/json"
 	"github.com/ajitpratap0/nebula/pkg/models"
+	"github.com/ajitpratap0/nebula/pkg/nebulaerrors"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
@@ -23,12 +23,12 @@ import (
 
 // MetaAdsSource is a production-ready Meta Ads source connector using BaseConnector
 type MetaAdsSource struct {
-	*base.BaseConnector
+	*baseconnector.BaseConnector
 
 	// Meta Marketing API configuration
 	config       *MetaAdsConfig
 	httpClient   *http.Client
-	oauth2Config *oauth2.Config
+	oauth2Config *oauth2.Config //nolint:unused // Reserved for OAuth2 configuration
 	accessToken  string
 
 	// API state management
@@ -53,6 +53,8 @@ type MetaAdsSource struct {
 }
 
 // MetaAdsConfig holds Meta Marketing API configuration
+//
+//nolint:revive // Name intentionally includes "MetaAds" for API clarity
 type MetaAdsConfig struct {
 	AccessToken      string   `json:"access_token"`
 	AppID            string   `json:"app_id"`
@@ -69,12 +71,16 @@ type MetaAdsConfig struct {
 }
 
 // MetaAdsResponse represents the API response structure
+//
+//nolint:revive // Name intentionally includes "MetaAds" for API clarity
 type MetaAdsResponse struct {
 	Data   []MetaAdsResult `json:"data"`
 	Paging *PagingInfo     `json:"paging,omitempty"`
 }
 
 // MetaAdsResult represents a single result from Meta Marketing API
+//
+//nolint:revive // Name intentionally includes "MetaAds" for API clarity
 type MetaAdsResult struct {
 	ID           string                 `json:"id"`
 	AccountID    string                 `json:"account_id,omitempty"`
@@ -119,9 +125,9 @@ type CursorInfo struct {
 }
 
 // NewMetaAdsSource creates a new Meta Ads source connector
-func NewMetaAdsSource(name string, config *config.BaseConfig) (core.Source, error) {
+func NewMetaAdsSource(_ string, config *config.BaseConfig) (core.Source, error) {
 	// Create base connector with production features
-	base := base.NewBaseConnector("meta_ads", core.ConnectorTypeSource, "1.0.0")
+	base := baseconnector.NewBaseConnector("meta_ads", core.ConnectorTypeSource, "1.0.0")
 
 	source := &MetaAdsSource{
 		BaseConnector:    base,
@@ -150,7 +156,7 @@ func NewMetaAdsSource(name string, config *config.BaseConfig) (core.Source, erro
 func (s *MetaAdsSource) Initialize(ctx context.Context, config *config.BaseConfig) error {
 	// Initialize base connector first (circuit breakers, rate limiting, health checks)
 	if err := s.BaseConnector.Initialize(ctx, config); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConfig, "failed to initialize base connector")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConfig, "failed to initialize base connector")
 	}
 
 	// Validate and extract configuration
@@ -162,17 +168,17 @@ func (s *MetaAdsSource) Initialize(ctx context.Context, config *config.BaseConfi
 	if err := s.ExecuteWithCircuitBreaker(func() error {
 		return s.initializeHTTPClient()
 	}); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to initialize HTTP client")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to initialize HTTP client")
 	}
 
 	// Validate access token
 	if err := s.validateAccessToken(ctx); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeAuthentication, "failed to validate access token")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeAuthentication, "failed to validate access token")
 	}
 
 	// Discover schema based on level and fields
 	if err := s.discoverSchema(ctx); err != nil {
-		return errors.Wrap(err, errors.ErrorTypeData, "failed to discover schema")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to discover schema")
 	}
 
 	// Update health status
@@ -198,13 +204,13 @@ func (s *MetaAdsSource) Initialize(ctx context.Context, config *config.BaseConfi
 // validateAndExtractConfig validates and extracts Meta Ads configuration
 func (s *MetaAdsSource) validateAndExtractConfig(config *config.BaseConfig) error {
 	if config == nil {
-		return errors.New(errors.ErrorTypeConfig, "configuration is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "configuration is required")
 	}
 
 	// For now, we'll use a simple approach and expect properties in Security.Credentials
 	properties := config.Security.Credentials
 	if properties == nil {
-		return errors.New(errors.ErrorTypeConfig, "credentials are required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "credentials are required")
 	}
 
 	// Extract configuration with validation
@@ -214,19 +220,19 @@ func (s *MetaAdsSource) validateAndExtractConfig(config *config.BaseConfig) erro
 	if accessToken, ok := properties["access_token"]; ok && accessToken != "" {
 		metaAdsConfig.AccessToken = accessToken
 	} else {
-		return errors.New(errors.ErrorTypeConfig, "access_token is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "access_token is required")
 	}
 
 	if appID, ok := properties["app_id"]; ok && appID != "" {
 		metaAdsConfig.AppID = appID
 	} else {
-		return errors.New(errors.ErrorTypeConfig, "app_id is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "app_id is required")
 	}
 
 	if appSecret, ok := properties["app_secret"]; ok && appSecret != "" {
 		metaAdsConfig.AppSecret = appSecret
 	} else {
-		return errors.New(errors.ErrorTypeConfig, "app_secret is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "app_secret is required")
 	}
 
 	// Account IDs - for simplicity, expect comma-separated string
@@ -238,7 +244,7 @@ func (s *MetaAdsSource) validateAndExtractConfig(config *config.BaseConfig) erro
 	}
 
 	if len(metaAdsConfig.AccountIDs) == 0 {
-		return errors.New(errors.ErrorTypeConfig, "at least one account_id is required")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeConfig, "at least one account_id is required")
 	}
 
 	// Fields to extract - expect comma-separated string
@@ -342,19 +348,19 @@ func (s *MetaAdsSource) validateAccessToken(ctx context.Context) error {
 
 	// Test token with a simple API call using URLBuilder
 	ub := stringpool.NewURLBuilder(stringpool.Sprintf("https://graph.facebook.com/%s/me", s.config.APIVersion))
-	defer ub.Close()
+	defer ub.Close() // Ignore close error
 	testURL := ub.AddParam("access_token", s.accessToken).String()
 
 	req, err := http.NewRequestWithContext(ctx, "GET", testURL, nil)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "failed to create test request")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to create test request")
 	}
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrorTypeConnection, "test request failed")
+		return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "test request failed")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }() // Ignore close error - HTTP response body close errors are typically not actionable
 
 	if resp.StatusCode != http.StatusOK {
 		// Use pooled buffer for error response reading
@@ -362,7 +368,7 @@ func (s *MetaAdsSource) validateAccessToken(ctx context.Context) error {
 		defer stringpool.PutBuilder(errorBuffer, stringpool.Small)
 
 		_, _ = io.Copy(errorBuffer, resp.Body)
-		return errors.New(errors.ErrorTypeAuthentication,
+		return nebulaerrors.New(nebulaerrors.ErrorTypeAuthentication,
 			stringpool.Sprintf("access token validation failed: %d %s", resp.StatusCode, errorBuffer.String()))
 	}
 
@@ -586,7 +592,7 @@ func (s *MetaAdsSource) readBatches(ctx context.Context, batchSize int, batchesC
 }
 
 // readAccountRecords reads all records for a specific account
-func (s *MetaAdsSource) readAccountRecords(ctx context.Context, accountID string, recordsChan chan<- *models.Record, errorsChan chan<- error) error {
+func (s *MetaAdsSource) readAccountRecords(ctx context.Context, accountID string, recordsChan chan<- *models.Record, _ chan<- error) error {
 	cursor := ""
 
 	for {
@@ -602,7 +608,7 @@ func (s *MetaAdsSource) readAccountRecords(ctx context.Context, accountID string
 			response, err = s.makeAPIRequest(ctx, accountID, cursor)
 			return err
 		}); err != nil {
-			return errors.Wrap(err, errors.ErrorTypeConnection,
+			return nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection,
 				stringpool.Sprintf("API request failed for account %s", accountID))
 		}
 
@@ -668,7 +674,7 @@ func (s *MetaAdsSource) makeAPIRequest(ctx context.Context, accountID, cursor st
 	// Build API URL using URLBuilder for optimized string handling
 	ub := stringpool.NewURLBuilder(stringpool.Sprintf("https://graph.facebook.com/%s/act_%s/%s",
 		s.config.APIVersion, accountID, endpoint))
-	defer ub.Close()
+	defer ub.Close() // Ignore close error
 
 	// Add query parameters
 	ub.AddParam("access_token", s.accessToken)
@@ -696,7 +702,7 @@ func (s *MetaAdsSource) makeAPIRequest(ctx context.Context, accountID, cursor st
 	// Create HTTP request
 	req, err := http.NewRequestWithContext(ctx, "GET", fullURL, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "failed to create HTTP request")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "failed to create HTTP request")
 	}
 
 	// Set headers
@@ -706,9 +712,9 @@ func (s *MetaAdsSource) makeAPIRequest(ctx context.Context, accountID, cursor st
 	// Make request
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeConnection, "HTTP request failed")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeConnection, "HTTP request failed")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }() // Ignore close error - HTTP response body close errors are typically not actionable
 
 	// Check for HTTP errors
 	if resp.StatusCode != http.StatusOK {
@@ -717,7 +723,7 @@ func (s *MetaAdsSource) makeAPIRequest(ctx context.Context, accountID, cursor st
 		defer stringpool.PutBuilder(errorBuffer, stringpool.Small)
 
 		_, _ = io.Copy(errorBuffer, resp.Body)
-		return nil, errors.New(errors.ErrorTypeConnection,
+		return nil, nebulaerrors.New(nebulaerrors.ErrorTypeConnection,
 			stringpool.Sprintf("API returned status %d: %s", resp.StatusCode, errorBuffer.String()))
 	}
 
@@ -728,7 +734,7 @@ func (s *MetaAdsSource) makeAPIRequest(ctx context.Context, accountID, cursor st
 	decoder := jsonpool.GetDecoder(resp.Body)
 	defer jsonpool.PutDecoder(decoder)
 	if err := decoder.Decode(responseData); err != nil {
-		return nil, errors.Wrap(err, errors.ErrorTypeData, "failed to decode API response")
+		return nil, nebulaerrors.Wrap(err, nebulaerrors.ErrorTypeData, "failed to decode API response")
 	}
 
 	// Return a copy since we're putting the original back in the pool
@@ -867,6 +873,8 @@ func (s *MetaAdsSource) Close(ctx context.Context) error {
 }
 
 // MetaAdsPosition implements core.Position for Meta Ads
+//
+//nolint:revive // Name intentionally includes "MetaAds" for API clarity
 type MetaAdsPosition struct {
 	LastCursor       string `json:"last_cursor"`
 	ProcessedRecords int64  `json:"processed_records"`
@@ -876,6 +884,7 @@ func (p *MetaAdsPosition) String() string {
 	return stringpool.Sprintf("cursor:%s,records:%d", p.LastCursor, p.ProcessedRecords)
 }
 
+// Compare compares this position with another position
 func (p *MetaAdsPosition) Compare(other core.Position) int {
 	if otherPos, ok := other.(*MetaAdsPosition); ok {
 		if p.ProcessedRecords < otherPos.ProcessedRecords {
@@ -961,14 +970,14 @@ func (s *MetaAdsSource) SupportsBatch() bool {
 
 // Subscribe implements CDC/real-time subscription (not supported for Meta Ads)
 func (s *MetaAdsSource) Subscribe(ctx context.Context, tables []string) (*core.ChangeStream, error) {
-	return nil, errors.New(errors.ErrorTypeCapability, "Meta Ads does not support real-time subscriptions")
+	return nil, nebulaerrors.New(nebulaerrors.ErrorTypeCapability, "Meta Ads does not support real-time subscriptions")
 }
 
 // Health performs health check
 func (s *MetaAdsSource) Health(ctx context.Context) error {
 	// Check if access token is valid by making a simple API call
 	if s.accessToken == "" {
-		return errors.New(errors.ErrorTypeAuthentication, "no access token available")
+		return nebulaerrors.New(nebulaerrors.ErrorTypeAuthentication, "no access token available")
 	}
 
 	// Try to validate token to verify connectivity

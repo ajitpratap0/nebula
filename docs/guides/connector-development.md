@@ -111,7 +111,7 @@ import (
     "sync/atomic"
     "time"
     
-    "github.com/ajitpratap0/nebula/pkg/connector/base"
+    "github.com/ajitpratap0/nebula/pkg/connector/baseconnector"
     "github.com/ajitpratap0/nebula/pkg/connector/core"
     "github.com/ajitpratap0/nebula/pkg/errors"
     "github.com/ajitpratap0/nebula/pkg/logger"
