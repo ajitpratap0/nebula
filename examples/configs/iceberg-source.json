@@ -1,0 +1,30 @@
+{
+  "name": "iceberg_source",
+  "type": "iceberg",
+  "security": {
+    "credentials": {
+      "catalog_type": "nessie",
+      "catalog_uri": "http://localhost:19120/api/v1",
+      "warehouse": "s3://warehouse/",
+      "catalog_name": "nessie",
+      "database": "dummy",
+      "table": "nyc_taxi",
+      "branch": "main",
+      "prop_s3.region": "us-east-1",
+      "prop_s3.endpoint": "http://localhost:9000",
+      "prop_s3.access-key-id": "admin",
+      "prop_s3.secret-access-key": "password",
+      "prop_s3.path-style-access": "true"
+    }
+  },
+  "performance": {
+    "batch_size": 10000,
+    "workers": 4,
+    "buffer_size": 1000,
+    "max_concurrency": 8
+  },
+  "timeouts": {
+    "request": 30000000000,
+    "connection": 10000000000
+  }
+}
