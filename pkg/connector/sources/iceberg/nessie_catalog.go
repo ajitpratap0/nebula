@@ -7,10 +7,14 @@ import (
 	"strings"
 
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	iceberg "github.com/shubham-tomar/iceberg-go"
-	"github.com/shubham-tomar/iceberg-go/catalog"
-	"github.com/shubham-tomar/iceberg-go/catalog/rest"
-	"github.com/shubham-tomar/iceberg-go/table"
+	// iceberg "github.com/shubham-tomar/iceberg-go"
+	// "github.com/shubham-tomar/iceberg-go/catalog"
+	// "github.com/shubham-tomar/iceberg-go/catalog/rest"
+	// "github.com/shubham-tomar/iceberg-go/table"
+	iceberg "github.com/apache/iceberg-go"
+	"github.com/apache/iceberg-go/table"
+	"github.com/apache/iceberg-go/catalog"
+	"github.com/apache/iceberg-go/catalog/rest"
 	"go.uber.org/zap"
 )
 
@@ -117,7 +121,7 @@ func (n *NessieCatalog) LoadTable(ctx context.Context, database, tableName strin
 	}
 
 	identifier := catalog.ToIdentifier(fmt.Sprintf("%s.%s", database, tableName))
-	tbl, err := n.catalog.LoadTable(ctx, identifier, nil)
+	tbl, err := n.catalog.LoadTable(ctx, identifier)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load table: %w", err)
 	}
@@ -137,7 +141,7 @@ func (n *NessieCatalog) GetSchema(ctx context.Context, database, table string) (
 	}
 
 	identifier := catalog.ToIdentifier(fmt.Sprintf("%s.%s", database, table))
-	tbl, err := n.catalog.LoadTable(ctx, identifier, nil)
+	tbl, err := n.catalog.LoadTable(ctx, identifier)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load table: %w", err)
 	}

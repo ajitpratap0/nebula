@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	iceberg "github.com/shubham-tomar/iceberg-go"
-	"github.com/shubham-tomar/iceberg-go/table"
+	// iceberg "github.com/shubham-tomar/iceberg-go"
+	// "github.com/shubham-tomar/iceberg-go/table"
+	iceberg "github.com/apache/iceberg-go"
+	"github.com/apache/iceberg-go/table"
 	"go.uber.org/zap"
 )
 
@@ -38,7 +40,12 @@ func (mr *ManifestReader) GetDataFiles(ctx context.Context) ([]iceberg.DataFile,
 		zap.String("manifest_list", mr.snapshot.ManifestList))
 
 	// Get manifests from snapshot using table's IO
-	manifests, err := mr.snapshot.Manifests(mr.table.FS())
+	fio, err := mr.table.FS(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get table filesystem: %w", err)
+	}
+
+	manifests, err := mr.snapshot.Manifests(fio)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get manifests: %w", err)
 	}
@@ -53,7 +60,14 @@ func (mr *ManifestReader) GetDataFiles(ctx context.Context) ([]iceberg.DataFile,
 		mr.currentIndex = i
 
 		// Get entries from manifest
-		entries, err := manifest.FetchEntries(mr.table.FS(), false)
+		fio, err := mr.table.FS(ctx)
+		if err != nil {
+			mr.logger.Error("Failed to get filesystem",
+				zap.Int("manifest_index", i),
+				zap.Error(err))
+			continue
+		}
+		entries, err := manifest.FetchEntries(fio, false)
 		if err != nil {
 			mr.logger.Error("Failed to fetch manifest entries",
 				zap.Int("manifest_index", i),

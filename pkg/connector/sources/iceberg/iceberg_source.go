@@ -8,8 +8,10 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/pool"
-	iceberg "github.com/shubham-tomar/iceberg-go"
-	"github.com/shubham-tomar/iceberg-go/table"
+	// iceberg "github.com/shubham-tomar/iceberg-go"
+	// "github.com/shubham-tomar/iceberg-go/table"
+	iceberg "github.com/apache/iceberg-go"
+	"github.com/apache/iceberg-go/table"
 	"go.uber.org/zap"
 )
 

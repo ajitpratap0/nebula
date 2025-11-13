@@ -9,7 +9,8 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
-	"github.com/shubham-tomar/iceberg-go/table"
+	// "github.com/shubham-tomar/iceberg-go/table"
+	"github.com/apache/iceberg-go/table"
 	"go.uber.org/zap"
 )
 

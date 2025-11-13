@@ -5,7 +5,8 @@ import (
 	"fmt"
 
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	"github.com/shubham-tomar/iceberg-go/table"
+	// "github.com/shubham-tomar/iceberg-go/table"
+	"github.com/apache/iceberg-go/table"
 )
 
 // IcebergPosition represents a position in the Iceberg table for incremental reads

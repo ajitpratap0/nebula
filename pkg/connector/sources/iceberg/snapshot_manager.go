@@ -3,7 +3,8 @@ package iceberg
 import (
 	"fmt"
 
-	"github.com/shubham-tomar/iceberg-go/table"
+	// "github.com/shubham-tomar/iceberg-go/table"
+	"github.com/apache/iceberg-go/table"
 	"go.uber.org/zap"
 )
 

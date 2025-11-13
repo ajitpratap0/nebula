@@ -12,7 +12,8 @@ import (
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	icebergGo "github.com/shubham-tomar/iceberg-go"
+	// icebergGo "github.com/shubham-tomar/iceberg-go"
+	icebergGo "github.com/apache/iceberg-go"
 	"go.uber.org/zap"
 )
 

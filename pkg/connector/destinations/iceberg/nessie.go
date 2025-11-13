@@ -11,9 +11,12 @@ import (
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	icebergGo "github.com/shubham-tomar/iceberg-go"
-	"github.com/shubham-tomar/iceberg-go/catalog"
-	"github.com/shubham-tomar/iceberg-go/catalog/rest"
+	// icebergGo "github.com/shubham-tomar/iceberg-go"
+	// "github.com/shubham-tomar/iceberg-go/catalog"
+	// "github.com/shubham-tomar/iceberg-go/catalog/rest"
+	icebergGo "github.com/apache/iceberg-go"
+	"github.com/apache/iceberg-go/catalog"
+	"github.com/apache/iceberg-go/catalog/rest"
 	"go.uber.org/zap"
 )
 
@@ -120,7 +123,7 @@ func (n *NessieCatalog) GetSchema(ctx context.Context, database, table string) (
 	}
 
 	identifier := catalog.ToIdentifier(fmt.Sprintf("%s.%s", database, table))
-	tbl, err := n.catalog.LoadTable(ctx, identifier, nil)
+	tbl, err := n.catalog.LoadTable(ctx, identifier)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load table: %w", err)
 	}
@@ -203,7 +206,7 @@ func (n *NessieCatalog) WriteData(ctx context.Context, database, table string, b
 	}
 
 	identifier := catalog.ToIdentifier(fmt.Sprintf("%s.%s", database, table))
-	tbl, err := n.catalog.LoadTable(ctx, identifier, nil)
+	tbl, err := n.catalog.LoadTable(ctx, identifier)
 	if err != nil {
 		n.logger.Error("Failed to load table for data writing",
 			zap.String("identifier", fmt.Sprintf("%s.%s", database, table)),
