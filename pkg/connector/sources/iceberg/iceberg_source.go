@@ -528,7 +528,7 @@ func (s *IcebergSource) SupportsBatch() bool {
 
 // Subscribe starts CDC streaming for specified tables
 func (s *IcebergSource) Subscribe(ctx context.Context, tables []string) (*core.ChangeStream, error) {
-	return nil, fmt.Errorf("Iceberg source does not support real-time subscriptions")
+	return nil, fmt.Errorf("iceberg source does not support real-time subscriptions")
 }
 
 // Health checks if the source is operational
