@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	// iceberg "github.com/shubham-tomar/iceberg-go"
-	// "github.com/shubham-tomar/iceberg-go/table"
 	iceberg "github.com/apache/iceberg-go"
 	"github.com/apache/iceberg-go/table"
 	"go.uber.org/zap"
@@ -57,6 +55,13 @@ func (mr *ManifestReader) GetDataFiles(ctx context.Context) ([]iceberg.DataFile,
 	var allDataFiles []iceberg.DataFile
 
 	for i, manifest := range manifests {
+		// Check context cancellation
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+
 		mr.currentIndex = i
 
 		// Get entries from manifest
@@ -81,6 +86,13 @@ func (mr *ManifestReader) GetDataFiles(ctx context.Context) ([]iceberg.DataFile,
 
 		// Add data files from entries
 		for _, entry := range entries {
+			// Check context cancellation for inner loop as well
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			default:
+			}
+
 			// Only include added and existing files (not deleted)
 			if entry.Status() != iceberg.EntryStatusDELETED {
 				allDataFiles = append(allDataFiles, entry.DataFile())

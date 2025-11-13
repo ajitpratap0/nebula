@@ -3,16 +3,25 @@ package iceberg
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
+	sharedIceberg "github.com/ajitpratap0/nebula/pkg/connector/shared/iceberg"
 	"github.com/ajitpratap0/nebula/pkg/pool"
-	// iceberg "github.com/shubham-tomar/iceberg-go"
-	// "github.com/shubham-tomar/iceberg-go/table"
 	iceberg "github.com/apache/iceberg-go"
 	"github.com/apache/iceberg-go/table"
 	"go.uber.org/zap"
+)
+
+const (
+	// DefaultBatchSize is the default number of records to read in a batch
+	DefaultBatchSize = 10000
+	// DefaultBranch is the default branch for Nessie catalog
+	DefaultBranch = "main"
+	// DefaultErrorChannelBufferSize is the default buffer size for error channels
+	DefaultErrorChannelBufferSize = 10
 )
 
 // IcebergSource implements the core.Source interface for reading from Iceberg tables
@@ -71,7 +80,10 @@ func NewIcebergSource(config *config.BaseConfig) (core.Source, error) {
 		return nil, fmt.Errorf("configuration cannot be nil")
 	}
 
-	logger, _ := zap.NewProduction()
+	logger, err := zap.NewProduction()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create logger: %w", err)
+	}
 
 	return &IcebergSource{
 		config:     config,
@@ -173,17 +185,25 @@ func (s *IcebergSource) parseConfig(config *config.BaseConfig) error {
 
 	for field, target := range requiredFields {
 		if value, ok := creds[field]; ok && value != "" {
-			*target = value
+			*target = strings.TrimSpace(value)
 		} else {
 			return fmt.Errorf("missing required field: %s", field)
 		}
+	}
+
+	// Validate that table and database names are non-empty after trimming
+	if s.database == "" {
+		return fmt.Errorf("database name cannot be empty")
+	}
+	if s.tableName == "" {
+		return fmt.Errorf("table name cannot be empty")
 	}
 
 	// Optional fields
 	if branch, ok := creds["branch"]; ok {
 		s.branch = branch
 	} else {
-		s.branch = "main" // default branch for Nessie
+		s.branch = DefaultBranch
 	}
 
 	// S3 configuration - support both direct and prop_ prefixed fields
@@ -191,6 +211,11 @@ func (s *IcebergSource) parseConfig(config *config.BaseConfig) error {
 	s.s3Endpoint = getCredValue(creds, "s3_endpoint", "prop_s3.endpoint")
 	s.accessKey = getCredValue(creds, "access_key", "prop_s3.access-key-id")
 	s.secretKey = getCredValue(creds, "secret_key", "prop_s3.secret-access-key")
+
+	// Validate S3 credentials - both access key and secret key should be provided together
+	if (s.accessKey != "" && s.secretKey == "") || (s.accessKey == "" && s.secretKey != "") {
+		return fmt.Errorf("both S3 access_key and secret_key must be provided together")
+	}
 
 	// Collect all properties with prop_ prefix
 	for key, value := range creds {
@@ -204,7 +229,7 @@ func (s *IcebergSource) parseConfig(config *config.BaseConfig) error {
 	// Performance configuration
 	s.readBatchSize = config.Performance.BatchSize
 	if s.readBatchSize <= 0 {
-		s.readBatchSize = 10000 // default batch size
+		s.readBatchSize = DefaultBatchSize
 	}
 
 	return nil
@@ -224,7 +249,7 @@ func getCredValue(creds map[string]string, keys ...string) string {
 func (s *IcebergSource) createCatalogProvider() (CatalogProvider, error) {
 	switch s.catalogType {
 	case "nessie":
-		return NewNessieCatalog(s.logger), nil
+		return sharedIceberg.NewNessieCatalog(s.logger), nil
 	default:
 		return nil, fmt.Errorf("unsupported catalog type: %s", s.catalogType)
 	}
@@ -281,12 +306,13 @@ func (s *IcebergSource) Read(ctx context.Context) (*core.RecordStream, error) {
 	s.mu.RUnlock()
 
 	recordChan := pool.GetRecordChannel(s.config.Performance.BufferSize)
-	errorChan := make(chan error, 1)
+	errorChan := make(chan error, DefaultErrorChannelBufferSize)
 
 	go func() {
 		defer close(recordChan)
 		defer close(errorChan)
-		defer pool.PutRecordChannel(recordChan)
+		// NOTE: Do not return recordChan to pool here as it's returned to the caller
+		// The caller is responsible for managing the channel lifecycle
 
 		if err := s.streamRecords(ctx, recordChan, errorChan); err != nil {
 			errorChan <- err
@@ -309,7 +335,7 @@ func (s *IcebergSource) ReadBatch(ctx context.Context, batchSize int) (*core.Bat
 	s.mu.RUnlock()
 
 	batchChan := pool.GetBatchChannel()
-	errorChan := make(chan error, 1)
+	errorChan := make(chan error, DefaultErrorChannelBufferSize)
 
 	// Use configured batch size if not specified
 	if batchSize <= 0 {
@@ -319,7 +345,8 @@ func (s *IcebergSource) ReadBatch(ctx context.Context, batchSize int) (*core.Bat
 	go func() {
 		defer close(batchChan)
 		defer close(errorChan)
-		defer pool.PutBatchChannel(batchChan)
+		// NOTE: Do not return batchChan to pool here as it's returned to the caller
+		// The caller is responsible for managing the channel lifecycle
 
 		if err := s.streamBatches(ctx, batchSize, batchChan, errorChan); err != nil {
 			errorChan <- err
@@ -332,81 +359,34 @@ func (s *IcebergSource) ReadBatch(ctx context.Context, batchSize int) (*core.Bat
 	}, nil
 }
 
-// streamRecords streams individual records using table scan
+// streamRecords streams individual records using table scan with true streaming
 func (s *IcebergSource) streamRecords(ctx context.Context, recordChan chan<- *pool.Record, errorChan chan<- error) error {
-	s.logger.Info("Starting to read all records using table scan")
+	s.logger.Info("Starting to stream records using table scan")
 
-	// Read all records using table scan (more efficient than manual file iteration)
-	allRecords, err := s.dataFileReader.ReadAllRecords(ctx)
+	// Use streaming approach to avoid loading all records into memory
+	// The StreamRecords method will handle chunked processing
+	err := s.dataFileReader.StreamRecords(ctx, recordChan)
 	if err != nil {
-		return fmt.Errorf("failed to read records: %w", err)
+		return fmt.Errorf("failed to stream records: %w", err)
 	}
 
-	s.logger.Info("Read records from table scan",
-		zap.Int("total_records", len(allRecords)))
-
-	// Send records to channel
-	for idx, record := range allRecords {
-		select {
-		case recordChan <- record:
-			s.mu.Lock()
-			s.recordsRead++
-			s.position.RowOffset = int64(idx)
-			s.mu.Unlock()
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-
+	s.logger.Info("Completed streaming records from table scan")
 	return nil
 }
 
-// streamBatches streams batches of records using table scan
+// streamBatches streams batches of records using table scan with true streaming
 func (s *IcebergSource) streamBatches(ctx context.Context, batchSize int, batchChan chan<- []*pool.Record, errorChan chan<- error) error {
-	s.logger.Info("Starting to read records in batches using table scan",
+	s.logger.Info("Starting to stream batches using table scan",
 		zap.Int("batch_size", batchSize))
 
-	// Read all records using table scan
-	allRecords, err := s.dataFileReader.ReadAllRecords(ctx)
+	// Use streaming approach to avoid loading all records into memory
+	// The StreamBatches method will handle chunked processing
+	err := s.dataFileReader.StreamBatches(ctx, batchSize, batchChan)
 	if err != nil {
-		return fmt.Errorf("failed to read records: %w", err)
+		return fmt.Errorf("failed to stream batches: %w", err)
 	}
 
-	s.logger.Info("Read records from table scan",
-		zap.Int("total_records", len(allRecords)))
-
-	// Send records in batches
-	batch := pool.GetBatchSlice(batchSize)
-	defer pool.PutBatchSlice(batch)
-
-	for idx, record := range allRecords {
-		batch = append(batch, record)
-
-		s.mu.Lock()
-		s.recordsRead++
-		s.position.RowOffset = int64(idx)
-		s.mu.Unlock()
-
-		// Send batch when full
-		if len(batch) >= batchSize {
-			select {
-			case batchChan <- batch:
-				batch = pool.GetBatchSlice(batchSize)
-			case <-ctx.Done():
-				return ctx.Err()
-			}
-		}
-	}
-
-	// Send remaining batch
-	if len(batch) > 0 {
-		select {
-		case batchChan <- batch:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-
+	s.logger.Info("Completed streaming batches from table scan")
 	return nil
 }
 
@@ -432,9 +412,19 @@ func (s *IcebergSource) GetPosition() core.Position {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	var snapshotID int64
+	if s.currentSnapshot != nil {
+		snapshotID = s.currentSnapshot.SnapshotID
+	}
+
+	var manifestIndex int
+	if s.manifestReader != nil {
+		manifestIndex = s.manifestReader.currentIndex
+	}
+
 	return &IcebergPosition{
-		SnapshotID:    s.currentSnapshot.SnapshotID,
-		ManifestIndex: s.manifestReader.currentIndex,
+		SnapshotID:    snapshotID,
+		ManifestIndex: manifestIndex,
 		DataFileIndex: s.position.DataFileIndex,
 		RowOffset:     s.position.RowOffset,
 		Metadata: map[string]interface{}{
@@ -545,12 +535,18 @@ func (s *IcebergSource) Metrics() map[string]interface{} {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return map[string]interface{}{
-		"records_read":        s.recordsRead,
-		"bytes_read":          s.bytesRead,
-		"files_read":          s.filesRead,
-		"current_snapshot_id": s.currentSnapshot.SnapshotID,
-		"table":               fmt.Sprintf("%s.%s", s.database, s.tableName),
-		"catalog_type":        s.catalogType,
+	metrics := map[string]interface{}{
+		"records_read": s.recordsRead,
+		"bytes_read":   s.bytesRead,
+		"files_read":   s.filesRead,
+		"table":        fmt.Sprintf("%s.%s", s.database, s.tableName),
+		"catalog_type": s.catalogType,
 	}
+
+	// Add snapshot ID only if snapshot is initialized
+	if s.currentSnapshot != nil {
+		metrics["current_snapshot_id"] = s.currentSnapshot.SnapshotID
+	}
+
+	return metrics
 }

@@ -7,14 +7,10 @@ import (
 	"strings"
 
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	// iceberg "github.com/shubham-tomar/iceberg-go"
-	// "github.com/shubham-tomar/iceberg-go/catalog"
-	// "github.com/shubham-tomar/iceberg-go/catalog/rest"
-	// "github.com/shubham-tomar/iceberg-go/table"
 	iceberg "github.com/apache/iceberg-go"
-	"github.com/apache/iceberg-go/table"
 	"github.com/apache/iceberg-go/catalog"
 	"github.com/apache/iceberg-go/catalog/rest"
+	"github.com/apache/iceberg-go/table"
 	"go.uber.org/zap"
 )
 
@@ -73,20 +69,22 @@ func (n *NessieCatalog) Connect(ctx context.Context, config CatalogConfig) error
 		props["s3.secret-access-key"] = config.SecretKey
 	}
 
-	// Enable path-style access for MinIO
-	if config.Properties != nil {
-		props["s3.path-style-access"] = "true"
-	}
-
-	// Add custom properties
+	// Add custom properties first
 	for key, value := range config.Properties {
 		props[key] = value
+	}
+
+	// Set default for path-style access if not explicitly configured
+	// This is needed for MinIO and other S3-compatible storage
+	if _, exists := props["s3.path-style-access"]; !exists && config.S3Endpoint != "" {
+		// Default to true for custom S3 endpoints (like MinIO)
+		props["s3.path-style-access"] = "true"
 	}
 
 	n.logger.Debug("Attempting Nessie catalog.Load with properties",
 		zap.String("uri", catalogURI),
 		zap.String("catalog_name", config.Name),
-		zap.Any("properties", props))
+		zap.Any("properties", SanitizeProperties(props)))
 
 	// Load catalog
 	iceCatalog, err := catalog.Load(ctx, config.Name, props)
@@ -163,7 +161,7 @@ func (n *NessieCatalog) GetSchema(ctx context.Context, database, table string) (
 
 	// Convert Iceberg fields to core fields
 	for _, field := range schemaFields {
-		coreField := convertIcebergFieldToCore(field)
+		coreField := ConvertIcebergFieldToCore(field)
 		fields = append(fields, coreField)
 
 		n.logger.Debug("Schema field details",
@@ -179,39 +177,6 @@ func (n *NessieCatalog) GetSchema(ctx context.Context, database, table string) (
 		Name:   table,
 		Fields: fields,
 	}, nil
-}
-
-// convertIcebergFieldToCore converts an Iceberg field to core field
-func convertIcebergFieldToCore(field iceberg.NestedField) core.Field {
-	var fieldType core.FieldType
-
-	typeStr := field.Type.String()
-
-	// Map Iceberg types to core types
-	switch {
-	case typeStr == "string":
-		fieldType = core.FieldTypeString
-	case typeStr == "int" || typeStr == "long":
-		fieldType = core.FieldTypeInt
-	case typeStr == "float" || typeStr == "double":
-		fieldType = core.FieldTypeFloat
-	case typeStr == "boolean":
-		fieldType = core.FieldTypeBool
-	case strings.HasPrefix(typeStr, "timestamp"):
-		fieldType = core.FieldTypeTimestamp
-	case typeStr == "date":
-		fieldType = core.FieldTypeDate
-	case typeStr == "time":
-		fieldType = core.FieldTypeTime
-	default:
-		fieldType = core.FieldTypeString // fallback
-	}
-
-	return core.Field{
-		Name:     field.Name,
-		Type:     fieldType,
-		Nullable: !field.Required,
-	}
 }
 
 // Close closes the catalog connection

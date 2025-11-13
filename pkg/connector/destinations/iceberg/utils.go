@@ -7,12 +7,10 @@ import (
 	"time"
 
 	"github.com/ajitpratap0/nebula/pkg/config"
-	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	// icebergGo "github.com/shubham-tomar/iceberg-go"
 	icebergGo "github.com/apache/iceberg-go"
 	"go.uber.org/zap"
 )
@@ -703,34 +701,6 @@ func (d *IcebergDestination) appendDateField(builder *array.Date32Builder, field
 		} else {
 			builder.AppendNull()
 		}
-	}
-}
-
-func convertIcebergFieldToCore(field icebergGo.NestedField) core.Field {
-	var fieldType core.FieldType
-	switch field.Type.String() {
-	case "string":
-		fieldType = core.FieldTypeString
-	case "int", "long":
-		fieldType = core.FieldTypeInt
-	case "float", "double":
-		fieldType = core.FieldTypeFloat
-	case "boolean":
-		fieldType = core.FieldTypeBool
-	case "timestamp":
-		fieldType = core.FieldTypeTimestamp
-	case "date":
-		fieldType = core.FieldTypeDate
-	case "time":
-		fieldType = core.FieldTypeTime
-	default:
-		fieldType = core.FieldTypeString
-	}
-
-	return core.Field{
-		Name:     field.Name,
-		Type:     fieldType,
-		Nullable: !field.Required,
 	}
 }
 

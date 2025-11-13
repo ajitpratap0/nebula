@@ -1,12 +1,17 @@
 package iceberg
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
-	// "github.com/shubham-tomar/iceberg-go/table"
-	"github.com/apache/iceberg-go/table"
+	sharedIceberg "github.com/ajitpratap0/nebula/pkg/connector/shared/iceberg"
+)
+
+// Re-export shared types for backward compatibility
+type (
+	CatalogProvider = sharedIceberg.CatalogProvider
+	CatalogConfig   = sharedIceberg.CatalogConfig
+	S3Config        = sharedIceberg.S3Config
 )
 
 // IcebergPosition represents a position in the Iceberg table for incremental reads
@@ -60,47 +65,4 @@ func (p *IcebergPosition) Compare(other core.Position) int {
 	}
 
 	return 0
-}
-
-// CatalogProvider defines the interface for Iceberg catalog operations
-type CatalogProvider interface {
-	// Connect establishes connection to the catalog
-	Connect(ctx context.Context, config CatalogConfig) error
-
-	// LoadTable loads an Iceberg table
-	LoadTable(ctx context.Context, database, tableName string) (*table.Table, error)
-
-	// GetSchema retrieves the schema from the catalog
-	GetSchema(ctx context.Context, database, tableName string) (*core.Schema, error)
-
-	// Close closes the catalog connection
-	Close(ctx context.Context) error
-
-	// Health checks the health of the catalog
-	Health(ctx context.Context) error
-
-	// Type returns the catalog type
-	Type() string
-}
-
-// CatalogConfig contains configuration for catalog connection
-type CatalogConfig struct {
-	Name              string
-	URI               string
-	WarehouseLocation string
-	Branch            string
-	Region            string
-	S3Endpoint        string
-	AccessKey         string
-	SecretKey         string
-	Properties        map[string]string
-}
-
-// S3Config contains configuration for S3/MinIO access
-type S3Config struct {
-	Region     string
-	Endpoint   string
-	AccessKey  string
-	SecretKey  string
-	Properties map[string]string
 }

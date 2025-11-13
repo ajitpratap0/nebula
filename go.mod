@@ -41,8 +41,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/shubham-tomar/iceberg-go v0.2.1
-
 require (
 	atomicgo.dev/cursor v0.2.0 // indirect
 	atomicgo.dev/keyboard v0.2.9 // indirect
@@ -173,7 +171,6 @@ require (
 	github.com/spiffe/go-spiffe/v2 v2.5.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/substrait-io/substrait v0.69.0 // indirect
-	github.com/substrait-io/substrait-go/v3 v3.9.1 // indirect
 	github.com/substrait-io/substrait-go/v4 v4.4.0 // indirect
 	github.com/substrait-io/substrait-protobuf/go v0.71.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect

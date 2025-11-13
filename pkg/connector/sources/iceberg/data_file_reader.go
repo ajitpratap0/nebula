@@ -9,7 +9,6 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/pool"
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
-	// "github.com/shubham-tomar/iceberg-go/table"
 	"github.com/apache/iceberg-go/table"
 	"go.uber.org/zap"
 )
@@ -31,29 +30,34 @@ func NewDataFileReader(tbl *table.Table, batchSize int, logger *zap.Logger) *Dat
 	}
 }
 
-// ReadAllRecords reads all records from the table using scan
-func (dfr *DataFileReader) ReadAllRecords(ctx context.Context) ([]*pool.Record, error) {
-	dfr.logger.Info("Starting table scan to read all records")
+// StreamRecords streams records from the table using scan with chunked processing
+// This avoids loading all records into memory at once
+func (dfr *DataFileReader) StreamRecords(ctx context.Context, recordChan chan<- *pool.Record) error {
+	dfr.logger.Info("Starting table scan to stream records")
 
-	// Use table scan with limit if batch size is set
+	// Use table scan - no limit to read all records
 	scanOptions := []table.ScanOption{}
-	if dfr.batchSize > 0 {
-		scanOptions = append(scanOptions, table.WithLimit(int64(dfr.batchSize)))
-	}
 
 	// Perform scan and get Arrow records
 	schema, recordsIter, err := dfr.table.Scan(scanOptions...).ToArrowRecords(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to scan table: %w", err)
+		return fmt.Errorf("failed to scan table: %w", err)
 	}
 
 	dfr.logger.Info("Table scan started", zap.Int("schema_fields", len(schema.Fields())))
 
-	// Process all records from iterator
-	var allRecords []*pool.Record
+	// Process records from iterator in streaming fashion
 	recordCount := 0
+	totalRows := int64(0)
 
 	for record, err := range recordsIter {
+		// Check context cancellation
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
 		if err != nil {
 			dfr.logger.Error("Error reading record from iterator", zap.Error(err))
 			continue
@@ -63,6 +67,67 @@ func (dfr *DataFileReader) ReadAllRecords(ctx context.Context) ([]*pool.Record, 
 		}
 
 		recordCount++
+		totalRows += record.NumRows()
+		dfr.logger.Debug("Processing Arrow record",
+			zap.Int("record_num", recordCount),
+			zap.Int64("num_rows", record.NumRows()))
+
+		// Convert Arrow record to Nebula records and stream them
+		if err := dfr.streamArrowRecordToChannel(ctx, record, schema, recordChan); err != nil {
+			record.Release()
+			return fmt.Errorf("failed to stream Arrow record: %w", err)
+		}
+
+		record.Release()
+	}
+
+	dfr.logger.Info("Table scan completed",
+		zap.Int64("total_rows", totalRows),
+		zap.Int("arrow_batches", recordCount))
+
+	return nil
+}
+
+// StreamBatches streams batches of records from the table using scan
+// This avoids loading all records into memory at once
+func (dfr *DataFileReader) StreamBatches(ctx context.Context, batchSize int, batchChan chan<- []*pool.Record) error {
+	dfr.logger.Info("Starting table scan to stream batches",
+		zap.Int("batch_size", batchSize))
+
+	// Use table scan - no limit to read all records
+	scanOptions := []table.ScanOption{}
+
+	// Perform scan and get Arrow records
+	schema, recordsIter, err := dfr.table.Scan(scanOptions...).ToArrowRecords(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to scan table: %w", err)
+	}
+
+	dfr.logger.Info("Table scan started", zap.Int("schema_fields", len(schema.Fields())))
+
+	// Process records from iterator in batches
+	recordCount := 0
+	totalRows := int64(0)
+	currentBatch := make([]*pool.Record, 0, batchSize)
+
+	for record, err := range recordsIter {
+		// Check context cancellation
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		if err != nil {
+			dfr.logger.Error("Error reading record from iterator", zap.Error(err))
+			continue
+		}
+		if record == nil {
+			continue
+		}
+
+		recordCount++
+		totalRows += record.NumRows()
 		dfr.logger.Debug("Processing Arrow record",
 			zap.Int("record_num", recordCount),
 			zap.Int64("num_rows", record.NumRows()))
@@ -74,16 +139,76 @@ func (dfr *DataFileReader) ReadAllRecords(ctx context.Context) ([]*pool.Record, 
 			record.Release()
 			continue
 		}
-
-		allRecords = append(allRecords, nebRecords...)
 		record.Release()
+
+		// Add to current batch
+		for _, nebRecord := range nebRecords {
+			currentBatch = append(currentBatch, nebRecord)
+
+			// Send batch when full
+			if len(currentBatch) >= batchSize {
+				select {
+				case batchChan <- currentBatch:
+					currentBatch = make([]*pool.Record, 0, batchSize)
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+			}
+		}
+	}
+
+	// Send remaining batch
+	if len(currentBatch) > 0 {
+		select {
+		case batchChan <- currentBatch:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 
 	dfr.logger.Info("Table scan completed",
-		zap.Int("total_records", len(allRecords)),
+		zap.Int64("total_rows", totalRows),
 		zap.Int("arrow_batches", recordCount))
 
-	return allRecords, nil
+	return nil
+}
+
+// streamArrowRecordToChannel converts Arrow record to Nebula records and sends them to channel
+func (dfr *DataFileReader) streamArrowRecordToChannel(ctx context.Context, record arrow.Record, schema *arrow.Schema, recordChan chan<- *pool.Record) error {
+	numRows := int(record.NumRows())
+
+	// Convert each row to a Nebula record and stream it
+	for rowIdx := 0; rowIdx < numRows; rowIdx++ {
+		// Check context cancellation
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		nebRecord := models.NewRecordFromPool("iceberg")
+		nebRecord.SetTimestamp(time.Now())
+
+		// Extract values for each column
+		for colIdx := 0; colIdx < int(record.NumCols()); colIdx++ {
+			field := schema.Field(colIdx)
+			col := record.Column(colIdx)
+
+			value := dfr.extractValue(col, rowIdx)
+			if value != nil {
+				nebRecord.SetData(field.Name, value)
+			}
+		}
+
+		// Send record to channel
+		select {
+		case recordChan <- nebRecord:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+
+	return nil
 }
 
 // convertArrowRecordToRecords converts an Arrow record to Nebula records
@@ -135,9 +260,17 @@ func (dfr *DataFileReader) convertArrowTableToRecords(table arrow.Table) ([]*poo
 				return nil, fmt.Errorf("failed to concatenate arrays: %w", err)
 			}
 			columns[i] = concatenated
-			defer columns[i].Release()
 		}
 	}
+
+	// Release all columns after use
+	defer func() {
+		for _, col := range columns {
+			if col != nil {
+				col.Release()
+			}
+		}
+	}()
 
 	// Convert each row to a record
 	for rowIdx := 0; rowIdx < numRows; rowIdx++ {
