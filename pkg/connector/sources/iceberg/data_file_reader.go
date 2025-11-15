@@ -176,6 +176,9 @@ func (dfr *DataFileReader) StreamBatches(ctx context.Context, batchSize int, bat
 // streamArrowRecordToChannel converts Arrow record to Nebula records and sends them to channel
 func (dfr *DataFileReader) streamArrowRecordToChannel(ctx context.Context, record arrow.Record, schema *arrow.Schema, recordChan chan<- *pool.Record) error {
 	numRows := int(record.NumRows())
+	
+	// Batch timestamp creation for better performance
+	batchTimestamp := time.Now()
 
 	// Convert each row to a Nebula record and stream it
 	for rowIdx := 0; rowIdx < numRows; rowIdx++ {
@@ -187,7 +190,7 @@ func (dfr *DataFileReader) streamArrowRecordToChannel(ctx context.Context, recor
 		}
 
 		nebRecord := models.NewRecordFromPool("iceberg")
-		nebRecord.SetTimestamp(time.Now())
+		nebRecord.SetTimestamp(batchTimestamp)
 
 		// Extract values for each column
 		for colIdx := 0; colIdx < int(record.NumCols()); colIdx++ {

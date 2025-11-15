@@ -21,7 +21,8 @@ const (
 	// DefaultBranch is the default branch for Nessie catalog
 	DefaultBranch = "main"
 	// DefaultErrorChannelBufferSize is the default buffer size for error channels
-	DefaultErrorChannelBufferSize = 10
+	// Increased to 100 to handle high-throughput error scenarios
+	DefaultErrorChannelBufferSize = 100
 )
 
 // IcebergSource implements the core.Source interface for reading from Iceberg tables
@@ -213,8 +214,10 @@ func (s *IcebergSource) parseConfig(config *config.BaseConfig) error {
 	s.secretKey = getCredValue(creds, "secret_key", "prop_s3.secret-access-key")
 
 	// Validate S3 credentials - both access key and secret key should be provided together
+	// Note: Empty credentials are valid for IAM role-based authentication
+	// In such cases, the AWS SDK will automatically use IAM role credentials from the environment
 	if (s.accessKey != "" && s.secretKey == "") || (s.accessKey == "" && s.secretKey != "") {
-		return fmt.Errorf("both S3 access_key and secret_key must be provided together")
+		return fmt.Errorf("both S3 access_key and secret_key must be provided together, or both should be empty for IAM role authentication")
 	}
 
 	// Collect all properties with prop_ prefix
@@ -311,11 +314,14 @@ func (s *IcebergSource) Read(ctx context.Context) (*core.RecordStream, error) {
 	go func() {
 		defer close(recordChan)
 		defer close(errorChan)
-		// NOTE: Do not return recordChan to pool here as it's returned to the caller
-		// The caller is responsible for managing the channel lifecycle
+		defer pool.PutRecordChannel(recordChan)
 
 		if err := s.streamRecords(ctx, recordChan, errorChan); err != nil {
-			errorChan <- err
+			select {
+			case errorChan <- err:
+			default:
+				s.logger.Error("Failed to send error to channel", zap.Error(err))
+			}
 		}
 	}()
 
@@ -345,11 +351,14 @@ func (s *IcebergSource) ReadBatch(ctx context.Context, batchSize int) (*core.Bat
 	go func() {
 		defer close(batchChan)
 		defer close(errorChan)
-		// NOTE: Do not return batchChan to pool here as it's returned to the caller
-		// The caller is responsible for managing the channel lifecycle
+		defer pool.PutBatchChannel(batchChan)
 
 		if err := s.streamBatches(ctx, batchSize, batchChan, errorChan); err != nil {
-			errorChan <- err
+			select {
+			case errorChan <- err:
+			default:
+				s.logger.Error("Failed to send error to channel", zap.Error(err))
+			}
 		}
 	}()
 
@@ -404,6 +413,13 @@ func (s *IcebergSource) Close(ctx context.Context) error {
 	s.isInitialized = false
 	s.logger.Info("Iceberg source closed")
 
+	// Sync logger to flush any buffered log entries
+	if err := s.logger.Sync(); err != nil {
+		// Log sync errors are not critical, just log them
+		// Some systems (like /dev/stderr) return errors on sync
+		s.logger.Debug("Logger sync returned error (may be non-critical)", zap.Error(err))
+	}
+
 	return nil
 }
 
@@ -453,9 +469,19 @@ func (s *IcebergSource) GetState() core.State {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	var snapshotID int64
+	if s.currentSnapshot != nil {
+		snapshotID = s.currentSnapshot.SnapshotID
+	}
+
+	var manifestIndex int
+	if s.manifestReader != nil {
+		manifestIndex = s.manifestReader.currentIndex
+	}
+
 	return core.State{
-		"snapshot_id":     s.currentSnapshot.SnapshotID,
-		"manifest_index":  s.manifestReader.currentIndex,
+		"snapshot_id":     snapshotID,
+		"manifest_index":  manifestIndex,
 		"data_file_index": s.position.DataFileIndex,
 		"row_offset":      s.position.RowOffset,
 		"records_read":    s.recordsRead,
