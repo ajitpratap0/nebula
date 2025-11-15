@@ -5,11 +5,16 @@ import (
 
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
+	sharedIceberg "github.com/ajitpratap0/nebula/pkg/connector/shared/iceberg"
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	icebergGo "github.com/shubham-tomar/iceberg-go"
+	icebergGo "github.com/apache/iceberg-go"
 	"go.uber.org/zap"
 )
+
+// Re-export shared types for backward compatibility
+// Note: CatalogProvider is defined in factory.go for destination-specific interface
+type CatalogConfig = sharedIceberg.CatalogConfig
 
 // BufferConfig contains configurable constants for Arrow buffer sizing
 type BufferConfig struct {
