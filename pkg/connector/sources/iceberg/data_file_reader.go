@@ -13,6 +13,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	// SourceName is the identifier for Iceberg source records
+	SourceName = "iceberg"
+)
+
 // DataFileReader reads Parquet data files from Iceberg tables using table scan
 type DataFileReader struct {
 	table     *table.Table
@@ -151,6 +156,8 @@ func (dfr *DataFileReader) StreamBatches(ctx context.Context, batchSize int, bat
 				case batchChan <- currentBatch:
 					currentBatch = make([]*pool.Record, 0, batchSize)
 				case <-ctx.Done():
+					// Release records in current batch to prevent memory leak
+					dfr.releaseRecordBatch(currentBatch)
 					return ctx.Err()
 				}
 			}
@@ -162,6 +169,8 @@ func (dfr *DataFileReader) StreamBatches(ctx context.Context, batchSize int, bat
 		select {
 		case batchChan <- currentBatch:
 		case <-ctx.Done():
+			// Release records in current batch to prevent memory leak
+			dfr.releaseRecordBatch(currentBatch)
 			return ctx.Err()
 		}
 	}
@@ -182,14 +191,14 @@ func (dfr *DataFileReader) streamArrowRecordToChannel(ctx context.Context, recor
 
 	// Convert each row to a Nebula record and stream it
 	for rowIdx := 0; rowIdx < numRows; rowIdx++ {
-		// Check context cancellation
+		// Check context cancellation before processing
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
 		}
 
-		nebRecord := models.NewRecordFromPool("iceberg")
+		nebRecord := models.NewRecordFromPool(SourceName)
 		nebRecord.SetTimestamp(batchTimestamp)
 
 		// Extract values for each column
@@ -203,10 +212,13 @@ func (dfr *DataFileReader) streamArrowRecordToChannel(ctx context.Context, recor
 			}
 		}
 
-		// Send record to channel
+		// Send record to channel with context cancellation check
 		select {
 		case recordChan <- nebRecord:
+			// Successfully sent
 		case <-ctx.Done():
+			// Release the record we just created if context was cancelled during send
+			nebRecord.Release()
 			return ctx.Err()
 		}
 	}
@@ -215,14 +227,21 @@ func (dfr *DataFileReader) streamArrowRecordToChannel(ctx context.Context, recor
 }
 
 // convertArrowRecordToRecords converts an Arrow record to Nebula records
+// NOTE: This method is used for batch operations where all records from an Arrow batch
+// are converted at once. For better timestamp accuracy, consider using streamArrowRecordToChannel
+// which batches timestamp creation per Arrow record rather than per row.
 func (dfr *DataFileReader) convertArrowRecordToRecords(record arrow.Record, schema *arrow.Schema) ([]*pool.Record, error) {
 	numRows := int(record.NumRows())
 	records := make([]*pool.Record, 0, numRows)
+	
+	// Batch timestamp creation for better performance
+	// All records in this Arrow batch get the same timestamp
+	batchTimestamp := time.Now()
 
 	// Convert each row to a Nebula record
 	for rowIdx := 0; rowIdx < numRows; rowIdx++ {
-		nebRecord := models.NewRecordFromPool("iceberg")
-		nebRecord.SetTimestamp(time.Now())
+		nebRecord := models.NewRecordFromPool(SourceName)
+		nebRecord.SetTimestamp(batchTimestamp)
 
 		// Extract values for each column
 		for colIdx := 0; colIdx < int(record.NumCols()); colIdx++ {
@@ -241,7 +260,16 @@ func (dfr *DataFileReader) convertArrowRecordToRecords(record arrow.Record, sche
 	return records, nil
 }
 
-// convertArrowTableToRecords converts an Arrow table to Nebula records (legacy, not used)
+// convertArrowTableToRecords converts an Arrow table to Nebula records
+// 
+// DEPRECATED: This method is not used and should be removed in a future version.
+// 
+// Issues with this method:
+//   - Concatenates all Arrow chunks into memory, causing potential memory spikes for large tables
+//   - Less efficient than streaming approaches (StreamRecords, StreamBatches)
+//   - Calls time.Now() for each row instead of batching timestamp creation
+//
+// Use StreamRecords() or StreamBatches() instead for better performance and memory efficiency.
 func (dfr *DataFileReader) convertArrowTableToRecords(table arrow.Table) ([]*pool.Record, error) {
 	numRows := int(table.NumRows())
 	records := make([]*pool.Record, 0, numRows)
@@ -275,10 +303,13 @@ func (dfr *DataFileReader) convertArrowTableToRecords(table arrow.Table) ([]*poo
 		}
 	}()
 
+	// Batch timestamp creation for better performance
+	batchTimestamp := time.Now()
+
 	// Convert each row to a record
 	for rowIdx := 0; rowIdx < numRows; rowIdx++ {
-		record := models.NewRecordFromPool("iceberg")
-		record.SetTimestamp(time.Now())
+		record := models.NewRecordFromPool(SourceName)
+		record.SetTimestamp(batchTimestamp)
 
 		// Extract values for each column
 		for colIdx, field := range schema.Fields() {
@@ -299,6 +330,22 @@ func (dfr *DataFileReader) convertArrowTableToRecords(table arrow.Table) ([]*poo
 }
 
 // extractValue extracts a value from an Arrow array at a specific index
+// 
+// Supported Iceberg/Arrow types:
+//   - Primitives: boolean, int32, int64, float32, float64, string
+//   - Temporal: timestamp, date32
+//   - Complex: list, struct
+//
+// TODO: Add support for additional Iceberg types:
+//   - decimal (fixed-point decimal numbers)
+//   - uuid (universally unique identifiers)
+//   - binary (raw byte arrays)
+//   - fixed (fixed-length byte arrays)
+//   - map (key-value pairs)
+//   - time (time without date)
+//
+// For tables using unsupported types, the values will be logged as warnings
+// and returned as nil, which may result in data loss.
 func (dfr *DataFileReader) extractValue(arr arrow.Array, index int) interface{} {
 	if arr.IsNull(index) {
 		return nil
@@ -362,4 +409,13 @@ func (dfr *DataFileReader) extractValue(arr arrow.Array, index int) interface{} 
 	}
 
 	return nil
+}
+
+// releaseRecordBatch releases all records in a batch to prevent memory leaks
+func (dfr *DataFileReader) releaseRecordBatch(batch []*pool.Record) {
+	for _, record := range batch {
+		if record != nil {
+			record.Release()
+		}
+	}
 }

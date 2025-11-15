@@ -9,8 +9,9 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/config"
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	sharedIceberg "github.com/ajitpratap0/nebula/pkg/connector/shared/iceberg"
+	"github.com/ajitpratap0/nebula/pkg/logger"
 	"github.com/ajitpratap0/nebula/pkg/pool"
-	iceberg "github.com/apache/iceberg-go"
+	icebergGo "github.com/apache/iceberg-go"
 	"github.com/apache/iceberg-go/table"
 	"go.uber.org/zap"
 )
@@ -47,7 +48,7 @@ type IcebergSource struct {
 	// Iceberg table metadata
 	table         *table.Table
 	schema        *core.Schema
-	icebergSchema *iceberg.Schema
+	icebergSchema *icebergGo.Schema
 
 	// Snapshot management
 	snapshotManager *SnapshotManager
@@ -76,19 +77,22 @@ type IcebergSource struct {
 }
 
 // NewIcebergSource creates a new Iceberg source connector
+// Uses the shared global logger to avoid creating multiple logger instances
 func NewIcebergSource(config *config.BaseConfig) (core.Source, error) {
 	if config == nil {
 		return nil, fmt.Errorf("configuration cannot be nil")
 	}
 
-	logger, err := zap.NewProduction()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create logger: %w", err)
-	}
+	// Use shared global logger instead of creating new instance
+	// This is more efficient and follows Nebula's logging pattern
+	sharedLogger := logger.Get().With(
+		zap.String("component", "iceberg-source"),
+		zap.String("connector_type", "source"),
+	)
 
 	return &IcebergSource{
 		config:     config,
-		logger:     logger,
+		logger:     sharedLogger,
 		properties: make(map[string]string),
 		position: &IcebergPosition{
 			Metadata: make(map[string]interface{}),
@@ -306,9 +310,11 @@ func (s *IcebergSource) Read(ctx context.Context) (*core.RecordStream, error) {
 		s.mu.RUnlock()
 		return nil, fmt.Errorf("source not initialized")
 	}
+	// Copy config values while holding the lock to prevent race conditions
+	bufferSize := s.config.Performance.BufferSize
 	s.mu.RUnlock()
 
-	recordChan := pool.GetRecordChannel(s.config.Performance.BufferSize)
+	recordChan := pool.GetRecordChannel(bufferSize)
 	errorChan := make(chan error, DefaultErrorChannelBufferSize)
 
 	go func() {
@@ -338,6 +344,8 @@ func (s *IcebergSource) ReadBatch(ctx context.Context, batchSize int) (*core.Bat
 		s.mu.RUnlock()
 		return nil, fmt.Errorf("source not initialized")
 	}
+	// Copy config values while holding the lock to prevent race conditions
+	configuredBatchSize := s.readBatchSize
 	s.mu.RUnlock()
 
 	batchChan := pool.GetBatchChannel()
@@ -345,7 +353,7 @@ func (s *IcebergSource) ReadBatch(ctx context.Context, batchSize int) (*core.Bat
 
 	// Use configured batch size if not specified
 	if batchSize <= 0 {
-		batchSize = s.readBatchSize
+		batchSize = configuredBatchSize
 	}
 
 	go func() {
@@ -413,12 +421,9 @@ func (s *IcebergSource) Close(ctx context.Context) error {
 	s.isInitialized = false
 	s.logger.Info("Iceberg source closed")
 
-	// Sync logger to flush any buffered log entries
-	if err := s.logger.Sync(); err != nil {
-		// Log sync errors are not critical, just log them
-		// Some systems (like /dev/stderr) return errors on sync
-		s.logger.Debug("Logger sync returned error (may be non-critical)", zap.Error(err))
-	}
+	// NOTE: We don't sync the logger here because we're using a shared global logger.
+	// The logger will be synced when the application shuts down via defer logger.Sync()
+	// in the main function. Syncing here could interfere with other active connectors.
 
 	return nil
 }
@@ -501,7 +506,9 @@ func (s *IcebergSource) SetState(state core.State) error {
 	}
 
 	if manifestIdx, ok := state["manifest_index"].(int); ok {
-		s.manifestReader.currentIndex = manifestIdx
+		if s.manifestReader != nil {
+			s.manifestReader.currentIndex = manifestIdx
+		}
 	}
 
 	if dataFileIdx, ok := state["data_file_index"].(int); ok {
