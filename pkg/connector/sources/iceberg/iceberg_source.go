@@ -3,6 +3,7 @@ package iceberg
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -69,8 +70,9 @@ type IcebergSource struct {
 	mu sync.RWMutex
 
 	// Configuration
-	config        *config.BaseConfig
-	readBatchSize int
+	config                *config.BaseConfig
+	readBatchSize         int
+	errorChannelBufferSize int
 
 	// Logger
 	logger *zap.Logger
@@ -91,9 +93,10 @@ func NewIcebergSource(config *config.BaseConfig) (core.Source, error) {
 	)
 
 	return &IcebergSource{
-		config:     config,
-		logger:     sharedLogger,
-		properties: make(map[string]string),
+		config:                 config,
+		logger:                 sharedLogger,
+		properties:             make(map[string]string),
+		errorChannelBufferSize: DefaultErrorChannelBufferSize,
 		position: &IcebergPosition{
 			Metadata: make(map[string]interface{}),
 		},
@@ -173,6 +176,9 @@ func (s *IcebergSource) Initialize(ctx context.Context, config *config.BaseConfi
 
 // parseConfig parses Iceberg-specific configuration from BaseConfig
 func (s *IcebergSource) parseConfig(config *config.BaseConfig) error {
+	// Store config reference for later use
+	s.config = config
+	
 	creds := config.Security.Credentials
 	if creds == nil {
 		return fmt.Errorf("missing security credentials")
@@ -234,9 +240,20 @@ func (s *IcebergSource) parseConfig(config *config.BaseConfig) error {
 	}
 
 	// Performance configuration
-	s.readBatchSize = config.Performance.BatchSize
-	if s.readBatchSize <= 0 {
+	// Set default batch size if not configured
+	if s.config.Performance.BatchSize == 0 {
 		s.readBatchSize = DefaultBatchSize
+	} else {
+		s.readBatchSize = s.config.Performance.BatchSize
+	}
+
+	// Configure error channel buffer size from credentials if provided
+	if errorBufStr := getCredValue(creds, "error_channel_buffer_size"); errorBufStr != "" {
+		if errorBuf, err := strconv.Atoi(errorBufStr); err == nil && errorBuf > 0 {
+			s.errorChannelBufferSize = errorBuf
+			s.logger.Info("Using custom error channel buffer size",
+				zap.Int("buffer_size", errorBuf))
+		}
 	}
 
 	return nil
@@ -304,18 +321,23 @@ func (s *IcebergSource) Discover(ctx context.Context) (*core.Schema, error) {
 }
 
 // Read streams individual records from the Iceberg table
+// 
+// The consumer (pipeline) is responsible for releasing records obtained from the channel.
+// If the consumer stops processing before all records are consumed, unreleased records
+// will remain in memory until the channel is drained or garbage collected.
 func (s *IcebergSource) Read(ctx context.Context) (*core.RecordStream, error) {
 	s.mu.RLock()
 	if !s.isInitialized {
 		s.mu.RUnlock()
 		return nil, fmt.Errorf("source not initialized")
 	}
-	// Copy config values while holding the lock to prevent race conditions
+	// Copy all needed values while holding the lock to prevent race conditions
 	bufferSize := s.config.Performance.BufferSize
+	errorBufSize := s.errorChannelBufferSize
 	s.mu.RUnlock()
 
 	recordChan := pool.GetRecordChannel(bufferSize)
-	errorChan := make(chan error, DefaultErrorChannelBufferSize)
+	errorChan := make(chan error, errorBufSize)
 
 	go func() {
 		defer close(recordChan)
@@ -337,24 +359,27 @@ func (s *IcebergSource) Read(ctx context.Context) (*core.RecordStream, error) {
 	}, nil
 }
 
-// ReadBatch reads records in batches from the Iceberg table
+// ReadBatch streams batches of records from the Iceberg table
+// 
+// The consumer (pipeline) is responsible for releasing records in each batch.
+// If the consumer stops processing before all batches are consumed, unreleased records
+// will remain in memory until the channel is drained or garbage collected.
 func (s *IcebergSource) ReadBatch(ctx context.Context, batchSize int) (*core.BatchStream, error) {
 	s.mu.RLock()
 	if !s.isInitialized {
 		s.mu.RUnlock()
 		return nil, fmt.Errorf("source not initialized")
 	}
-	// Copy config values while holding the lock to prevent race conditions
-	configuredBatchSize := s.readBatchSize
+	// Copy all needed values while holding the lock to prevent race conditions
+	// Use provided batchSize if non-zero, otherwise use configured default
+	if batchSize <= 0 {
+		batchSize = s.readBatchSize
+	}
+	errorBufSize := s.errorChannelBufferSize
 	s.mu.RUnlock()
 
 	batchChan := pool.GetBatchChannel()
-	errorChan := make(chan error, DefaultErrorChannelBufferSize)
-
-	// Use configured batch size if not specified
-	if batchSize <= 0 {
-		batchSize = configuredBatchSize
-	}
+	errorChan := make(chan error, errorBufSize)
 
 	go func() {
 		defer close(batchChan)
