@@ -8,9 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Iceberg Source Connector**: Production-ready Apache Iceberg source with Nessie catalog support
+  - Table scanning with Arrow/Parquet readers
+  - S3/MinIO storage backend support
+  - Streaming and batch read modes
+  - Snapshot-based incremental reads
+  - Configurable error channel buffer size
 - Initial public release preparation
 - Comprehensive documentation suite
 - Contributing guidelines and community standards
+
+### Fixed
+- **Memory Leak Prevention**: Channel draining before returning to pool in Iceberg source
+  - Prevents unreleased records when consumer stops early
+  - Applies to both Read() and ReadBatch() methods
+- **Race Condition Mitigation**: Added context checks in goroutines for defensive programming
+- **Concurrent Access Safety**: Proper lock handling for config value copying
 
 ## [0.3.0] - 2025-01-14
 

@@ -340,9 +340,21 @@ func (s *IcebergSource) Read(ctx context.Context) (*core.RecordStream, error) {
 	errorChan := make(chan error, errorBufSize)
 
 	go func() {
-		defer close(recordChan)
 		defer close(errorChan)
-		defer pool.PutRecordChannel(recordChan)
+		defer close(recordChan)
+		defer func() {
+			// Drain any remaining records before returning channel to pool
+			// This prevents memory leaks if consumer stops early
+			for record := range recordChan {
+				record.Release()
+			}
+			pool.PutRecordChannel(recordChan)
+		}()
+
+		// Check context before starting work (defensive against Close() race)
+		if ctx.Err() != nil {
+			return
+		}
 
 		if err := s.streamRecords(ctx, recordChan, errorChan); err != nil {
 			select {
@@ -382,9 +394,23 @@ func (s *IcebergSource) ReadBatch(ctx context.Context, batchSize int) (*core.Bat
 	errorChan := make(chan error, errorBufSize)
 
 	go func() {
-		defer close(batchChan)
 		defer close(errorChan)
-		defer pool.PutBatchChannel(batchChan)
+		defer close(batchChan)
+		defer func() {
+			// Drain any remaining batches before returning channel to pool
+			// This prevents memory leaks if consumer stops early
+			for batch := range batchChan {
+				for _, record := range batch {
+					record.Release()
+				}
+			}
+			pool.PutBatchChannel(batchChan)
+		}()
+
+		// Check context before starting work (defensive against Close() race)
+		if ctx.Err() != nil {
+			return
+		}
 
 		if err := s.streamBatches(ctx, batchSize, batchChan, errorChan); err != nil {
 			select {
