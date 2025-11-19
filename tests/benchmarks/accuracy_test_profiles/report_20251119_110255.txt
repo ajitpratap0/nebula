@@ -1,0 +1,25 @@
+Nebula Performance Profile Report
+=================================
+
+Duration: 215.424167ms
+CPU Count: 14
+GOMAXPROCS: 14
+
+Memory Statistics:
+-----------------
+Current Allocated: 27.59 MB
+Total Allocated: 1146.93 MB
+System Memory: 133.79 MB
+GC Runs: 42
+GC Pause Total: 9.961082ms
+GC Pause Last: 245.791µs
+
+Goroutine Statistics:
+--------------------
+Current Goroutines: 10
+
+Performance Analysis:
+--------------------
+Memory Growth: 17592186044390.90 MB
+Goroutine Growth: -25
+GC Pause Growth: 0.80 ms

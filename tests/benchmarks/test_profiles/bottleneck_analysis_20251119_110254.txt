@@ -1,0 +1,30 @@
+Nebula Performance Bottleneck Analysis
+=====================================
+
+Timestamp: 2025-11-19T11:02:54+05:30
+Summary: Found 1 bottlenecks: 1 critical, 
+Primary bottleneck: Memory growing at 21.65 MB/s - potential memory leak (memory)
+
+Bottlenecks:
+-----------
+
+1. [CRITICAL] Memory growing at 21.65 MB/s - potential memory leak
+   Type: memory
+   Component: memory_allocator
+   Impact: 216.5%
+   Suggestions:
+   - Profile heap allocations to identify leak source
+   - Check for unbounded data structures
+   - Ensure proper cleanup of resources
+   - Use object pools for frequently allocated objects
+   Details:
+   - growth_rate_mb_per_s: 21.650305952121922
+   - total_growth_mb: 6.4944305419921875
+   - duration: 299.969458ms
+
+Prioritized Recommendations:
+---------------------------
+1. Profile heap allocations to identify leak source
+2. Check for unbounded data structures
+3. Ensure proper cleanup of resources
+4. Use object pools for frequently allocated objects
