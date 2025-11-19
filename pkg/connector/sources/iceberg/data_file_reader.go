@@ -185,7 +185,7 @@ func (dfr *DataFileReader) StreamBatches(ctx context.Context, batchSize int, bat
 // streamArrowRecordToChannel converts Arrow record to Nebula records and sends them to channel
 func (dfr *DataFileReader) streamArrowRecordToChannel(ctx context.Context, record arrow.Record, schema *arrow.Schema, recordChan chan<- *pool.Record) error {
 	numRows := int(record.NumRows())
-	
+
 	// Batch timestamp creation for better performance
 	batchTimestamp := time.Now()
 
@@ -233,7 +233,7 @@ func (dfr *DataFileReader) streamArrowRecordToChannel(ctx context.Context, recor
 func (dfr *DataFileReader) convertArrowRecordToRecords(record arrow.Record, schema *arrow.Schema) ([]*pool.Record, error) {
 	numRows := int(record.NumRows())
 	records := make([]*pool.Record, 0, numRows)
-	
+
 	// Batch timestamp creation for better performance
 	// All records in this Arrow batch get the same timestamp
 	batchTimestamp := time.Now()
@@ -261,7 +261,7 @@ func (dfr *DataFileReader) convertArrowRecordToRecords(record arrow.Record, sche
 }
 
 // extractValue extracts a value from an Arrow array at a specific index
-// 
+//
 // Supported Iceberg/Arrow types:
 //   - Primitives: boolean, int32, int64, float32, float64, string
 //   - Temporal: timestamp, date32
@@ -305,16 +305,29 @@ func (dfr *DataFileReader) extractValue(arr arrow.Array, index int) interface{} 
 		// Convert timestamp to time.Time
 		ts := a.Value(index)
 		tsType := a.DataType().(*arrow.TimestampType)
+
+		var t time.Time
 		switch tsType.Unit {
 		case arrow.Second:
-			return time.Unix(int64(ts), 0).UTC()
+			t = time.Unix(int64(ts), 0)
 		case arrow.Millisecond:
-			return time.Unix(0, int64(ts)*1e6).UTC()
+			t = time.Unix(0, int64(ts)*1e6)
 		case arrow.Microsecond:
-			return time.Unix(0, int64(ts)*1e3).UTC()
+			t = time.Unix(0, int64(ts)*1e3)
 		case arrow.Nanosecond:
-			return time.Unix(0, int64(ts)).UTC()
+			t = time.Unix(0, int64(ts))
 		}
+
+		// Apply timezone if present
+		if tsType.TimeZone != "" {
+			if loc, err := time.LoadLocation(tsType.TimeZone); err == nil {
+				return t.In(loc)
+			}
+			// If loading location fails, fallback to UTC but log warning?
+			// For now, just return UTC as that's safe default or maybe keep original behavior
+			return t.UTC()
+		}
+		return t.UTC()
 	case *array.List:
 		// Convert list to slice
 		start, end := a.ValueOffsets(index)
@@ -338,8 +351,6 @@ func (dfr *DataFileReader) extractValue(arr arrow.Array, index int) interface{} 
 			zap.String("type", fmt.Sprintf("%T", arr)))
 		return nil
 	}
-
-	return nil
 }
 
 // releaseRecordBatch releases all records in a batch to prevent memory leaks

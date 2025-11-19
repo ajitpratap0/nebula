@@ -23,7 +23,8 @@ const (
 	// DefaultBranch is the default branch for Nessie catalog
 	DefaultBranch = "main"
 	// DefaultErrorChannelBufferSize is the default buffer size for error channels
-	// Increased to 100 to handle high-throughput error scenarios
+	// Increased to 100 to handle high-throughput error scenarios.
+	// This can be configured via "error_channel_buffer_size" in credentials.
 	DefaultErrorChannelBufferSize = 100
 )
 
@@ -70,8 +71,8 @@ type IcebergSource struct {
 	mu sync.RWMutex
 
 	// Configuration
-	config                *config.BaseConfig
-	readBatchSize         int
+	config                 *config.BaseConfig
+	readBatchSize          int
 	errorChannelBufferSize int
 
 	// Logger
@@ -178,7 +179,7 @@ func (s *IcebergSource) Initialize(ctx context.Context, config *config.BaseConfi
 func (s *IcebergSource) parseConfig(config *config.BaseConfig) error {
 	// Store config reference for later use
 	s.config = config
-	
+
 	creds := config.Security.Credentials
 	if creds == nil {
 		return fmt.Errorf("missing security credentials")
@@ -321,7 +322,7 @@ func (s *IcebergSource) Discover(ctx context.Context) (*core.Schema, error) {
 }
 
 // Read streams individual records from the Iceberg table
-// 
+//
 // The consumer (pipeline) is responsible for releasing records obtained from the channel.
 // If the consumer stops processing before all records are consumed, unreleased records
 // will remain in memory until the channel is drained or garbage collected.
@@ -340,16 +341,17 @@ func (s *IcebergSource) Read(ctx context.Context) (*core.RecordStream, error) {
 	errorChan := make(chan error, errorBufSize)
 
 	go func() {
-		defer close(errorChan)
-		defer close(recordChan)
 		defer func() {
 			// Drain any remaining records before returning channel to pool
 			// This prevents memory leaks if consumer stops early
+			// Note: We must close the channel first so the range loop terminates
+			close(recordChan)
 			for record := range recordChan {
 				record.Release()
 			}
 			pool.PutRecordChannel(recordChan)
 		}()
+		defer close(errorChan)
 
 		// Check context before starting work (defensive against Close() race)
 		if ctx.Err() != nil {
@@ -372,7 +374,7 @@ func (s *IcebergSource) Read(ctx context.Context) (*core.RecordStream, error) {
 }
 
 // ReadBatch streams batches of records from the Iceberg table
-// 
+//
 // The consumer (pipeline) is responsible for releasing records in each batch.
 // If the consumer stops processing before all batches are consumed, unreleased records
 // will remain in memory until the channel is drained or garbage collected.
@@ -394,11 +396,11 @@ func (s *IcebergSource) ReadBatch(ctx context.Context, batchSize int) (*core.Bat
 	errorChan := make(chan error, errorBufSize)
 
 	go func() {
-		defer close(errorChan)
-		defer close(batchChan)
 		defer func() {
 			// Drain any remaining batches before returning channel to pool
 			// This prevents memory leaks if consumer stops early
+			// Note: We must close the channel first so the range loop terminates
+			close(batchChan)
 			for batch := range batchChan {
 				for _, record := range batch {
 					record.Release()
@@ -406,6 +408,7 @@ func (s *IcebergSource) ReadBatch(ctx context.Context, batchSize int) (*core.Bat
 			}
 			pool.PutBatchChannel(batchChan)
 		}()
+		defer close(errorChan)
 
 		// Check context before starting work (defensive against Close() race)
 		if ctx.Err() != nil {
@@ -517,6 +520,15 @@ func (s *IcebergSource) SetPosition(position core.Position) error {
 	defer s.mu.Unlock()
 
 	s.position = icebergPos
+
+	// Validate snapshot ID if current snapshot is available
+	if s.currentSnapshot != nil && icebergPos.SnapshotID != 0 && icebergPos.SnapshotID != s.currentSnapshot.SnapshotID {
+		s.logger.Warn("Position snapshot ID does not match current snapshot",
+			zap.Int64("position_snapshot_id", icebergPos.SnapshotID),
+			zap.Int64("current_snapshot_id", s.currentSnapshot.SnapshotID))
+		// We don't error here because it might be a valid case of reading from an older snapshot
+		// but we should log it.
+	}
 	return nil
 }
 
