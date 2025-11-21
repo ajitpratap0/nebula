@@ -73,6 +73,7 @@ import (
 	"github.com/ajitpratap0/nebula/pkg/connector/core"
 	"github.com/ajitpratap0/nebula/pkg/models"
 	nerrors "github.com/ajitpratap0/nebula/pkg/nebulaerrors"
+	"github.com/ajitpratap0/nebula/pkg/pool"
 	stringpool "github.com/ajitpratap0/nebula/pkg/strings"
 	"go.uber.org/zap"
 )
@@ -255,6 +256,9 @@ func (d *CSVDestination) Write(ctx context.Context, stream *core.RecordStream) e
 			d.ReportProgress(d.recordsWritten, -1) // -1 = unknown total
 			d.RecordMetric("records_written", 1, core.MetricTypeCounter)
 
+			// Release record back to pool
+			record.Release()
+
 		case err := <-stream.Errors:
 			if err != nil {
 				return nerrors.Wrap(err, nerrors.ErrorTypeData, "error in record stream")
@@ -311,6 +315,11 @@ func (d *CSVDestination) WriteBatch(ctx context.Context, stream *core.BatchStrea
 			d.ReportProgress(d.recordsWritten, -1) // -1 = unknown total
 			d.RecordMetric("batches_written", 1, core.MetricTypeCounter)
 			d.RecordMetric("records_in_batch", len(batch), core.MetricTypeGauge)
+
+			// Release all records in batch
+			for _, record := range batch {
+				record.Release()
+			}
 
 		case err := <-stream.Errors:
 			if err != nil {
@@ -657,13 +666,25 @@ func (d *CSVDestination) recordToRow(record *models.Record) []string {
 	copy(headers, d.headers)
 	d.headersMutex.Unlock()
 
-	row := make([]string, len(headers))
+	// Use pooled string slice to reduce allocations
+	row := pool.GetStringSlice()
+	// Ensure capacity
+	if cap(row) < len(headers) {
+		pool.PutStringSlice(row)
+		row = make([]string, len(headers))
+	} else {
+		row = row[:len(headers)]
+	}
 
 	for i, header := range headers {
 		if record.Data != nil {
 			if value, ok := record.Data[header]; ok {
 				row[i] = stringpool.ValueToString(value)
+			} else {
+				row[i] = "" // Ensure empty string for missing values
 			}
+		} else {
+			row[i] = ""
 		}
 	}
 

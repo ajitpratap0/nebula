@@ -309,6 +309,21 @@ func (p *SimplePipeline) transformWorker(ctx context.Context, id int, in <-chan 
 					p.mu.Lock()
 					p.recordsFailed++
 					p.mu.Unlock()
+					// Release the record as it failed processing
+					if transformed != nil {
+						transformed.Release()
+					}
+					transformed = nil
+					break
+				}
+				// If transform returned nil (filtered out), release the previous record if it wasn't nil
+				// Note: The transform itself might have released it, but we need to be sure.
+				// However, the contract usually implies if nil is returned, the record is gone.
+				// But if we are just chaining, we need to handle the nil case to avoid panic in next iteration.
+				if result == nil {
+					if transformed != nil {
+						transformed.Release()
+					}
 					transformed = nil
 					break
 				}
@@ -539,6 +554,8 @@ func FieldMapperTransform(mapping map[string]string) Transform {
 			}
 		}
 
+		// Release old map back to pool
+		pool.PutMap(record.Data)
 		record.Data = newData
 		return record, nil
 	}

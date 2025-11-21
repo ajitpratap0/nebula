@@ -1,24 +1,6 @@
 {
-  "name": "iceberg-writer",
+  "name": "iceberg_source",
   "type": "iceberg",
-  "version": "1.0",
-  "performance": {
-    "batch_size": 1000,
-    "workers": 4,
-    "enable_streaming": true
-  },
-  "timeouts": {
-    "request": 30000000000,
-    "connection": 10000000000
-  },
-  "reliability": {
-    "max_retries": 3,
-    "retry_delay": 1000000000
-  },
-  "observability": {
-    "metrics_enabled": true,
-    "logging_enabled": true
-  },
   "security": {
     "credentials": {
       "catalog_type": "nessie",
@@ -35,10 +17,14 @@
       "prop_s3.path-style-access": "true"
     }
   },
-  "write": {
-    "format": "parquet",
-    "compression": "snappy",
-    "batch_size": 1000,
-    "target_file_size_mb": 64
+  "performance": {
+    "batch_size": 10000,
+    "workers": 4,
+    "buffer_size": 1000,
+    "max_concurrency": 8
+  },
+  "timeouts": {
+    "request": 30000000000,
+    "connection": 10000000000
   }
 }
