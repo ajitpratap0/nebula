@@ -28,7 +28,7 @@ require (
 	github.com/snowflakedb/gosnowflake v1.14.1
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.11.1
-	go.mongodb.org/mongo-driver v1.17.4
+	go.mongodb.org/mongo-driver v1.17.6
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.36.0
 	go.opentelemetry.io/otel/metric v1.38.0
