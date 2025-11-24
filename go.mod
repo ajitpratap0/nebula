@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	cloud.google.com/go/bigquery v1.69.0
-	cloud.google.com/go/storage v1.57.0
+	cloud.google.com/go/storage v1.57.2
 	github.com/IBM/sarama v1.45.2
 	github.com/apache/arrow-go/v18 v18.4.1
 	// github.com/shubham-tomar/iceberg-go v0.2.1
